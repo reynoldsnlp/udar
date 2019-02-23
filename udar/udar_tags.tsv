@@ -1,0 +1,137 @@
++A	Adjective
++Abbr	Abbreviation
++Adv	Adverb
++CC	Coordinating conjunction
++CS	Subordinating conjunction
++Det	Determiner
++Interj	Interjection
++N	Noun
++Num	Numeral
++Paren	Parenthetical вводное слово
++Pcle	Particle
++Po	Postposition (ради is the only postposition)
++Pr	Preposition
++Pron	Pronoun
++V	Verb
++All	All: весь
++Coll	Collective numerals
++Def	Definite
++Dem	Demonstrative
++Indef	Indefinite: кто-то, кто-нибудь, кто-либо, кое-кто, etc.
++Interr	Interrogative: кто, что, какой, ли, etc.
++Neg	Negative: никто, некого, etc.
++Pers	Personal
++Pos	Possessive, e.g. его, наш
++Prcnt	Percent
++Prop	Proper
++Recip	Reciprocal: друг друга
++Refl	Pronoun себя, possessive свой
++Rel	Relativizer, e.g. который, где, как, куда, сколько, etc.
++Impf	Imperfective
++Perf	Perfective
++IV	Intransitive
++TV	Transitive (Zaliznjak does not mark trans-only, so transitive verbs all have both TV and IV)
++Inf	Infinitive
++Imp	Imperatives: 2nd person = читай, 1st person = прочитаем
++Pst	Past
++Prs	Present
++Fut	Future
++Sg1	1 person sg
++Sg2	2 person sg
++Sg3	3 person sg
++Pl1	1 person pl
++Pl2	2 person pl
++Pl3	3 person pl
++PrsAct	Present active participle (+PrsAct+Adv for verbal adverbs)
++PrsPss	Present passive participle (+PstAct+Adv for the verbal adverbs)
++PstAct	Past active participle
++PstPss	Past passive participle
++Pass	Passive
++Imprs	Impersonal (cannot have explicit subject)
++Lxc	Lexicalized (for participial forms)
++Der	Derived (for participial forms)
++Der/PrsAct	Derived (for participial forms)
++Der/PrsPss	Derived (for participial forms)
++Der/PstAct	Derived (for participial forms)
++Der/PstPss	Derived (for participial forms)
++Msc	Masculine gender
++Neu	Neuter gender
++Fem	Feminine gender
++MFN	gender unspecifiable (pl tantum)
++Inan	Inanimate
++Anim	Animate
++AnIn	ambivalent animacy for non-accusative modifiers
++Sem/Sur	Surname (фамилия)
++Sem/Pat	Patronymic
++Sem/Ant	Anthroponym/Given name
++Sem/Alt	Other name
++Sg	Singular
++Pl	Plural
++Nom	Nominative case
++Acc	Accusative case
++Gen	Genitive case
++Gen2	Genitive 2 case
++Loc	Prepositional case
++Loc2	Locative case (на полу, в снегу)
++Dat	Dative case
++Ins	Instrumental case
++Voc	Vocative case
++Count	Count (for человек/людей or лет/годов, etc. also шага́/шара́/часа́/etc.)
++Ord	Ordinal
++Cmpar	Comparative
++Sint	Synthetic comparative is possible, e.g. старее
++Pred	"Predicate", also used for short-form adjectives
++Cmpnd	"Compound", used for compounding adjectives, such as русско-английский
++Att	Attenuative comparatives like получше, поновее, etc.
++SENT	Clause boundary
++COMMA	Comma
++DASH	Dash
++LQUOT	Left quotation
++RQUOT	Right quotation
++QUOT	'Ambidextrous' quotation
++LPAR	Left parenthesis/bracket
++RPAR	Right parenthesis/bracket
++Prb	+Prb(lematic): затруднительно - предположительно - нет
++Fac	Facultative
++PObj	Object of preposition (epenthetic н: него нее них) TODO FIX WITHFRAN merge PObj and Epenth > Epenth? Sandhi?
++Epenth	epenthesis on prepositions (о~об~обо or в~во)      TODO FIX WITHFRAN merge PObj and Epenth > Epenth? Sandhi?
++Leng	Lengthened доброй~доброю (marks less-canonical wordform that has more syllables)
++Elid	Elided (Иванович~Иваныч, новее~новей, чтобы~чтоб, или~иль, коли~коль)
++Use/NG	Do not generate (used for apertium, etc.)
++Use/Obs	Obsolete
++Use/Ant	Antiquated "устаревшее"
++Err/Orth	Substandard
++Err/L2_ii	L2 error: Failure to change ending ие to ии in +Sg+Loc or +Sg+Dat, e.g. к Марие, о кафетерие, о знание
++Err/L2_Pal	L2 error: Palatalization: failure to place soft-indicating symbol after soft stem, e.g. земла (compare земля)
++Err/L2_FV	L2 error: Presence of fleeting vowel where it should be deleted, e.g. отеца (compare отца)
++Err/L2_NoFV	L2 error: Lack of fleeting vowel where it should be inserted, e.g. окн (compare окон)
++Err/L2_SRo	L2 error: Failure to change о to е after hushers and ц, e.g. Сашой (compare Сашей)
++Err/L2_SRy	L2 error: Failure to change ы to и after hushers and velars, e.g. книгы (compare книги)
++Use/Aff	Affectionate  ласкательное
++Use/Lit	Literary  литературное
++Use/Flk	folk poetry  народнопоэтическое
++Use/Dia	Dialectal  областное
++Use/Poet	Poetic  поэтический
++Use/Prof	Professional   профессиональо
++Use/Anc	Ancient   старинное
++Use/Aug	Augmentative  увеличительное
++Use/Dim	Diminutive  уменьшительное
++Use/Old	Old (going out of date)  устаревающее
++Use/Anat	Anatomical
++Use/Bio	Biological
++Use/Bot	Botanical
++Use/Geo	Geological
++Use/Gram	Grammatical
++Use/Zoo	Zoological
++Use/Hist	Historical
++Use/Math	Mathematical
++Use/Med	Medical
++Use/Mus	Musical
++Use/Agr	Agricultural
++Use/Tech	Technical
++Use/Chem	Chemical
++Use/Relig	Church
++Use/Law	Law
++Use/Mari	Maritime
++PUNCT	Punctuation
++CLB	Clause boundary
