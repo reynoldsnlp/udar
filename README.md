@@ -1,6 +1,6 @@
 # UDAR(enie)
 
-*U*DAR *D*oes *A*ccented *R*ussian: A finite-state morphological analyzer of
+**U**DAR **D**oes **A**ccented **R**ussian: A finite-state morphological analyzer of
 Russian that handles stressed wordforms.
 
 A python wrapper for the Russian finite-state transducer described originally
