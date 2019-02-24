@@ -129,7 +129,7 @@ class Udar:
 
     Example:
     >>> fst = Udar('accented-generator')
-    >>> fst.lookup('слово+N+Nom+Sg+Gen')
+    >>> fst.generate('слово+N+Nom+Sg+Gen')
     сло́ва
     """
     def __init__(self, flavor):
@@ -154,9 +154,11 @@ class Udar:
         self.fst = fst_stream.read()
         assert fst_stream.is_eof()  # be sure the hfstol file only had one fst
 
-    def generate(self, tok):
-        """Return str from a give lemma+Reading."""
-        return self.fst.lookup(tok)
+    def generate(self, reading):
+        """Return str from a given lemma+Reading."""
+        if isinstance(reading, Reading):
+            reading = reading.noL2_str()
+        return self.fst.lookup(reading)[0][0]
 
     def lookup(self, tok):
         """Return Token with all readings."""
