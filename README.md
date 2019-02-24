@@ -10,7 +10,7 @@ in chapter 2 of [my dissertation](http://hdl.handle.net/10037/9685).
 
 For now, `udar` can be installed directly from this repository using `pip`:
 
-```
+```bash
 $ python3 -m pip install --user git+https://github.com/reynoldsnlp/udar
 ```
 
