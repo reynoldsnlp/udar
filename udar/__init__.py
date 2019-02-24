@@ -129,7 +129,7 @@ class Udar:
 
     Example:
     >>> fst = Udar('accented-generator')
-    >>> fst.generate('слово+N+Nom+Sg+Gen')
+    >>> fst.generate('слово+N+Neu+Inan+Sg+Gen')
     сло́ва
     """
     def __init__(self, flavor):
@@ -266,6 +266,7 @@ if __name__ == '__main__':
     toks = ['слово', 'земла', 'Работа']
     fst = Udar('L2-analyzer')
     init_accented_generator()
+    print(acc_generator.generate('слово+N+Neu+Inan+Sg+Gen'))
     for i in toks:
         t = fst.lookup(i)
         for r in t.readings:
