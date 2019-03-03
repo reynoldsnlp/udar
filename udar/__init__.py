@@ -1,5 +1,6 @@
 """Python wrapper of UDAR, a part-of-speech tagger for (accented) Russian"""
 
+from collections import defaultdict
 from pathlib import Path
 from random import choice
 from random import shuffle
@@ -17,8 +18,8 @@ class Tag:
     def __init__(self, name, *other):
         self.name = name
         self.other = other
-        self.L2 = name.startswith('Err/L2')
-        self.Err = name.startswith('Err/L2')
+        self.is_L2 = name.startswith('Err/L2')
+        self.is_Err = name.startswith('Err')
 
     def __hash__(self):
         return hash(self.name)
@@ -26,8 +27,8 @@ class Tag:
     def __repr__(self):
         return f'{self.name}'
 
-    def help(self):
-        return self.other  # print instead of return?
+    def info(self):
+        return self.other
 
 
 _tag_dict = {}
@@ -51,7 +52,7 @@ class Reading:
         self.lemma, *self.tags = r.split('+')  # TODO make `+` more robust?
         self.tags = [_tag_dict[t] for t in self.tags]
         self.tagset = set(self.tags)
-        self.L2 = any(tag.L2 for tag in self.tags)
+        self.L2_tags = {tag for tag in self.tags if tag.is_L2}
 
     def __contains__(self, key):
         return key in self.tagset or _tag_dict[key] in self.tagset
@@ -63,14 +64,14 @@ class Reading:
         return f'{self.lemma}+{"+".join(t.name for t in self.tags)}'
 
     def noL2_str(self):
-        return f'{self.lemma}+{"+".join(t.name for t in self.tags if not t.L2)}'
+        return f'{self.lemma}+{"+".join(t.name for t in self.tags if not t.is_L2)}'
 
     def generate(self, fst=None):
         if not fst:
             init_generator()
             fst = generator
         try:
-            return fst.generate(self.noL2_str())[0][0]
+            return fst.generate(self.noL2_str())
         except IndexError:
             print('ERROR Failed to generate: '
                   f'{self} {self.noL2_str()} {fst.generate(self.noL2_str())}')
@@ -92,11 +93,11 @@ class Token:
 
     def is_L2(self):
         """Return True if ALL readings contain an L2 error tag."""
-        return all(r.L2 for r in self.readings)
+        return all(r.L2_tags for r in self.readings)
 
     def has_L2(self):
         """Return True if ANY readings contain an L2 error tag."""
-        return any(r.L2 for r in self.readings)
+        return any(r.L2_tags for r in self.readings)
 
     def cap_indices(self):
         """Indices of capitalized characters in original token."""
@@ -196,38 +197,46 @@ def stressify(text, safe=True, CG=False):
     # process text
     out_text = []
     for tok in tokenize(text):
-        # print('stressify:', tok, type(tok), flush=True)
         tok = analyzer.lookup(tok)
         stresses = tok2stress(tok)
         if len(stresses) == 1:
             out_text.append(stresses.pop())
-            # print(1, flush=True)
         elif len(stresses) == 0:
-            # print(0, flush=True)
             raise ValueError(f'{tok} is not found.')
         else:
-            # print('+', flush=True)
             if safe:
                 out_text.append(tok.orig)
             else:
                 out_text.append(choice(list(stresses)))
-    # print(out_text)
     return unspace_punct(' '.join(out_text))
 
 
 def tok2stress(tok):
     """Return set of all surface forms from a token's readings."""
     init_accented_generator()
-    # print('tok2stress:', tok, flush=True)
-    # print('tok2stress:', [str(r) for r in tok.readings], flush=True)
     stresses = {tok.recase(r.generate(acc_generator)) for r in tok.readings}
-    # print('tok2stress:', stresses, flush=True)
     return stresses
 
 
 def unspace_punct(in_str):
-    # print(in_str)
-    return re.sub(r'\s+([.?!;:])', r'\1', in_str)
+    """Attempt to remove spaces before punctuation."""
+    return re.sub(r' +([.?!;:])', r'\1', in_str)
+
+
+def diagnose_L2(text):
+    """Analyze running text for L2 errors.
+
+    Return dict of errors: {<Tag>: {set, of, exemplars, in, text}, ...}
+    """
+    out_dict = defaultdict(set)
+    init_L2_analyzer()
+    for tok_str in tokenize(text):
+        tok = L2_analyzer.lookup(tok_str)
+        if tok.is_L2():
+            for r in tok.readings:
+                for tag in r.L2_tags:
+                    out_dict[tag].add(tok.orig)
+    return dict(out_dict)
 
 
 def init_analyzer():
@@ -272,3 +281,9 @@ if __name__ == '__main__':
         for r in t.readings:
             print(t, '\t===>\t', t.recase(r.generate(acc_generator)))
     print(stressify('Это - первая попытка.'))
+    L2_sent = 'Я забыл дать девушекам денеги, которые упали на землу.'
+    err_dict = diagnose_L2(L2_sent)
+    for tag, exemplars in err_dict.items():
+        print(tag, tag.other)
+        for e in exemplars:
+            print('\t', e)
