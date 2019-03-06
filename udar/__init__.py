@@ -5,7 +5,7 @@ from pathlib import Path
 from random import choice
 from random import shuffle
 import re
-# import sys
+import sys
 
 import hfst
 from nltk import word_tokenize as tokenize
@@ -39,6 +39,8 @@ with Path(TAG_FNAME).open() as f:
         if tag in _tag_dict:
             raise NameError(f'{tag} is listed twice in {TAG_FNAME}.')
         _tag_dict[tag] = Tag(tag, other)
+CASES = ['Nom', 'Acc', 'Gen', 'Gen2', 'Loc', 'Loc2', 'Dat', 'Ins', 'Voc']
+CASES = [_tag_dict[c] for c in CASES]
 
 
 class Reading:
@@ -75,6 +77,14 @@ class Reading:
         except IndexError:
             print('ERROR Failed to generate: '
                   f'{self} {self.noL2_str()} {fst.generate(self.noL2_str())}')
+
+    def replace_tag(self, orig_tag, new_tag):
+        if isinstance(orig_tag, str):
+            orig_tag = _tag_dict[orig_tag]
+        if isinstance(new_tag, str):
+            new_tag = _tag_dict[new_tag]
+        self.tags[self.tags.index(orig_tag)] = new_tag
+        self.tagset = set(self.tags)
 
 
 class Token:
@@ -159,7 +169,10 @@ class Udar:
         """Return str from a given lemma+Reading."""
         if isinstance(reading, Reading):
             reading = reading.noL2_str()
-        return self.fst.lookup(reading)[0][0]
+        try:
+            return self.fst.lookup(reading)[0][0]
+        except IndexError:
+            return None
 
     def lookup(self, tok):
         """Return Token with all readings."""
@@ -239,6 +252,38 @@ def diagnose_L2(text):
     return dict(out_dict)
 
 
+def noun_distractors(noun, stressed=True):
+    """Given an input noun, return set of wordforms in its paradigm.
+
+    The input noun can be in any case. Output paradigm is limited to the same
+    NUMBER value of the input (i.e. SG or PL). In other words, if a singular
+    noun is given, the singular paradigm is returned.
+    """
+    init_analyzer()
+    if stressed:
+        gen = acc_generator
+    else:
+        gen = generator
+    if isinstance(noun, str):
+        tok = analyzer.lookup(noun)
+        readings = [r for r in tok.readings if _tag_dict['N'] in r]
+        try:
+            reading = readings[0]
+        except IndexError:
+            print(f'The token {noun} has no noun readings.', file=sys.stderr)
+    elif isinstance(noun, Reading):
+        reading = noun
+    else:
+        raise NotImplementedError('Argument must be str or Reading.')
+    out_set = set()
+    current_case = [t for t in reading.tags if t in CASES][0]
+    for new_case in CASES:
+        reading.replace_tag(current_case, new_case)
+        out_set.add(reading.generate(fst=gen))
+        current_case = new_case
+    return out_set - {None}
+
+
 def init_analyzer():
     try:
         global analyzer
@@ -287,3 +332,5 @@ if __name__ == '__main__':
         print(tag, tag.other)
         for e in exemplars:
             print('\t', e)
+    print(noun_distractors('слово'))
+    print(noun_distractors('словам'))
