@@ -158,7 +158,7 @@ class Udar:
         fnames['analyser'] = fnames['analyzer']
         fnames['L2-analyser'] = fnames['L2-analyzer']
         try:
-            self.path2fst = f'fsts/{fnames[flavor]}'
+            self.path2fst = f'resources/{fnames[flavor]}'
         except KeyError as e:
             raise e(f'flavor must be in {set(fnames.keys())}')
         fst_stream = hfst.HfstInputStream(self.path2fst)
