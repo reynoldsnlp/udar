@@ -1,0 +1,1390 @@
+###############################################################################
+#
+###############################################################################
+
+DELIMITERS = "<.>" "<..>" "<...>" "<!>" "<?>" "<¶>" ;
+SOFT-DELIMITERS = "<,>" ;
+SUBREADINGS = LTR ;
+#OPTIONS += no-inline-sets no-inline-templates ;
+
+LIST BOS = (>>>) ;
+LIST EOS = (<<<) ;
+
+LIST N =  n N ;
+LIST Prop =  np Prop ;
+LIST Pr =  pr Pr ;
+LIST Pron =  prn Pron ;
+LIST Det =  det Det ;
+LIST Num =  num Num "<[0-9]+>"r ("млн" abbr) ("тыс" abbr)  ("млн" Abbr) ("тыс" Abbr)  ;
+LIST A =  adj A ;
+LIST Adv =  adv Adv ;
+LIST CS =  cnjsub CS ;
+LIST CC =  cnjcoo CC ;
+LIST Interj =  ij Interj ;
+LIST CC =  cnjcoo CC ;
+LIST V =  vblex vbser vbmod V ;
+LIST Pred =  pred Pred ;
+LIST Part =  part Part ;
+LIST Abbr =  abbr Abbr ;
+LIST Poss = poss Poss ;
+
+LIST Pass =  pass pasv Pass ;  # Check
+LIST V/Pass =  pass V/Pass ;
+LIST Actv = actv Actv ;
+
+LIST Lxc = lxc Lxc ; #lexicalized participial forms
+
+LIST Cop =  ("быть" vblex)  ("быть" V)  ;
+
+LIST Guio =  guio "-"  ;
+LIST SafeGuio =  "—"  ;
+LIST Cm =  cm  ;
+LIST Excl =  ("!")  ;
+LIST Ques =  ("?")  ;
+LIST Sent =  sent  ;
+LIST Comm = "," ;
+LIST Dash ="-";
+LIST QuotPlain = """;
+
+LIST Percent =  ("<[0-9]+%>"r) percent  ;
+LIST Roman =  roman ("<M{0,4}(CM|CD|D(C{0,3}))?(XC|XL|L(X{0,3}))?(IX|IV|V(I{0,3}))?>"ri num) ("<[MCDXLIVМСХ]+>"ri num)  ("<M{0,4}(CM|CD|D(C{0,3}))?(XC|XL|L(X{0,3}))?(IX|IV|V(I{0,3}))?>"ri Num) ("<[MCDXLIVМСХ]+>"ri Num)  ;
+LIST Count =  count Count ;
+#LIST Cipher =  "<[0-9]+>"r  ;
+LIST Cipher =  "[0-9]+"r  ;
+
+LIST Pprep =  pprep pobj Pprep ;
+LIST Pers =  pers Pers ;
+LIST Paren =  paren Paren ;
+
+LIST Lparen =  lpar Lparen ;
+LIST Parens =  lpar rpar par Parens ;
+LIST Apos =  apos Apos ;
+LIST Quot =  lquot rquot quot Quot ;
+
+LIST Comp = Comp (comp pred)  ;
+LIST Short = Short short (adj m pred) (adj f pred) (adj mfn pred) (adj nt pred)  ; # pred
+LIST Cmp = Cmp cmp  ;
+
+LIST PrcPast = PrcPast pp  ;
+LIST PrcPres = PrcPres pprs  ;
+
+LIST TV = TV tv  ;
+LIST IV = IV iv  ;
+
+LIST Ant = Ant ant  ;
+LIST Cog = Cog cog  ;
+LIST Al = Al al  ;  # includes Top
+
+LIST Msc = Msc m  ;
+LIST Fem = Fem f  ;
+LIST Neu = Neu nt  ;
+
+LIST Sg = Sg sg  ;
+LIST Pl = Pl pl  ;
+
+LIST Sg1 = Sg1 (p1 sg)  ;
+LIST Sg2 = Sg2 (p2 sg)  ;
+LIST Sg3 = Sg3 (p3 sg)  ;
+LIST Pl1 = Pl1 (p1 pl)  ;
+LIST Pl2 = Pl2 (p2 pl)  ;
+LIST Pl3 = Pl3 (p3 pl)  ;
+
+LIST Impf = Impf impf  ;
+LIST Perf = Perf perf  ;
+
+LIST Ord = Ord ord  ;
+LIST Dem = Dem dem  ;
+LIST Interr = Interr itg  ;
+LIST Rel = Rel rel  ;
+
+LIST DetIndecl = DetIndecl ("её" det pos) ("его" det pos) ("их" det pos)  ;
+
+LIST Nom = Nom nom  ;
+LIST Gen = Gen gen  ;
+LIST Dat = Dat dat  ;
+LIST Acc = Acc acc  ;
+LIST Ins = Ins ins  ;
+LIST Prp = Prp prp  ;
+
+LIST Loc = Loc loc  ;
+LIST Par = Par par  ;
+
+LIST Anim = Anim aa an  ;
+LIST Inanim = Inanim nn an  ;
+
+LIST Inf = Inf inf  ;
+LIST Imper = Imper imp  ;
+LIST Past = Past past  ;
+LIST Fin = Past Pres Fut past pres fut  ;
+
+LIST Prn/Sebe =  ("<себе>"i prn)  ("<себе>"i Pron)  ;
+LIST Prn/Tebe =  ("<тебе>"i prn)  ("<тебе>"i Pron)  ;
+LIST Prn/Komu =  ("<кому>"i prn)  ("<кому>"i Pron)  ;
+LIST Prn/Tot =  ("тот"i prn)  ("<тот>"i Pron)  ;
+LIST Prn/To =  ("то"i prn)  ("<то>"i Pron)  ;
+LIST Prn/Togo =  ("<того>"i prn)  ("<того>"i Pron)  ;
+
+LIST Num/Neskolko =  ("несколько" num)  ("несколько" Num)  ;
+LIST Num/Tri =  ("три" num)  ("три" Num)  ;
+
+LIST CS/Čto =  ("что²" cnjsub)  ("что²" CS)   ;
+LIST CC/I =  ("и" cnjcoo)  ;
+
+LIST Paren/Konečno =  ("конечно" paren)  ("конечно" Paren)  ;
+
+LIST Jest =  ("<есть>"i)  ;
+
+LIST Prop/Maša =  ("Маша" np)  ("Маша" N Prop)  ;
+
+LIST Pr/V = ("в" pr) ("в" Pr) ;
+LIST Pr/Na = ("на" pr) ("на" Pr) ;
+LIST Pr/S = ("с" pr) ("с" Pr) ;
+LIST Pr/Po = ("по" pr) ("по" Pr) ;
+LIST Pr/Iz = ("из" pr) ("из" Pr) ;
+LIST Pr/K = ("к" pr) ("к" Pr) ;
+LIST Pr/Ot = ("от" pr) ("от" Pr) ;
+LIST Pr/Dlja = ("для" pr) ("для" Pr) ;
+LIST Pr/Do = ("до" pr) ("до" Pr) ;
+LIST Pr/Za = ("за" pr) ("за" Pr) ;
+LIST Pr/O = ("о" pr) ("о" Pr) ;
+LIST Pr/Pri = ("при" pr) ("при" Pr) ;
+LIST Pr/U = ("у" pr) ("у" Pr) ;
+LIST Pr/Posle = ("после" pr) ("после" Pr) ;
+LIST Pr/Pod = ("<под>"i pr) ("<под>"i Pr) ;
+LIST Pr/Meždu = ("между" pr) ("между" Pr) ;
+LIST Pr/Okolo = ("около" pr) ("около" Pr) ;
+LIST Pr/Čerez = ("через" pr) ("через" Pr) ;
+LIST Pr/Protiv = ("против" pr) ("против" Pr) ;
+LIST Pr/Naprotiv = ("напротив" pr) ("напротив" Pr) ;
+LIST Pr/Nad = ("над" pr) ("над" Pr) ;
+LIST Pr/Bez = ("без" pr) ("без" Pr) ;
+LIST Pr/Sredi = ("среди" pr) ("среди" Pr) ;
+LIST Pr/Iz-za = ("из-за" pr) ("из-за" Pr) ;
+LIST Pr/Pered = ("перед" pr) ("перед" Pr) ;
+LIST Pr/Blagodarja = ("благодаря" pr) ("благодаря" Pr) ;
+LIST Pr/Krome = ("кроме" pr) ("кроме" Pr) ;
+LIST Pr/Vključaja = ("включая" pr) ("включая" Pr) ;
+LIST Pr/Soglasno = ("согласно" pr) ("согласно" Pr) ;
+LIST Pr/Pomimo = ("помимо" pr) ("помимо" Pr);
+LIST Pr/Vnutri = ("внутри" pr) ("внутри" Pr) ;
+
+LIST Pr/Nado = ("<надо>"i pr) ("<надо>"i Pr) ;
+
+LIST N/Filma = ("фильма" n) ("фильма" N) ;
+LIST N/Film = ("фильм" n) ("фильм" N) ;
+LIST N/Bukva = ("буква" n) ("буква" N) ;
+LIST N/Goda = ("<года>"i n) ("<года>"i N) ;
+LIST N/Godah = ("<годах>"i n) ("<годах>"i N) ;
+LIST N/Potom = ("<потом>"i n) ("<потом>"i N) ;
+LIST N/Krov = ("кровь" n) ("кровь" N) ;
+LIST N/Tomu = ("<тому>"i n) ("<тому>"i N) ;
+LIST N/Golova = ("голова" n) ("голова" N) ;
+LIST N/Denga = ("деньга" n) ("деньга" N) ;
+LIST N/Voda = ("<вода>"i n) ("<вода>"i N) ;
+LIST N/Vode = ("<водe>"i n) ("<водe>"i N) ;
+LIST N/Beregu = ("<берегу>"i n) ("<берегу>"i N) ;
+LIST N/Vek = ("век¹" n) ("век¹" N);
+LIST N/Veko = ("веко" n) ("веко" N) ;
+LIST N/Vtora = ("<второй>"i n) ("<второй>"i N);
+LIST N/Mat = ("мать" n) ("мать" N) ;
+LIST N/Mater = ("матерь" n) ("матерь" N) ;
+LIST N/Pomoč = ("помочь" n) ("помочь" N) ;
+LIST N/Polku = ("<полку>"i n) ("<полку>"i N);
+LIST N/Mire = ("<мире>"i n) ("<мире>"i N);
+LIST N/Miro = ("миро" n) ("миро" N);
+LIST N/Metr = ("метр" n) ("километр" n) ("метр" N) ("километр" n);
+LIST N/Primer = ("пример" n) ("пример" N);
+LIST N/Delo = ("дело" n) ("дело" N) ;
+LIST N/Pravilo¹ = ("правило¹" n) ("правило¹" N) ;
+LIST N/Pravilo² = ("правило²" n) ("правило²" N) ;
+LIST N/Noga = ("нога" n) ("нога" N) ;
+LIST N/Lob = ("лоб" n) ("лоб" N) ;
+LIST N/Byli = ("<были>"i n) ("<были>"i N) ;
+LIST N/On = ("он²" n) ("он²" N) ;
+LIST N/Stradanje = ("страданье" n) ("страданье" N) ;
+LIST N/Stradanie = ("страдание" n) ("страдание" N) ;
+LIST N/Slony = ("слоны" n) ("слоны" N) ;
+LIST N/Denj = ("день" n) ("день" N) ;
+LIST N/Čelovek = ("человек" n) ("человек" N) ;
+LIST N/Ljudi = ("люди²" n) ("люди²" N) ;
+LIST N/Maj = ("май" n) ("май" N) ;
+
+LIST A/Malo = ("<мало>"i adj) ("<мало>"i A) ;
+LIST A/Božij = ("божий" adj) ("божий" A) ;
+LIST A/Metrov = ("<метров>"i adj) ("<километров>"i adj) ("<метров>"i A) ("<километров>"i adj) ;
+LIST A/Prišlij = ("пришлый" adj) ("пришлый" A) ;
+LIST A/Boevoj = ("боевой" adj) ("боевой" A) ;
+
+LIST Adv/I = ("и" adv) ("и" Adv) ;
+LIST Adv/Ješë = ("ещё" adv) ("ещё" Adv) ;
+LIST Adv/Krugom² = ("кругом²" adv) ("кругом²" Adv) ;
+LIST Adv/Celikom = ("целиком" adv) ("целиком" Adv) ;
+LIST Adv/Posle = ("после" adv) ("после" Adv) ;
+LIST Adv/Neskolko = ("несколько" adv) ("несколько" Adv) ;
+LIST Adv/Cmpar = ("более" adv) ("более" Adv) ("менее" adv) ("менее" Adv);
+
+LIST V/Oblivatsja = ("обливаться" vblex) ("обливаться" V) ;
+LIST V/Pahnut = ("пахнуть" vblex) ("пахнуть" V) ;
+LIST V/Isteč = ("истечь" vblex) ("истечь" V) ;
+LIST V/Vypuskat = ("выпускать" vblex) ("выпускать" V) ;
+LIST V/Takaja = ("<такая>"i vblex) ("<такая>"i V) ;
+LIST V/Primer = ("<пример>"i vblex) ("<пример>"i V) ;
+LIST V/Dela = ("<дела>"i vblex) ("<дела>"i V) ;
+LIST V/Pisat = ("писать" vblex) ("написать" vblex) ("описать" vblex) ("писать" V) ("написать" vblex) ("описать" vblex) ;
+LIST V/Prijti = ("прийти" vblex) ("прийти" V) ;
+LIST V/Stroit = ("строит" vblex) ("строит" V) ;
+LIST V/Vyhodit = ("выходить" vblex) ("выходить¹⁻²" vblex) ("выходить" V) ("выходить¹⁻²" vblex) ;
+LIST V/Idjot = ("идти" vblex pres) ("идти" V Pres) ;
+LIST V/Byt = ("быть" vblex) ("быть" V) ;
+#LIST V/Byt = ("мочь" vblex) ("мочь" V) ;
+
+LIST Ij/Na = ("на" ij) ("на" Interj) ;
+LIST Ij/Ih = ("их²" ij) ("их²" Interj) ;
+LIST Ij/I = ("и¹" ij) ("и¹" Interj) ;
+LIST Ij/A = ("а¹" ij) ("а¹" Interj) ;
+LIST Ij/No = ("но²" ij) ("но²" Interj) ;
+
+LIST O = "о" ;
+LIST Ja = "я" "я¹" "я²" ;
+LIST I = "и" ;
+LIST No = "но" ;
+LIST Ne = "не" ;
+LIST Samyj = "самый" ;
+LIST Kotoryj = "который" ;
+LIST Posle = "после" ;
+LIST Čto = "что¹" "что²" ;
+LIST Kto = "кто" ;
+LIST Nazad = "назад" ;
+LIST Sliškom = "слишком" ;
+LIST Našej = "<нашей>"i ;
+LIST Sej = "сей" ;
+LIST Takže = "также" ;
+LIST Tože = "тоже" ;
+LIST Tak = "так" ;
+LIST Kak = "как" ;
+LIST Tak_I = "так и" ;
+LIST Sam = "сам" ;
+LIST Bylo = "<было>"i ;
+LIST U = "у¹" "у²" "у" ;
+LIST Vo = "<во>"i ;
+LIST Ili = "или" ;
+LIST Že = "же" ;
+LIST To = "то" ;
+LIST Eto = "это" ;
+LIST Oneletterp = "с" "в" "к";
+
+LIST PrefixNado = "<[бвгджзйклмнпрстуфхцчшщъь][бвгджзйклмнпрстуфхцчшщъь].*>"r ;
+
+LIST NumNotNom = "<([0-9])*[023456789]>"r "<([0-9])*11>"r ;
+
+LIST Unknown = "\*.*"r ;
+
+LIST LesserNum = "полтора" "два" "три" "четыре" "обо" "<([2-90]+)*[1-4]>"r ;
+
+LIST Poltora = "полтора" ;
+LIST Pjat = "пять" "5" "<([0-9])*5>"r ;
+LIST Sto = "сто" "100" ;
+LIST Tysjača = "тысяча" "1000" ;
+
+LIST Day = "день" ;
+LIST Month = "месяц" ;
+LIST Months = "январь" "февраль" "март" "апрель" "май" "июнь" "июль" "август" "сентябрь" "октябрь" "ноябрь" "декабрь" ;
+LIST Year = "год" "год¹" ("г." abbr) ;
+LIST Century = "век" ;
+LIST Season = "сезон" ;
+LIST Seasons = "весна" "лето" "осень" "зима" ;
+LIST TimeOfDay = "день" "вечер" "утро" "ночь" ;
+LIST Polovina = "половина" ;
+LIST CardPoint = "западный" "южный" "юго-западный" "северный" "восточный" "юго-восточный" "северо-восточный" "северо-западный" "центральный" ;
+LIST TimePart = "начало" "конец" "течение" "середина" "половина" ;
+LIST LetterEnum = "модель" "план" "вариант" "коэффициент" "витамин" "марка" "полимиксин" "система" ;
+LIST PersonTitleMsc = "князь" "император" "принц" "атаман" "царь"  "митрополит" ;
+LIST PersonTitleFem = "императрица" ;
+
+LIST PersonTitleBoth = "президент" "генерал" "секретарь" "обер-прокурор" ;
+LIST Profession = "историк" "академик" "химик" "секретарь" "философ" "врач" ;
+LIST Toponymy = "река" ;
+
+SET PersonTitle = PersonTitleMsc | PersonTitleFem | PersonTitleBoth ;
+
+LIST Letters = ("же" n) ("у²" n) ("о²" n) ("и²" n) ("а²" n) ("в" n) ("с" n) ("к" n) ; # etc.
+
+LIST Notes = ("до" n) ; # etc.
+
+LIST InsAdv = "часом" "потом" "кругом" "рядом" "летом" "разом" "весной" "зимой" "осенью" "утром" "вечером" "днём" "ночью"  ;
+
+LIST AccAdv = "вечер" "день" "раз" "минута" "неделя" ;
+
+LIST PurposeAdv = "нечаянно" "назло" "нарочно" "напоказ" "спьяну" "спроста" "специально" "наперекор" "зря" "невзначай" "умышленно" "насмех" "преднамеренно" "ненамеренно" "бесцельно" "неспроста" "ненароком" "случайно" ;
+#adverbs of purpose
+
+LIST MeasureDegreeAdv = "совсем" "очень" "страшно" "крайне" "соврешенно" "чересчур" "почти" "чрезвычайно" "слегка" "исключительно" "гораздо" "много" "немного" мало немало "абсолютно" "чуть" "чуть-чуть" "еле" "еле-еле" "столь" "весьма" "почти" "никак" "едва" "капельку" "настолько" "так" "очень" "неприлично" "невероятно" "более" "наиболее" "глубоко" "мертвецки" "ничтожно" "смехотворно" "по-черному" "гораздо" "намного" "слегка" "немного" "сильно" "менее" "просто";
+#adverbs of measure and degree
+
+LIST TempLocAdv = "вовне" "донельзя" "доныне" "поныне" "заранее" "зазря" "извне" "навсегда" "назавтра" "повсюду" "позавчера" "послезавтра" "отсюда"  "откуда" "отныне" "повсюду" ;
+
+LIST Title = ("<[А-ЯA-Z][а-яa-z]+>"r) ;
+LIST Majusc = ("<[А-ЯA-Z]+>"r) ;
+LIST Minusc = ("<[а-яa-z]+>"r) ;
+
+LIST DicTitle = ("[А-ЯA-Z][а-яa-z]+"r) ;
+LIST DicMajusc = ("[А-ЯA-Z]+"r) ;
+LIST DicMinusc = ("[а-яa-z]+"r) ;
+
+LIST Prob = prb ;
+
+LIST Facul = fac ;
+
+LIST V/Gen = "достичь" "достигнуть" "добиться" "бояться" "выдерживать" "выражать" "давать" "добавлять" "добиваться" "добывать" "дожидаться" "допускать" "жаждать" "жалеть" "желать" "заменять" "засыпать" "избегать" "искать" "касаться" "колоть" "кушать" "лишать" "лишаться" "набирать" "наливать" "ожидать" "отдыхать" "покупать" "предвидеть" "прибавлять" "приносить" "просить" "проходить" "рекомендовать" "слушаться" "спрашивать" "стесняться" "стоит" "требовать" "тянуть" "удерживать" "хватит" "хоронить" "отсутствовать" "отговорить" "опасаться" "вспоминать" "хотеть" "требовать" ;
+
+LIST V/Dat = "адресовать" "варить" "вводить" "вернуть" "взглянуть" "возить" "возмещать" "возражать" "вручать" "встречаться" "выписать" "гарантировать" "готовить" "грозить" "гулять" "дарить" "докладывать" "жаловаться" "жать" "изменять" "кивать" "класть" "копать" "кричать" "курить" "ломать" "махать" "менять" "мешать" "мыть" "навязывать" "надоедать" "назначать" "напоминать" "направлять" "ненавидеть" "обучать" "оказывать" "описывать" "определять" "осложнять" "оставаться" "открывать" "отозвать" "отражать" "отсылать" "перевязывать" "повторять" "подтверждать" "подчинять" "показывать" "помогать" "посвящать" "предоставлять" "предпочитать" "принадлежать" "присваивать" "радоваться" "раскрывать" "резать" "рекомендовать" "ремонтировать" "ручаться" "светить" "служить" "собирать" "советовать" "сообщать" "соответствовать" "сопровождать" "составлять" "таскать" "удвоить" "удивляться" "упрощать" "устраивать" "характеризовать" "чинить" "явиться" "нравиться" "предать" "учить" "противопоставлять" ; # Clean up this list! # Check "предать"/"учить"!
+
+LIST V/Ref = ("[а-яa-z]+ся"r) ;
+
+# Sets
+# ====
+
+SET WORD = N | V | A | Pr | Pron | Det | Adv | CC | CS | Interj | Num | Abbr | Part | ("\?") ;
+
+# Verb sets
+# ---------
+SET NOT-VERB = WORD - V ;
+
+# Boundary sets
+# ---------
+SET S-BOUNDARY = CS | Interr | (";") | BOS | EOS ;
+
+# Case sets
+
+# Some case, but not...
+SET NOTNOMPREP = Dat | Gen | Acc | Ins ;
+
+# Anything but the following case...
+SET NOACC = WORD - Acc ;
+SET NODAT = WORD - Dat ;
+SET NOACCDAT = WORD - Acc - Dat ;
+
+SET Sem/Time = Month | Months | Year | Century | Season | Seasons | TimeOfDay | ("период") ;
+
+SET Sem/Distance = ("километр") | ("метр") ;
+
+SET Sem/Quantity = ("дюжина") ;
+
+SET Sem/Weight = ("килограмм") | ("грамм") ;
+
+SET Sem/Unit = Sem/Time | Sem/Distance | Sem/Weight | Sem/Quantity ;
+
+SET Sem/Person = PersonTitle | Profession ;
+
+SET MscFemNeu = Msc | Fem | Neu ;
+
+SET Prep/Prp = Pr/Pri | Pr/Na | Pr/V | Pr/O | Pr/Po ;
+
+SET Prep/Ins = Pr/S | Pr/Nad | Pr/Pod | Pr/Meždu | Pr/Pered ;
+
+SET Prep/Acc = Pr/Na | Pr/V | Pr/Po | Pr/Pod | Pr/Čerez ; # complete
+
+SET Prep/Dat =  Pr/K | Pr/Soglasno | Pr/Po | Pr/Blagodarja ;
+
+SET Prep/Gen = Pr/Protiv | Pr/Naprotiv | Pr/Vnutri ; # complete
+
+SET NBR = Sg | Pl ;
+
+SET MFN = Msc | Fem | Neu ;
+
+SET NGDAIP = Nom | Gen | Dat | Acc | Ins | Prp | Loc ;
+
+SET NGDAIPGenDatAccIns = Gen | Dat | Acc | Ins ;
+
+SET Modif = Det | A - Short | Ord | ("же" part) ; # Fix tag of že
+
+SET ModAcc = Modif + Acc ;
+SET ModPrp = Modif + Prp ;
+
+SET SentNotExcl = (".") | ("...") | ("?") | (":")  ;
+
+SET Punct = Guio | Cm | Excl | Ques ;
+
+SET CLB = Rel | CS ;
+
+SET PastPass = PrcPast + Pass ; 
+
+SET PresPass = PrcPres + Pass ;
+
+SET PastActv = PrcPast + Actv ;
+
+SET PresActv = PrcPres + Actv ;
+
+SET Prc = PastPass | PresPass | PastActv | PresActv ;
+
+###############################################################################
+# Rules that should be fairly safe.
+###############################################################################
+
+SECTION
+
+SELECT Pr IF (0 Oneletterp);
+
+SELECT CC IF (0 I);
+
+## Non-sentences
+
+SELECT Nom IF (-1 BOS) (0C N) (1 EOS) ;
+
+## Safe operations at sentence boundaries
+
+REMOVE Prp IF (-1 BOS) ;
+
+REMOVE Pr IF (1 EOS) ;
+
+REMOVE Det IF (1 EOS) ;
+  #!  Холодная война -- противостояние между СССР и странами соцлагеря с одной стороны, и США и странами Западной Европой -- с другой.
+
+## Safe lexicalised operations
+
+SELECT Adv IF (0 I) (-1 No) ;
+
+SELECT $$NGDAIP IF (-1C A + $$NGDAIP)(0 N);
+
+## Safe operations around punctuation
+
+REMOVE Pr IF (1C Cm) ;
+
+SELECT Posle IF (-1C Cm) ;
+
+REMOVE Interj IF (1 SentNotExcl) ;
+  # Мне случилось говорить с одним из наших писателей о комизме в жизни, о трудности определить явление, назвать его настоящим словом.
+
+## Safe operations with preposition/adverb ambiguities
+
+REMOVE Pr IF (0C Pr OR Adv) (1C Nom) ;
+
+REMOVE Pr IF (1C Fin) ;
+
+REMOVE Pr IF (-1C Pr) ;
+
+REMOVE Pr IF (1C Pr) ;
+
+## Safe operations with short-form adjectives
+
+REMOVE A + Short IF (1C Fin OR Adv OR A) (0C Short OR Adv) ;
+
+REMOVE A + Short IF (-1C Fin OR Adv OR A) (0C Short OR Adv) ;
+
+## Hopefully safe operations with несколько
+
+SELECT Gen IF (-1 Num/Neskolko) (1C* N + Gen BARRIER (*) - Gen) (0 A + Gen) ;
+
+## Safe operations after prepositions
+
+REMOVE Adv/Neskolko IF (-1C Pr) (1 Gen) ;
+
+REMOVE Nom IF (-1C Pr) ;
+
+#моей as prn, if "из моей школы"
+REMOVE A IF (-1C Pr)(0 Pron + Poss)(0 A);
+
+REMOVE NGDAIP - Gen IF (-1C* Pr/Dlja OR Pr/U OR Pr/Do OR Pr/Ot OR Pr/Iz OR Pr/Iz-za OR Pr/Krome OR Pr/Protiv OR Pr/Posle OR Pr/Bez OR Pr/Sredi OR Pr/Okolo OR Pr/Pomimo CBARRIER (*) - Adv - Comp - DetIndecl) ;
+
+REMOVE NGDAIP - Gen - Ins - Acc IF (-1C* Pr/S CBARRIER (*) - Adv - Comp - DetIndecl) ;
+
+REMOVE Anim IF (0C Ord) (0C Cipher) (-1 Pr) (NOT 1 Anim) ;
+
+#REMOVE NGDAIP - Acc - Prp - Loc IF (-1C* Pr/V OR Pr/Na CBARRIER (*) - Adv - Comp - DetIndecl - ModAcc - ModPrp) ;
+REMOVE NGDAIP - Acc - Prp - Loc IF (-1C* Pr/V OR Pr/Na BARRIER (*) - Adv - Comp - DetIndecl - ModAcc - ModPrp) ;
+   #! В 1960-х электрифицированные высокоскоростные железные дороги появились ...
+
+REMOVE NGDAIP - Acc - Dat - Prp IF (-1C* Pr/Po CBARRIER (*) - Adv - Comp - DetIndecl) ;
+
+REMOVE NGDAIP - Acc - Ins IF (-1C* Pr/Za CBARRIER (*) - Adv - Comp - DetIndecl) ;
+  #! что у неё за чары
+
+REMOVE NGDAIP - Gen - Ins IF (-1C* Pr/Meždu CBARRIER (*) - Adv - Comp - DetIndecl) ;
+
+REMOVE NGDAIP - Dat IF (-1C* Pr/K OR Pr/Blagodarja OR Pr/Soglasno CBARRIER (*) - Adv - Comp - DetIndecl) ;
+
+REMOVE NGDAIP - Prp IF (-1C* Pr/O CBARRIER (*) - Adv - Comp - DetIndecl) ;
+
+REMOVE NGDAIP - Ins IF (-1C* Pr/Nad CBARRIER (*) - Adv - Comp - DetIndecl) ;
+
+REMOVE NGDAIP - Acc IF (-1C* Pr/Čerez OR Pr/Vključaja CBARRIER (*) - Adv - Comp - DetIndecl) ;
+
+SELECT A + $$NGDAIP IF (0C A) (-1C A + $$NGDAIP LINK -1C* Pr BARRIER (*) - A - Adv - Det) ;
+
+REMOVE Pers IF (0C Pers OR Det) (NOT 0 Pprep) (-1C Pr) ;
+  # Так что для меня вся моя университетская наука как бы для того только и существовала под конец, чтобы ...
+
+REMOVE Loc IF (NOT -1* Prep/Prp) ;
+
+SELECT Pr IF (0 Prep/Prp) (1C* Prp BARRIER (*) - Prp - DetIndecl) ;
+
+## Safe operations with dates
+
+SELECT Gen IF (0 Year) (-1 Num LINK -1 Months LINK -1 Pr/V) ;
+
+SELECT Gen IF (0 Year) (-1 Num LINK -1 Months + Gen LINK -1 Num) ;
+
+SELECT Dat IF (0 Year) (-1 Num LINK -1 Pr/K) ;
+
+REMOVE NGDAIP - Gen - Loc IF (0 Year) (-1 Num LINK -1 Pr/V) ;
+
+SELECT Neu IF (0 Dat) (-1 Year) (1 Nazad) ;
+
+## Safe operations in some numeral expressions
+
+SELECT Gen IF (-1 Percent) ;
+
+SELECT Gen + Pl IF (-1 Sto OR Tysjača) ;
+
+SELECT Gen + Pl IF (0C N OR A) (-1* Pjat BARRIER (*) - Adv - Gen);
+
+## Safe operations with prepositional case
+
+REMOVE Prp IF (-1C Inf)  ;
+
+REMOVE Prp IF (NOT -1* Pr BARRIER CLB)  ;
+
+REMOVE Prp IF (-1C N) (NOT 0 Prop LINK -1 Sem/Person) ;
+
+## Safe operations with determiners
+
+REMOVE Det IF (0 Det OR Pron) (1C Fin OR CS OR Pr) ;
+
+REMOVE Det IF (0 Det OR Pron) (1C Ne) ;
+
+REMOVE Det IF (0 Det OR Pron) (1 Cm LINK 1 CC OR CS) ;
+
+#REMOVE Det IF (0 Det OR Pron) (1C* Fin BARRIER (*) - Adv) ;
+REMOVE Det IF (0 Det OR Pron) (1C* V BARRIER (*) - Adv) ;
+
+## Safe options with proper names
+
+SELECT Ant + $$NGDAIP IF (1C Cog + $$NGDAIP) ;
+
+SELECT Cog + $$NGDAIP IF (-1C Ant + $$NGDAIP) ;
+
+###############################################################################
+# Heuristic rules that should be fairly safe.
+###############################################################################
+
+SECTION
+
+## Heuristic operations on single-character words
+
+SELECT Pr (0 O) (1 Prp) ;
+
+SELECT Pron IF (0 Ja) (-1 BOS OR CS) ;
+
+SELECT Pron + Nom IF (0 Ja) (1* Fin + Sg1 BARRIER Fin) ;
+
+## Heuristic operations
+
+SELECT CS IF (0 Čto) (-1 Cm LINK NOT -1 Prn/To) (NOT 1* Ques);
+
+REMOVE Fem IF  (0C A) (0C Msc OR Fem) (1C N) (NOT 1 Fem);
+
+REMOVE Msc IF (0C A) (0C Msc OR Neu) (1C N) (NOT 1 Msc);
+
+REMOVE NGDAIP - Prp IF (0C A OR Det) (1C* N + Prp BARRIER NGDAIP - Prp);
+
+REMOVE NGDAIP - Ins IF (0C A OR Det) (1C* N + Ins BARRIER NGDAIP - Ins);
+
+REMOVE Short IF (-1C Pr) ;
+
+REMOVE Acc IF (-1* BOS BARRIER NGDAIP - Nom) (0C Nom OR Acc) (NOT 1* TV) (NOT -1 Num LINK 1 Sem/Time OR Sem/Distance) (NOT 0 Sem/Time) (NOT 0 Sem/Distance) ;
+
+REMOVE Acc IF (-1* BOS BARRIER Fin OR NGDAIP - Nom)  (0C Nom OR Acc) (NOT 1* TV) (NOT -1* Prep/Acc) (NOT 0 Sem/Time) (NOT 0 Sem/Distance) ;
+
+REMOVE Cmp IF (0 Cmp OR Adv) (NOT 1 Guio) ; # (NOT 1 Guio LINK 1 A) ;
+
+SELECT Cmp IF (0 Cmp OR Adv) (1 Guio LINK 1 A LINK 1 N) ;
+
+SELECT Adv IF (0C InsAdv) ;
+
+REMOVE Adv IF (0C N + Ins OR Adv) (NOT 0 InsAdv) ;
+
+REMOVE Acc IF (-1C Pr/S) (NOT 0 Sem/Unit) ;
+
+# These need improvement
+SELECT Letters IF (0 Majusc OR Title) (-1 Minusc) (NOT -1 BOS) ;
+
+REMOVE Letters IF (NOT -1 Quot OR Parens OR Apos) (NOT 1 Quot OR Parens OR Apos) (NOT -1 N/Bukva) (NOT -1 Pr) (NOT -1 LetterEnum) (0 Minusc) ;
+
+REMOVE Notes IF (NOT -1 Quot OR Parens OR Apos) (NOT 1 Quot OR Parens OR Apos) (NOT -1 N/Bukva) (NOT -1 Pr);
+
+REMOVE Nom IF (-1C NumNotNom) ;
+#! Для соседних с Руандой государств руандийские события апреля - июля 1994 года вылились в огромное число прибывших беженцев.
+
+REMOVE Pl IF (0 N/Goda) (-1 LesserNum LINK NOT -1 Gen) ;
+
+SELECT Msc IF (-1C Pr) (0 LesserNum) (1 N/Goda) ;
+
+SELECT Gen IF (0 N/Goda) (-1 Num LINK -1 Seasons OR Months);
+
+SELECT Gen IF (0 N/Goda) (-1 Num LINK -1 Seasons OR Months LINK -1 Pr);
+
+SELECT Gen IF (0 N/Goda) (-1 Num LINK -1 Seasons OR Months LINK -1 Guio LINK -1 Seasons OR Months LINK -1 Pr);
+
+SELECT Gen IF (0 N/Goda) (-1 Num LINK -1 Months LINK -1 Num);
+
+SELECT Gen IF (0 N/Goda) (-1C Num) (1C EOS) ;
+
+SELECT Gen IF (0 N/Goda) (-1 Month OR Seasons OR Day) ;
+
+SELECT Gen IF (0 N/Goda) (-1 A LINK -1 Month OR Seasons OR Day) ;
+
+SELECT Gen IF (0 N/Goda) (-1 A LINK -1 Num LINK -1 Pr) ;
+
+SELECT Gen IF (0 N/Goda) (-1 Num LINK -1 Pr) ;
+
+REMOVE Fem IF (0C Num) (1C N + Msc + Sg + Gen)  ;
+
+REMOVE Neu IF (0C Num) (1C N + Msc + Sg + Gen)  ;
+
+SELECT Gen IF (0 N/Goda) (-1C LesserNum) (1 Nazad) ;
+
+SELECT Prp IF (-1C Pr) (0C Ord) (1C N/Godah) ;
+
+SELECT Inf IF (-1 Fin) (0 Inf OR Imper) (1 EOS) ;
+
+## Parts: половина, часть, протяжение, прошествие, течение, (начало, конец,)
+
+#REMOVE Pl IF (0 N/Goda) (NOT -1* Num BARRIER NGDAIP - Nom OR Acc)
+
+#SELECT N + $$NGDAIP IF (0 A OR N) (-1C A + $$NGDAIP LINK -1* Pr CBARRIER (*) - $$NGDAIP) (1C N) (NOT 1C N + $$NGDAIP) ;
+  # По официальным данным правительства Руанды, число погибших составило 937 тысяч человек.
+  #! Мать Кардуччи, умная и образованная женщина, противница всякого ханженства, внушила ему в ранние детские года горячий патриотизм и ненависть к немцам, и по трагедиям Альфьери и патриотическим одам Верни учила его азбуке.
+
+REMOVE Pr/Nad IF (0 Pr/Nado) (NOT 1 PrefixNado) ;
+
+REMOVE Pr/Nad IF (1C Inf) ;
+
+SELECT N/Potom IF (-1 V/Oblivatsja OR V/Pahnut OR V/Isteč) ;
+
+SELECT N/Potom IF (1 CC LINK 1 N/Krov) ;
+
+REMOVE N/Potom IF (NOT -1 Prep/Ins OR A + Ins);
+
+REMOVE N/Tomu IF (NOT -1* Pr/Po LINK -1* V/Vypuskat) ;
+
+REMOVE Msc IF (0C N/Golova) (0C Msc OR Fem) ;
+
+REMOVE A/Malo IF (1 Gen) ;
+
+REMOVE A/Malo IF (-1 Sliškom) ;
+
+REMOVE Imper IF (0 Našej) (NOT 1* Excl) ;
+
+REMOVE Interj IF (0 Ij/Na) (NOT 1* Excl) (NOT 1 Prn/Tebe) (NOT 1 Cm) ;
+
+SELECT Loc IF (0 N/Beregu) (-1* Pr/Na CBARRIER (*) - Prp) ;
+
+REMOVE Fin IF (-1C Pr/K) (0C Fin OR Dat) ;
+
+REMOVE Fin IF (-1C Pr/Na) (0C Fin OR Loc) ;
+
+SELECT Ord IF (0 Num OR Ord) (1C N/Vek) ;
+
+SELECT $$NGDAIP IF (0 Ord) (1 Guio) (2 Ord) (3 N/Vek + $$NGDAIP) ;
+
+SELECT $$NGDAIP IF (-2 Ord) (-1 Guio) (0 Ord) (1 N/Vek + $$NGDAIP) ;
+
+SELECT Paren IF (-1 Cm) (0 Paren OR Short) (1 Cm) ;
+
+SELECT N/Mater IF (0 N/Mat OR N/Mater) (-1 A/Božij) ;
+
+SELECT N/Mater IF (0 N/Mat OR N/Mater) (1 A/Božij) ;
+
+SELECT Interr IF (0 Prn/Komu) (NOT -1* Interr BARRIER Interr) (NOT 1* Interr BARRIER Interr) (1* Ques) ;
+
+SELECT Rel IF (0 Prn/Komu) (-1 Cm LINK -1 Prn/Tot) ;
+
+SELECT N/Vek IF (0 N/Veko OR N/Vek) (-1 Roman LINK -1 TimePart)  ;
+
+SELECT N/Vek IF (0 N/Veko OR N/Vek) (-1 Roman LINK -1 Pr)  ;
+
+SELECT Gen IF (0 N/Vek) (0C Sg + Gen OR Pl) (-1 Roman LINK -1 TimePart) ;
+
+SELECT Gen IF (0 N/Vek) (0C Sg + Gen OR Pl) (-1 Roman LINK -1 Guio LINK -1 Roman LINK -1 TimePart) ;
+
+SELECT Gen IF (0 N/Vek) (0C Sg + Gen OR Pl) (-1 A + Gen LINK -1 TimePart) ;
+
+SELECT Loc IF (-1 Pr/O) (0 N/Polku) ;
+
+REMOVE Nom IF (0C Pl + Nom OR Sg + Gen) (1 EOS) (-1* Fin BARRIER Fin OR CS) (NOT -1* Fin + Pl BARRIER Fin OR CS);
+
+SELECT Paren/Konečno IF (-1 Cm) (1 Cm) ;
+
+REMOVE TV - Pass IF (NOT 1* Acc) (NOT -1* Acc) ;
+
+REMOVE Gen IF (-1 BOS) (0 Title OR Majusc) (NOT 1* V/Gen);
+
+REMOVE Imper IF (1C Fin) ;
+
+SELECT Prp IF (0C N) (-1* Pr/Na OR Pr/V CBARRIER (*) - Prp) (-1C Prp) (-1C Modif) ;
+
+SELECT A + $$MFN IF (0C A + $$NGDAIP) (1C N + $$MFN + $$NGDAIP) ;
+
+SELECT A + $$NGDAIP IF (0C A + $$MFN ) (1 N + $$MFN + $$NGDAIP) ;
+
+REMOVE CC IF (0 Takže OR Tože) (-1 CC) ;
+
+REMOVE CC IF (0 Takže OR Tože) (-1 Cm LINK -1 Rel) ;
+
+REMOVE CC IF (0 Takže OR Tože) (-1C Fin) (NOT 1* Fin) ;
+
+SELECT Kak + CC IF (1* Tak_I BARRIER Fin) ;
+
+SELECT Gen + Sg IF (0 Ord) (1C N/Vek + Gen) (-1 TimePart LINK -1* Pr BARRIER (*) - Modif) ;
+
+SELECT TV IF (-1C Nom) (1C Acc) (0C V) (0C IV OR TV) (NOT 1 AccAdv) ;
+
+REMOVE Sam + Acc IF (-1 BOS) (1C* Nom BARRIER NGDAIP - Nom) ;
+
+SELECT Det + $$MFN IF (1C* N + $$MFN + $$NGDAIP BARRIER NGDAIP - $$NGDAIP) (0C Det + $$NGDAIP) ;
+
+SELECT Pr IF (0 Pr/Pered) (1C Ins) ;
+
+REMOVE Acc IF (-1 BOS) (1* Guio BARRIER Fin LINK 1* EOS BARRIER Fin) ;
+
+REMOVE Acc IF (-1C Acc LINK -1 BOS) (0 Acc OR Nom) (1C Guio) ;
+
+REMOVE Fin IF (-1C Pr);
+
+SELECT $$NGDAIP IF (0C $$NGDAIP OR Imper) (-1C $$NGDAIP LINK -1* Pr BARRIER (*) - $$NGDAIP) ;
+
+SELECT Pron IF (0C Prp) (0 Pron OR Det) (NOT 0 Num) (NOT 1* Prp BARRIER (*) - Adv - DetIndecl) ;
+
+SELECT N IF (0C A OR N) (-1C A) (1C Guio) ;
+
+SELECT Pr/Soglasno IF (-1 BOS OR Cm) (1C Dat) ;
+
+REMOVE Pl + Acc IF (0C A) (0 Acc OR Gen) (1 Gen) (1* Guio) (NOT 1* TV) (NOT -1* TV);
+
+SELECT Nom IF (-1C A + Nom LINK -1* BOS BARRIER NGDAIP - Nom) (0C N) (1C Guio) ;
+
+REMOVE Pred IF (0 Pr/Protiv) (1 Gen) ;
+
+SELECT Dem IF (-1 Pr) (0 Dem) (1 Cm LINK 1 Čto) ;
+
+SELECT Prn/To IF (0C Prn/To OR Prn/Tot) (1 Cm LINK 1 Čto) ;
+
+SELECT Prn/Tot IF (0C Prn/To OR Prn/Tot) (1 Cm LINK 1 Kto) ;
+
+SELECT V IF (-1C Ne) (0 Bylo) (1 Gen) ;
+
+REMOVE Imper IF (-1C V LINK 0 Bylo) ;
+
+SELECT Gen IF (-1C N LINK 0 NGDAIP - Gen) (0C A) (1C N + Gen) ;
+
+REMOVE Short IF (0 Pr/Soglasno) (1 Dat) ;
+
+SELECT:DsmbgPtcpV A + $$NGDAIP IF (1C* N + $$NGDAIP BARRIER Punct OR Pr OR Lparen OR NGDAIP - $$NGDAIP LINK -1C* A + $$NGDAIP BARRIER Punct OR Pr OR Lparen OR NGDAIP - $$NGDAIP);
+#! Движущей силой в поездах являются локомотивы, использующие электричество или производящие собственную мощность, обычно дизельными двигателями.
+
+SELECT Acc IF (-1 Pr/Na OR Pr/V) (0C Modif) (0C Acc OR Prp) (1C N + Acc);
+
+REMOVE Fin IF (-1C Fin) ;
+  ## На второй период приходится начало феодальной раздробленности на Руси.
+
+REMOVE Fin IF (1C Fin) ;
+
+REMOVE Imper IF (-1C Pr) (0 Imper OR N) (1C Gen);
+
+REMOVE Acc IF (1 EOS) (NOT 0 AccAdv) (NOT -1* TV) (NOT -1* Prep/Acc) ;
+
+#@ Лишь после того, как германская военная кампания против Польши завершилась и при этом @дело не дошло@ до перенесения военных действий на территорию Литвы, Сталин позволил себе распорядиться, чтобы Красная Армия при своем вступлении широким фронтом в Восточную Польшу (начиная с 17 сентября) времмено заняла стратегически важные районы Южной Литвы.
+
+REMOVE Prp IF (-1C Fin) ;
+
+REMOVE Det IF (0 Kotoryj) (1C Pron) ;
+
+SELECT Pr IF (0 Pr/Posle) (1 Prn/Togo) (2 Cm) (3 Kak) ;
+
+SELECT Pron + Neu IF (-1 Pr/Posle) (0 Prn/Togo) (1 Cm) (2 Kak) ;
+
+REMOVE Acc IF (-1C SafeGuio) (NOT 0 Ord) (NOT -1* Acc BARRIER CLB) ;
+
+REMOVE Det + $$MFN IF (1C N) (1C MFN - $$MFN) (0 MFN - $$MFN) (1 MFN - $$MFN) ;
+
+SELECT Det IF (-1C Pr) (0 Det OR Pron) (0 Prp) (1C Prp) ;
+
+REMOVE Acc IF (-1C Pr) (0 Modif) (0 Prp OR Acc) (1C Prp) ;
+
+REMOVE Det + $$NGDAIP IF (1C N) (1C NGDAIP - $$NGDAIP) (0 NGDAIP - $$NGDAIP) (1 NGDAIP - $$NGDAIP) ;
+
+#REMOVE CS/Čto IF (NOT -1* V/Čto) ;
+
+REMOVE CS/Čto IF (-1 Pr) ;
+
+SELECT Anim IF (0C Anim OR Inanim) (-1 SafeGuio LINK -1C Anim + Nom) ;
+
+REMOVE Gen IF (0 Anim) (0C Gen OR Acc) (-1 TV) (-1C  Fin) (NOT -1 V/Gen) ;
+
+SELECT V IF (0C Bylo) (1C PrcPast + Short);
+
+SELECT Nom IF (0C Nom OR Acc) (-1C PrcPast + Short LINK -1C Bylo) (NOT -1* Nom) (NOT 1C* Nom) ;
+
+SELECT $$MFN IF (0C Ord) (-1C Pr) (1C N + $$MFN) ;
+
+# REMOVE Pred (-1C Fin) ;
+  #! ... не было против.
+
+REMOVE IV IF (0 TV OR IV) (1C Acc) (NOT 1 AccAdv) ;
+
+REMOVE Acc IF (0C Nom OR Acc) (0 A) (-1 Short) (1C Nom) ;
+
+REMOVE Adv IF (0 Pr/Posle) (-1C N) (1 Gen) ;
+
+SELECT Pr IF (0 Pr/Pri) (0C* Fin BARRIER NGDAIP - Prp - Gen - Adv) ;
+
+REMOVE Pr IF (0 Pr/Posle OR Adv/Posle) (NOT 1* Gen) (NOT 1 Unknown) ;
+
+# Под эту статью туда уже не раз выделялись средства из российского бюджета, но после выяснялось, что они ушли на иные цели.
+# не раз выделялись
+
+SELECT Count IF (-1C Num) ;
+
+REMOVE Acc IF (-1C Fin + IV) (NOT 0 AccAdv) ;
+
+SELECT PrcPast IF (0C A OR PrcPast) (1C Pr) ;
+
+REMOVE Nom IF (0 Nom OR Acc) (-1 V) (NOT -1 Jest) (-1 TV LINK -1C Nom) (0 A OR N) (NOT 0 AccAdv) ;
+  #! Breaks with есть
+
+SELECT Acc IF (0C Acc OR Nom) (-1C Acc LINK -1* TV BARRIER N OR Pr OR CLB) (-1C* Nom);
+
+SELECT Kotoryj + Nom IF (0 Kotoryj + $$NBR) (1C* IV + Fin + $$NBR BARRIER (*) - Adv) ;
+
+#SELECT Acc IF (0C Acc OR Prp) (-1C Acc LINK -1* Pr/V OR Pr/Na BARRIER NGDAIP - Acc);
+  #! На 26-е он успешно арестовал
+
+REMOVE Ant IF (0C Prop) (-1C CardPoint OR Toponymy) ;
+
+REMOVE Al IF (0C Prop + $$NGDAIP) (-1C Sem/Person + $$NGDAIP) ;
+
+REMOVE Acc IF (0C N) (0C Acc OR Nom OR Gen) (-1C N + Acc) (NOT 0 Prop) (NOT -1 Sem/Person) (NOT 0 AccAdv) (NOT -1* Prep/Acc BARRIER NGDAIP - Acc) ;
+
+REMOVE Acc IF (0C Acc OR Nom) (-1C A + Nom LINK -1 IV) (1 EOS) (NOT 0 AccAdv) ;
+
+SELECT Gen IF (1C Prp OR Gen) (-1C Comp) ;
+
+# REMOVE PrcPres IF (0 PrcPres OR A) (0 $$NGDAIP) (1C N) (1C $$NGDAIP) ;
+
+SELECT CC IF (0 No) (-1 Cm) (1 Fin) ;
+
+REMOVE CS IF (-1C Pr) ;
+
+REMOVE Det IF (0 Det OR Pron) (1C Pred OR Short) (NOT 2 Guio OR A) ;
+
+REMOVE Prp IF (-1C Ins) ;
+
+SELECT Gen IF (-1C Modif) (-1C Gen + $$NBR) (0 Gen + $$NBR) (0C Acc OR Nom OR Gen) ;
+
+SELECT A + $$NGDAIP IF (-1C Pr) (0C A OR N) (1C N + $$NGDAIP) ;
+
+REMOVE Nom IF (-1C A + Acc) (0C N) (0C Acc OR Nom) ;
+    ## Исполнительную власть осуществляли народные комиссары
+
+REMOVE Acc IF (1C N + Nom) (0C A) (0C Acc OR Nom) ;
+
+SELECT Pron IF (0 Prn/To) (1 Cm LINK 1 Čto) ;
+
+SELECT Rel IF (0 Pron OR Adv) (-1 Cm LINK -1 Prn/To) ;
+
+REMOVE V/Pass IF (NOT -1* Ins BARRIER Fin) (NOT 1* Ins BARRIER Fin) ;
+
+SELECT Adv IF (-1 V/Byt) (1 PrcPast OR PrcPres) ;
+
+SELECT Adv IF (0 Adv LINK 0 CC) (-1C Fin) (1 Modif LINK NOT 1* Fin BARRIER CLB);
+
+SELECT Nom IF (-1 BOS) (0 Nom OR Acc) (1 Nom LINK 1 Short LINK 1 Guio) ;
+
+SELECT N IF (0C N OR A) (-1 Pr) (1 EOS) ;
+
+REMOVE Acc IF (NOT -1* TV LINK NOT 0 V/Pass) (NOT 0 AccAdv) (NOT 1* TV LINK NOT 0 V/Pass) (NOT -1* Pr BARRIER CLB) ;
+  # barrier was (*) - Acc
+
+SELECT Nom IF (0C N) (0 Acc OR Nom) (-1 Modif) (-1* SafeGuio BARRIER (*) - Nom LINK -1C Nom) ;
+
+SELECT $$NGDAIP IF (0C Roman) (1 N/Vek + $$NGDAIP) ;
+
+SELECT $$NGDAIP IF (-1C A + $$MFN) (0C N + $$MFN) (1C Fin + $$MFN) ;
+
+REMOVE Imper IF (-1C Pr) ;
+
+REMOVE Prp IF (NOT -1* Prep/Prp BARRIER Fin) ;
+
+SELECT Acc IF (0 N) (0 Nom OR Acc) (-1C A + Acc) (-1C* TV BARRIER NGDAIP - Acc LINK -1C* N + Nom BARRIER NGDAIP - Nom) ;
+
+REMOVE CC IF (0 Že) (NOT -1* Fin OR Pred) ;
+
+REMOVE CC IF (0 To) (-1 Pr) ;
+
+SELECT Nom IF (0C N) (0C Nom OR Acc) (-1C A + Nom LINK -1 IV) ;
+
+SELECT Nom IF (0 Kotoryj + $$NBR) (1 Fin + $$NBR LINK 1C Acc) ;
+
+SELECT Nom IF (0C Nom OR Acc) (-1C* Nom BARRIER NGDAIP - Nom - Acc LINK -1C* IV BARRIER NGDAIP - Nom OR TV OR CLB OR Pr) ;
+
+# SELECT Acc IF (0C A) (0C Nom OR Acc) (-1C N + Acc LINK -1C A + Acc) (1C N) ;
+  #! В 1385 году великий князь литовский Ягайло Кревской унией обязался объединить в федеративное годударство Великое княжество Литовское и Королевство Польское в персональной унии в случав его избрания королем Польши.
+
+REMOVE Acc IF (NOT 1* TV) (NOT 0 AccAdv) (NOT -1* TV) (-1C* IV BARRIER Fin) (NOT -1* Prep/Acc BARRIER NGDAIP - Acc) ;
+
+SELECT Interr IF (0 Interr OR Rel) (-1 BOS) (1* Ques BARRIER CLB) ;
+  # Где Ваня ?
+
+SELECT Pr IF (0C Pr OR Adv) (0 Prep/Gen) (1 Gen) ;
+  # Они всегда играют вместе, напротив большого дома.
+
+REMOVE N + $$NGDAIP IF (0 A) (0 N) (1C N + $$NGDAIP) ;
+# Ваня -- маленький мальчик шести лет.
+
+SELECT Gen IF (0C Ant) (0 Gen OR Nom) (-1 Pr/U) ;
+  # У Вани есть кошка.
+
+###############################################################################
+# Syntax labelling rules
+###############################################################################
+
+SECTION
+
+LIST @ADVL = @ADVL ;
+LIST @CVP = @CVP ;
+LIST @CNP = @CNP ;
+LIST @N→ = @N→ ;
+LIST @P← = @P← ;
+
+MAP @ADVL TARGET Short IF (NOT 0 V) (0C Short) (0C Neu) (1C Fin) ;
+
+MAP @ADVL TARGET Short IF (NOT 0 V) (0C Short) (0C Neu) (-1C Fin) ;
+
+#MAP @N→ TARGET Det IF (1C* N + $$NGDAIP BARRIER NGDAIP - $$NGDAIP) (0C Det + $$NGDAIP) ;
+
+MAP @P← TARGET Pprep IF (-1 Pr) ;
+
+# MAP @CVP TARGET Cm IF (-1* Fin CBARRIER Fin) (1* Fin CBARRIER Fin) (NOT 1* Cm CBARRIER Fin) ;
+  #! Надвигается катастрофа, а министр, видимо, не понимает обстановки, и должные меры не принимаются.
+
+MAP @CNP TARGET CC/I IF (0C CC/I) (NOT -1* Fin) (-1* N OR Modif) ;
+
+MAP @CNP TARGET CC/I IF (0C CC/I) (NOT 1* Fin) (1* N OR Modif) ;
+
+###############################################################################
+# Really heuristic rules and hacks, relies on certain forms being extremely
+# infrequent in relation to other forms.
+###############################################################################
+
+SECTION
+
+REMOVE Dat IF (NOT 0 Prn/Sebe) (NOT 0 Anim OR Cog OR Ant) (NOT 0 Pron) (NOT 1* V/Dat) (NOT -1* V/Dat) (NOT -1* Prep/Dat) (NOT -1C A + Dat) ;
+  # This rule is quite good, but should be after any rules that remove +Prp
+  #! Мне не жарко
+  #! Мне восем лет
+
+SELECT Gen IF (0C N) (-1C A OR Det) (-1C Gen LINK -1 N LINK NOT 0 Gen) ;
+  #! В конце прошлой [недели] собаки пропали [, а в начале этой -- нашлись]
+  #! В начале наступающего собаки не лают.
+
+REMOVE N/Denga ;
+
+REMOVE Msc IF (0 N/Voda OR N/Vode) ;
+
+SELECT Majusc IF (0C Roman) ;
+
+SELECT DicMajusc IF (0C Roman) (0 Majusc) ;
+
+SELECT DicMinusc IF (0C Roman) (0 Minusc) ;
+
+REMOVE N/Pomoč IF (0 N/Pomoč OR V) ;
+
+REMOVE V IF (0 V/Takaja) ;
+
+REMOVE N IF (0 N/Vtora) ;
+
+REMOVE V IF (0 Pr/Dlja) ;
+
+REMOVE N IF (0 Pr/Pod) ;
+
+REMOVE N/Mater IF (0 N/Mat OR N/Mater) ;
+
+REMOVE Ij/Ih IF (NOT 1 Excl) ;
+
+REMOVE Ij/I IF (NOT 1 Punct) ;
+
+REMOVE CC/I IF (-1 CS) ;
+
+REMOVE Adv/I IF (NOT -1* Adv/Ješë OR Jest OR Rel OR No BARRIER (*) - Adv) (NOT -1* CC BARRIER (*) - Adv) ;
+  #! Существует и более мягкая точка зрения; её занимают ак отдельные соционики, критикующие, ...
+
+REMOVE V/Primer IF (0 N/Primer) ;
+
+REMOVE A/Metrov IF (0 N/Metr) ;
+
+REMOVE V/Dela IF (0 N/Delo) ;
+
+REMOVE A/Prišlij IF (0 V/Prijti) ;
+
+REMOVE IV IF (0 V/Pisat) ;
+
+REMOVE N/Pravilo² IF (0 N/Pravilo¹) ;
+
+REMOVE Perf IF (0 V/Stroit) ;
+
+REMOVE Perf IF (0 V/Vyhodit) ;
+
+REMOVE Adv/Krugom² IF (NOT -1 V/Idjot LINK -1 N/Golova) ;
+
+SELECT Adv IF (0 Adv/Celikom) ;
+
+REMOVE N/Miro IF (NOT -1* N/Noga OR N/Lob) (NOT 1* N/Noga OR N/Lob) ;
+
+REMOVE N/Byli IF (0 Cop) ;
+
+REMOVE N/On IF (0C N OR Pron) ;
+
+REMOVE N/Stradanje IF (0 N/Stradanie);
+
+REMOVE Ij/A IF (NOT 1* Excl OR Ques);
+
+REMOVE N/Slony IF (-1 A/Boevoj) ;
+
+REMOVE N/Filma IF (0 N/Film OR N/Filma) ;
+
+REMOVE Imper IF (0 Num/Tri) (NOT 1* Excl) ;
+
+REMOVE Imper IF (0 N/Denj) (NOT 1* Excl) ;
+
+REMOVE Interj IF (0 U) (NOT 1 Punct) (1 Gen) ;
+
+REMOVE N IF (0 No) (NOT -1 Punct) (NOT 1 Punct) ;
+
+REMOVE Ij/No IF (NOT 1* Excl OR Ques);
+
+REMOVE Part IF (0 Bylo) (NOT -1* Past) (NOT 1* Past) ;
+
+SELECT Pr IF (0C Vo) ;
+
+SELECT DicTitle IF (NOT -1 BOS) (0 Title) (0C N OR EOS) ;
+
+SELECT N/Čelovek IF (0C N/Čelovek OR N/Ljudi) ;
+
+REMOVE Adv/Posle IF (0C Adv/Posle OR Pr/Posle) ;
+
+REMOVE Prop IF (0 Pr/Po) (NOT 1 Prop) (NOT -1 Prop) (NOT 1 Fin) (NOT -1 Fin) (1* Dat OR Acc OR Ins) ;
+
+SELECT Sg IF (0 Prop) (0 Gen) (-1 N) (1 EOS) (NOT -1* Fin + Pl) ;
+
+SELECT Abbr IF (0 Abbr OR Interj) (-1C Num) (NOT 0 Pr) ;
+
+SELECT Det IF (-1 Pr/Po) (0 Sej) (1 N/Denj) ;
+
+REMOVE V IF (0 N/Maj) ;
+
+SELECT Cog IF (0C Cog OR N) (-1 Ant) (0 Title) ;
+
+SELECT Cog + $$MFN IF (-1C Ant + $$MFN) ;
+
+SELECT Ant + $$MFN IF (1C Cog + $$MFN) ;
+
+SELECT Msc IF (0C Ant) (-1C PersonTitleMsc) ;
+
+SELECT Fem IF (0C Ant) (-1C PersonTitleFem) ;
+
+SELECT Rel IF (0C Rel OR Interr) (-1 Cm) (NOT 1* Ques) ;
+
+REMOVE Part IF (0 Kak) (NOT -1 Tak) ;
+
+SELECT DicMajusc IF (-1 Abbr OR Sem/Person) (0 Abbr) (1 Cog) ;
+
+SELECT Cog IF (1 Abbr LINK 1 Abbr) (-1 Sem/Person) ;
+
+REMOVE Interr IF (0 Kak) (NOT 1* Ques) ;
+
+REMOVE Part IF (0 Ili) ;
+
+REMOVE Part IF (0 Adv/Ješë) ;
+
+REMOVE N IF (0 No) ;
+
+REMOVE Letters IF (NOT -1 Punct) (0C Letters) (NOT 1 Punct) ;
+
+REMOVE Prop + Pl IF (-1C N) (0 Prop + Sg + Gen) (0C Prop) (0C Inanim) ;
+
+REMOVE Part IF (0 Eto) (-1C Pr) ;
+
+REMOVE Adv IF (0 Prop/Maša) ;
+
+REMOVE Prob ;
+
+REMOVE Facul ;
+
+SELECT Pr IF (0 Pr LINK 0 Letters) (NOT -1 LetterEnum) ;
+
+####!!!
+SELECT N + $$NGDAIP IF (0C N) (-1 A + $$NGDAIP LINK -1 Samyj + $$NGDAIP) ;
+
+SELECT Det IF (0 Samyj + $$NGDAIP) (1 A + $$NGDAIP LINK 1 N + $$NGDAIP) ;
+
+###############################################################################
+# Rules requiring correct syntactic function labelling (risky!)
+###############################################################################
+
+SELECT $$NGDAIP IF (0 A + $$NGDAIP) (1 @CNP LINK 1 A + $$NGDAIP) ;
+
+SELECT $$NGDAIP IF (0 N + $$NGDAIP) (1 @CNP LINK 1 N + $$NGDAIP) ;
+
+SELECT $$NGDAIP IF (0 Prop + $$NGDAIP) (1 @CNP LINK 1 Prop + $$NGDAIP) ;
+
+SELECT $$NGDAIP IF (0 A + $$NGDAIP) (-1 @CNP LINK -1 A + $$NGDAIP) ;
+
+SELECT $$NGDAIP IF (0 N + $$NGDAIP) (-1 @CNP LINK -1 N + $$NGDAIP) ;
+
+SELECT $$NGDAIP IF (0 Prop + $$NGDAIP) (-1 @CNP LINK -1 Prop + $$NGDAIP) ;
+
+SELECT $$NGDAIP IF (0C Roman) (1 @CNP LINK 1C Roman LINK 1 N/Vek + $$NGDAIP) ;
+
+###############################################################################
+# Rules dealing explicitly with subreadings
+###############################################################################
+
+REMOVE SUB:1 Sent IF (1 Sent) ;
+
+REMOVE SUB:1 Sent IF (NOT 1 Majusc OR Title) ;
+
+REMOVE SUB:1 Sent IF (1 Cog) ;
+
+SECTION
+#Section 2: rules for specific contexts
+###############################################################################
+# Test rules on ambiguous participles and adjectives (uliana)
+###############################################################################
+#LEVEL 1: rules for specific contexts (SC)
+###############################################################################
+#REMOVE N:
+
+REMOVE:SCPtcpN1 N IF (0 V) (0 N + $$NGDAIP)(-1 Comm LINK -1 N + $$NGDAIP) ;
+#Тут цвет какого-то нового общества, ещё не устоявшегося, ещё кипящего в водовороте отбора, ещё в этом водовороте не выработались окончательные правила, говорящие "да" и "нет", но уже вознесённого на гребень успеха. ==> говорящие
+
+REMOVE:SCPtcpN2 N IF (0 V) (0 N + $$NGDAIP)(-1 PurposeAdv)(1 N + $$NGDAIP);
+
+REMOVE:SCPtcpN3 N IF (0 V) (0 N + $$NGDAIP)((1 N + $$NGDAIP) OR (1 Pr LINK 1 N LINK 1 N + $$NGDAIP));
+#Variant
+#Курящие в стороне люди.
+
+REMOVE:SCPtcpN4 N IF (0 V) (0 N + $$NGDAIP)(-1 Comm LINK -1 N + $$NGDAIP)(1 Num LINK 1 N);
+#optional rule
+
+REMOVE:SCPtcpN5 V IF (0 V) (0 N + $$NGDAIP)(-1 Comm LINK -1 N)(1 Pr);
+#...написанные руководителями команд, участвующих в RoboCup.
+
+REMOVE:SCPtcpN6 V IF (0 V + $$NGDAIP) (0 N + $$NGDAIP)(-1 Comm LINK -1 N)(1 Pr);
+
+REMOVE:SCPtcpN7 V OR A IF (0 V + Gen) (0 N + Gen)(0 A + Gen)(-1 N)(1 V);
+#...подавляющее большинство погибших составили вооруженные боевики, открывшие огонь по израильским силам во время их...
+
+#REMOVE V:
+
+#Rules:
+REMOVE:SCPtcpV1 V IF (0 V) (0 A + $$NGDAIP)(1 N + $$NGDAIP OR Pron + $$NGDAIP LINK NOT 1 Pr LINK 1 N OR Pron);
+#Для умных и думающих людей хочу напомнить: подготовка квалифицированных учителей – русистов в Азербайджане началась с 30-х годов прошлого века. ==> квалифицированных ok
+
+REMOVE:SCPtcpV2 V IF (0 V) (0 A)(-1 MeasureDegreeAdv)(-1 Ne LINK -1 MeasureDegreeAdv)(NOT 1 Pron)(NOT 1 N)(NOT 1 Det)(NOT 1 Pron + Poss) ; 
+
+#Это сооружение механики в разобранном виде привозят на гонки на шести трейлерах и затем собирают с помощью гидроподъемников в течение 13 часов, причем процесс этот настолько продуман и автоматизирован, что даже не требует привозить на Гран При лишних людей. ==> настолько продуман ok
+#Вернувшись, рассказал, что доклад М. был очень продуман, отчетлив и верно излагал основные мысли Ни.
+#― Так вы коллекционируете насекомых? ― спросил философ, настолько удивленный и обиженный, насколько было это возможно при его характере. ==> удивленный ok
+#Шехтель очень дорожил этой своей работой, и есть очень обиженное его письмо, когда уже в советское время, всех почтили к юбилею театра наградами, а о нем не вспомнили. => обиженное ok
+#Менее одаренный природой человек может стать более развитым, чем более одаренный, развитием которого никто не занимался. => одаренный => одаренный, развитым
+
+REMOVE:SCPtcpV3 V IF (0 V LINK 0 (<W=MIN>)) (0 A LINK 0 (<W=MIN>))(-1 CC LINK -1* MeasureDegreeAdv OR Det OR Pron + Poss)(-1 Ne LINK -1 CC LINK -1* MeasureDegreeAdv)(1 Comm);
+#Это сооружение механики в разобранном виде привозят на гонки на шести трейлерах и затем собирают с помощью гидроподъемников в течение 13 часов, причем процесс этот настолько продуман и автоматизирован, что даже не требует привозить на Гран При лишних людей. ==>  и автоматизирован ok
+#― Так вы коллекционируете насекомых? ― спросил философ, настолько удивленный и обиженный, насколько было это возможно при его характере. ==> и обиженный
+
+REMOVE:SCPtcpV4 V IF (0 V) (0 A + $$NGDAIP)((-1 MeasureDegreeAdv OR Det) OR (-1 Ne LINK -1 MeasureDegreeAdv OR Det) OR (-1 V))(1 Pron + $$NGDAIP LINK 1 N + $$NGDAIP) ;
+#?????
+
+REMOVE:SCPtcpV5 V IF (0 V OR A )((-1 Adv/Cmpar) OR (-1 Ne LINK -1 Adv/Cmpar))(NOT 1 N + NOTNOMPREP OR Pron + NOTNOMPREP);
+#?????
+
+#REMOVE:SCPtcpV6.1 V IF (0 V) (0 A + $$NGDAIP)((-1 N + $$NGDAIP OR Pron + $$NGDAIP) OR (-1 Ne LINK -1 N + $$NGDAIP))(NOT 1 WORD);
+#?????
+
+#REMOVE:SCPtcpV6.2 V IF (0 V) (0 A + $$NGDAIP)((-1 N + $$NGDAIP OR Pron + $$NGDAIP) OR (-1 Ne LINK -1 N + $$NGDAIP))(1 Comm);
+#?????
+
+REMOVE:SCPtcpV7 V IF (0 V OR A)((-1 CC) OR (-1 Ne LINK -1 CC))(1 S-BOUNDARY or (WORD S-BOUNDARY));
+#Фурсенко отмечает, что и повышенные зарплаты по-прежнему недотягивают до справедливого уровня. ok
+#Variation: Как класс порабощенный и правящий. ==> правящий ok
+#Для умных и думающих людей хочу напомнить: подготовка квалифицированных учителей – русистов в Азербайджане началась с 30-х годов прошлого века. ==> думающих ok
+
+REMOVE:SCPtcpV8 V  IF (0 V) (0 A + $$NGDAIP)(-1 Adv)(-1 Ne LINK -1 Adv)(1 Pr LINK 1 N + $$NGDAIP) ;
+#?????
+
+REMOVE:SCPtcpV9 V IF (0 V)(0 A)(-1 Cop)(1 S-BOUNDARY) ;
+#Ладно, что ж… давай показывай. Располнел; да и взгляд был загнанный. ok
+
+REMOVE:SCPtcpV10 V IF (0 V)(0 A + $$NGDAIP)(-1 N + $$NGDAIP)(1 S-BOUNDARY OR CC) ;
+#Как класс правящий и порабощенный. ==> правящий ok
+#rule 776 also works here on "загнать" V Perf TV PstPss Msc Inan Sg Acc <W:2.2045135498>
+
+REMOVE:SCPtcpV11 V IF (0 V)(0 A + $$NGDAIP)(-1 V)(1 N + $$NGDAIP);
+#Если бы он курил, то он непременно курил бы сейчас, как это обычно делают курящие люди в задумчивости. ==> курящие ok
+
+REMOVE:SCPtcpV12 V IF (0 V)(0 A + $$NGDAIP)(-1 V)(1 N + $$NGDAIP LINK 1 Prp);
+#?????
+
+REMOVE:SCPtcpV13 V IF (0 V + $$NGDAIP) (0 A + $$NGDAIP)((-1 CC LINK -1 A OR N) OR (-1 V))(1 N + $$NGDAIP);
+#Поэтому к гидроизоляционным материалам, используемым на подобных кровлях, предъявляются повышенные требования. ==> повышенные ok
+
+REMOVE:SCPtcpV14 V IF (0 V + Gen) (0 A + Gen)((-1 Adv) OR (-1 Adv LINK -1 Adv) OR (-1 CC LINK -1 A OR N) OR (-1 N) OR (-1 N LINK -1 Ne))(1 N + Gen);
+#Variant: #Поэтому к гидроизоляционным материалам, используемым на подобных кровлях, предъявляется список повышенных требований. ok
+
+REMOVE:SCPtcpV15 V IF (0 V) (0 A + $$NGDAIP)(-1 CC OR Comm LINK -1 A)(1 Comm OR CC);
+#Поэтому, чтобы нами управляли, руководили, считали там, люди компетентные, знающие, думающие и не просто за зарплату, а за совесть работающие, думающие о людях. ==> , знающие, думающие ok
+
+#REMOVE:SCPtcpV16 V IF (0 V)(NOT -1 TempLocAdv)(0 A + $$NGDAIP)(1 N + $$NGDAIP OR Pron + $$NGDAIP LINK NOT 1 Pr);
+#The rules works for В некрологах о нем на полном серьезе: крупный художник, большой талант, выдающийся деятель, but then it also recognizes думающие о людях in Поэтому, чтобы нами управляли, руководили, считали там, люди компетентные, знающие, думающие и не просто за зарплату, а за совесть работающие, думающие о людях.
+
+REMOVE:SCPtcpV17 V IF (0 V OR A)((-1 Adv LINK -1 Pr) OR (-1 Pr) OR (-1 Adv LINK -1 N LINK -1 Pr) OR (-1 N LINK -1 Pr))(1 Dash);
+#... новый реактор будет возведен на месте уже существующего - на юге Сиднея. ok
+#elliptical use of the adjective существующего
+
+#Additional rules:
+
+REMOVE:SCPtcpV18 V IF (0 A + $$NGDAIP OR V)(1 A + $$NGDAIP LINK 1 N + $$NGDAIP);
+#При сохранении без изменений существующей социально-политической системы. ok
+
+#REMOVE A
+
+REMOVE:SCPtcpA1 A IF (0 V)(0 A + $$NGDAIP)((-1 Ne LINK -1 Comm LINK -1 N + $$NGDAIP OR Pron + $$NGDAIP) OR (-1 Comm LINK -1 N + $$NGDAIP))((1 N + NOTNOMPREP OR Pron  + NOTNOMPREP) OR (1 CC LINK 1 Ne LINK 1 Adv LINK 1 Pr LINK 1 N OR Pron) OR (1 Pr LINK 1 N OR Pron));
+#Ястржембский, паркетный царедворец, не знающий свиста пуль, сделавший карьеру на том, что выносил за Ельциным ночную вазу, учит нас правильно понимать. ==> знающий ok
+#Когда подходишь близко к стаду спящих на воде моржей, то видишь только несколько бурых бугров, выдающихся из воды и свободно уносимых течением. ==> выдающихся из ok
+#Да и интеллектуальные тоже, люди, правящие миром, неспроста добились своего положения. ==> правящие миром ok
+
+REMOVE:SCPtcpA2 A IF (0 V)(0 A + $$NGDAIP)(-1 TempLocAdv)(1 N + $$NGDAIP);
+#Variation: Робот, которого доставили вчера, был с заранее заданными свойствами ==> заданными ok
+
+REMOVE:SCPtcpA3 A IF (0 V) (0 A + $$NGDAIP)((-1 Ne LINK -1 Comm LINK *-1 N + $$NGDAIP OR Pron + $$NGDAIP) OR (-1 Comm LINK *-1 N + $$NGDAIP))((1 N + NOTNOMPREP OR Pron  + NOTNOMPREP) OR (1 CC LINK 1 Ne LINK 1 Adv LINK 1 Pr LINK 1 N OR Pron) OR (1 Pr LINK 1 N OR Pron));
+#Поэтому, чтобы нами управляли, руководили, считали там, люди компетентные, знающие, думающие и не просто за зарплату, а за совесть работающие, думающие о людях.  ==> ,думающие о людях ok
+
+REMOVE:SCPtcpA4  A IF (0 V)(0 A)((-1 N + Gen) OR (-1 Pron + Gen) OR (-1 Det + Gen)) (1 Comm) ;
+#Отсюда его знаменитые бегства — то, что так поражало людей, мало его знающих, и нравилось женщинам. ==> ok
+
+REMOVE:SCPtcpA5 A IF (0 V) (0 A + $$NGDAIP) (1 Pr LINK 1 Comm) ;
+#Пройдя первый двор и оказавшись в точно таком же втором, Ирка высунула нос из-за своего невероятного букета и, заприметив мирно курящих в стороне мальчишек, подгребла к ним. ==> курящих ok
+
+REMOVE:SCPtcpA6 A IF (0 V)(0 A)((-1 N LINK -1 Pr) OR (-1 N LINK -1 Det OR A LINK -1 Pr) OR (-1 N LINK -1 Pr) OR (-1 Adv))(1 Pr LINK 1 N) ;
+#Образованный в суровую военную пору, ваш институт был с самого начала ориентирован на решение самых важных, самых сложных проблем отечественной газовой индустрии. ==> ориентирован ok
+#Когда подходишь близко к стаду спящих на воде моржей, то видишь только несколько бурых бугров, выдающихся из воды и свободно уносимых течением. ==> спящих на ok
+
+#REMOVE:SCPtcpA7 A IF (0 V)(0 A + $$NGDAIP)(-1 TempLocAdv)(1 N + $$NGDAIP) ;
+#заранее заданными свойствами
+
+REMOVE:SCPtcpA8 A IF (0 V)(0 A)((-1 MeasureDegreeAdv) OR (-1 MeasureDegreeAdv LINK -1 Adv) OR (-1 Ne LINK -1 MeasureDegreeAdv) OR (-1 Ne LINK -1 MeasureDegreeAdv LINK -1 Adv))(1 Pron + Ins OR Pron + Poss + Ins OR N + Ins OR A + Ins OR Det + Ins);
+#Как правило, функционал подобного рода сайтов настолько продуман его разработчиками, что на интуитивном уровне понятен даже самым неискушенным в пользовании компьютером и Интернетом посетителям. ==> продуман ok
+
+REMOVE:SCPtcpA9 A IF (0 V)(0 A)((-1 CC) OR (-1 Ne LINK -1 CC) OR (-1 MeasureDegreeAdv) OR (-1 MeasureDegreeAdv LINK -1 Adv) OR (-1 Ne LINK -1 MeasureDegreeAdv) OR (-1 Ne LINK -1 MeasureDegreeAdv LINK -1 Adv) )(1 CC LINK 1 A + NOTNOMPREP OR Pron + NOTNOMPREP OR Det + NOTNOMPREP LINK 1 N + NOTNOMPREP) ;
+#― Тогда я готов пригласить вас назавтра на breakfast, ― ответил он, весьма удивленный не то нашей осведомленностью, не то нахальством, не то с ног сшибающей непосредственностью. adj not selected ok
+
+#REMOVE:SCPtcpA10 A IF (0 V) (0 A + $$NGDAIP)((-1 Comm LINK -1 N + $$NGDAIP OR Pron + $$NGDAIP) OR (-1 Ne LINK -1 Comm LINK -1 N + $$NGDAIP OR Pron + $$NGDAIP))((1 N + Ins LINK 1 CC LINK 1 N + Ins or Pron + Ins) OR (1 N + NOTNOMPREP OR Pron + NOTNOMPREP));
+#???
+
+#REMOVE:SCPtcpA11 A IF (0 V) (0 A + $$NGDAIP)(-1 Ne LINK -1 Comm LINK -1 N + $$NGDAIP OR Pron + $$NGDAIP)((1 N + NOTNOMPREP or Pron + NOTNOMPREP) OR (1 Pr LINK 1 N or Pron));
+#???
+
+REMOVE:SCPtcpA12 A IF (0 V) (0 A + $$NGDAIP)(1 Pr LINK 1 N LINK 1 N + $$NGDAIP) ;
+#МКС угрожало столкновение с потерянным на орбите болтом.(does not work as the rule 467 replaces it. Without 467 it works.) ok
+#Длинные, красивые, блестящие на солнце волосы - это мечта любой женщины. ==> блестящие ok
+
+REMOVE:SCPtcpA13 A IF (0 V) (0 A + $$NGDAIP)((-1 Comm LINK -1 N + $$NGDAIP) OR (-1 Ne LINK -1 Comm LINK -1 N + $$NGDAIP))(1 Pr LINK 1 N) ;
+#postposition
+
+REMOVE:SCPtcp14 A IF (0 V)(0 A + $$NGDAIP)(-1 Comm)(1 QuotPlain LINK 1 WORD);
+#Тут цвет какого-то нового общества, ещё не устоявшегося, ещё кипящего в водовороте отбора, ещё в этом водовороте не выработались окончательные правила, говорящие "да" и "нет", но уже вознесённого на гребень успеха. ok
+
+#REMOVE:SC15 V IF (0 V LINK 0 (<W=MIN>)) (0 A LINK 0 (<W=MIN>))(-1 MeasureDegreeAdv -1 CC)(1 Comm);
+
+REMOVE:SCPtcp16 A IF (0 V) (0 A + $$NGDAIP)(-1 Comm LINK -1 N)(1 Adv OR Kak);
+#Учеников, мыслящих иначе, мы готовы немедленно занести в списки нерадивых. ok
+
+REMOVE:SCPtcp17 A IF (0 V) (0 A + $$NGDAIP)(-1 Pr LINK -1 V)(1 N + Dat LINK 1 N + Loc OR N + Prp);
+#... когда большинство членов кибуца не работают на принадлежащих кибуцу предприятиях ok
+
+###Combination of weights and morphological information
+REMOVE:SCPtcp18 A IF (0 V + PrcPast + Pass)(0 A + $$NGDAIP);
+
+###############################################################################
+#LEVEL 2: rules for general contexts (GC)
+###############################################################################
+
+SECTION
+#Section 3: rules for general contexts
+
+#SELECT A:
+
+SELECT:GCPtcpA0 A + $$NGDAIP IF (-1C Samyj + $$NGDAIP OR Adv/Cmpar )(0 A OR V)(0 A LINK 0 (<W=MIN>)) ; #from safe lexicalised operations
+SELECT:GCPtcpA1 A IF (0 V)(0 A + $$NGDAIP)(-1 A + $$NGDAIP) ;
+SELECT:GCPtcpA1 A IF (0 V) (0 A + $$NGDAIP) (1 N + $$NGDAIP LINK 1 Sent) ;
+
+
+#SELECT N:
+
+SELECT:GCPtcpN1 N IF (0 N)(0 V)(-1 Pr)(1 N + Gen) ;
+
+#SELECT V:
+
+SELECT:GCPtcpV1 V IF (0 V)(0 A)(1 Ins) ;
+#«― спрашивает Дмитриев, все более и более удивленный и испуганный словами солдата. ==> удивленный, испуганный
+SELECT:GCPtcpV2 V IF (0 V)(0 A)(1 Acc) ;
+SELECT:GCPtcpV3 V IF (0 V)(0 A)(1 Dat) ;
+SELECT:GCPtcpV4 V IF (0 V)(0 A)(-1 Comm) (1 Ins) ;
+SELECT:GCPtcpV5 V IF (0 V)(0 A)(-1 Comm) (1 Acc) ;
+SELECT:GCPtcpV6 V IF (0 V)(0 A)(1 Pr LINK 1 N) ;
+#Особую склонность избегать самостоятельных решений проявляют в японском деловом мире люди, только что повышенные в ранге. ==> повышенные
+
+SELECT:GCPtcpV7 V IF (0 V)(0 A)(1 Pr) ;
+#Образованный в суровую военную пору, ваш институт был с самого начала ориентирован на решение самых важных, самых сложных проблем отечественной газовой индустрии. ==> Образованный
+
+SELECT:GCPtcpV8 V IF (0 V + Pred)(0 A)(-1 Cop);
+SELECT:GCPtcpV9 V IF (0 V)(0 A + $$NGDAIP)(-1 TempLocAdv)(1 N + $$NGDAIP);
+
+#Remove analysis for verbal lemmas and their weights IF there is an analysis for lexicalized participles
+
+REMOVE:GCLxc V - Lxc (0 V + Lxc)(0 A) ;
+
+###############################################################################
+# Weighting rules
+###############################################################################
+
+SELECT:maxweight (<W=MAX>) ;
+
+###############################################################################
+# Failed rules
+###############################################################################
+
+# после/посол
+
+# SELECT Nom + $$MFN IF (0C Prop) (0C Acc OR Nom) (NOT -1C* Nom) (NOT 1C* Nom) (NOT -1* TV) (NOT 1* TV) (-1C* Cop + $$MFN) ;
+
+# SELECT Nom + $$MFN IF (0C Prop) (0C Acc OR Nom) (NOT -1C* Nom) (NOT 1C* Nom) (NOT -1* TV BARRIER CLB) (NOT 1* TV BARRIER CLB) (1C* Cop + $$MFN BARRIER CLB) ;
+
+# REMOVE Acc IF (0 Nom OR Acc) (NOT -1* TV) (NOT -1C* Pr) (NOT 1* TV) ;
+# REMOVE Acc IF (NOT -1* TV) (-1* IV LINK 0 Fin) (NOT 1* TV BARRIER Fin) ;
+
+# REMOVE CS IF (0 CS/Čto) (NOT -1* V OR Pred) ;
+
+# Нападающие выжигали огнем места, где могли спрятаться их жертвы: дома с труднодоступными помещениями, церкви, леса, перелески и т. п.
+
+# Distinguishing between adj/participle: if it gets arguments, it's not an adjective.
+
+# REMOVE Fin IF (-1C SafeGuio) ;
+# Maybe just with начало
+
+#SELECT Prop IF (-1 Quot) (0 Prop OR N) (1 Quot) ;
+#! «Мамонт», которое по-гречески значит «материнский», ...
+
+#моей as prn, if "из моей школы"
+#REMOVE A IF (-1C Pr)(0 Pron OR A);
+#(1) it also covers "человек с говорящей фамилией", because of "either or" condition "0 Pron OR A", (2) мой is not defined as an adj in the lexicon

@@ -5,10 +5,12 @@ from pathlib import Path
 from random import choice
 from random import shuffle
 import re
+from subprocess import PIPE
+from subprocess import Popen
 import sys
 
 import hfst
-from nltk import word_tokenize as tokenize
+from nltk import word_tokenize as nltk_tokenize
 
 TAG_FNAME = 'udar_tags.tsv'
 
@@ -60,13 +62,17 @@ class Reading:
         return key in self.tagset or _tag_dict[key] in self.tagset
 
     def __repr__(self):
-        return f'(Reading {self.lemma}: {" ".join([t.name for t in self.tags])})'
+        return f'(Reading {self.lemma} {" ".join([t.name for t in self.tags])})'  # noqa
 
     def __str__(self):
         return f'{self.lemma}+{"+".join(t.name for t in self.tags)}'
 
+    def CG_str(self):
+        """CG3-style __str__"""
+        return f'"{self.lemma}" {" ".join(t.name for t in self.tags)} <W:{r.weight}>'  # noqa
+
     def noL2_str(self):
-        return f'{self.lemma}+{"+".join(t.name for t in self.tags if not t.is_L2)}'
+        return f'{self.lemma}+{"+".join(t.name for t in self.tags if not t.is_L2)}'  # noqa
 
     def generate(self, fst=None):
         if not fst:
@@ -99,7 +105,7 @@ class Token:
         return key in self.lemmas
 
     def __repr__(self):
-        return f'(Token {self.orig}, {self.readings})'
+        return f'(Token {self.orig} {self.readings})'
 
     def is_L2(self):
         """Return True if ALL readings contain an L2 error tag."""
@@ -129,9 +135,102 @@ class Token:
                         else char
                         for i, char in enumerate(in_str)])
 
+    def hfst_stream(self):
+        """An HFST stream repr for command-line pipelines."""
+        return '\n'.join(f'{self.orig}\t{r!s}\t{r.weight}'
+                         for r in self.readings)
+
+    def cg3_stream(self):
+        """A vislcg3 stream repr for command-line pipelines."""
+        output = '\n\t'.join(f'{r.CG_str()} <W:{r.weight}>'
+                             for r in self.readings)
+        return f'"<{self.orig}>"\n\t{output}'
+
     @staticmethod
     def clean_surface(tok):
-        return tok.lower().replace('\u0301', '').replace('\u0300', '').replace('ё', 'е')
+        return tok.lower().replace('\u0301', '').replace('\u0300', '').replace('ё', 'е')  # noqa
+
+
+class Text:
+    """String of `Token`s."""
+    def __init__(self, input_text, tokenize=True, analyze=True,
+                 disambiguate=False):
+        if isinstance(input_text, str):
+            self.orig = input_text
+            self.toks = None
+        elif isinstance(input_text, list):
+            self.orig = ' '.join(input_text)
+            self.toks = input_text
+        else:
+            raise NotImplementedError(f'Expected `str` or `list`, not {type(input_text)}.')  # noqa
+        if tokenize and not self.toks:
+            self.tokenize()
+        if analyze:
+            self.analyze()
+        if disambiguate:
+            self.disambiguate()
+
+        self.disambiguated = False
+
+    def __repr__(self):
+        if self.reads:
+            return '\n\n'.join(tok.hfst_stream() for tok in self.reads) + '\n'
+        elif self.toks:
+            return f'(Text (not analyzed) {self.toks[:10]})'
+        else:
+            return f'(Text (not tokenized) {self.orig[:30]})'
+
+    def CG_str(self):
+        return '\n'.join(tok.cg3_stream() for tok in self.reads) + '\n'
+
+    def tokenize(self, func=nltk_tokenize):
+        # TODO try to use hfst-tokenize instead of nltk
+        self.toks = func(self.orig)
+
+    def analyze(self, fst=None):
+        if not fst:
+            init_analyzer()
+            fst = analyzer
+        self.reads = [fst.lookup(tok) for tok in self.toks]
+
+    def disambiguate(self, gram_path=None):
+        """Remove readings based on CG3 disambiguation grammar at gram_path."""
+        if gram_path is None:
+            gram_path = 'resources/disambiguator.cg3'
+        elif isinstance(gram_path, str):
+            pass
+        else:
+            raise NotImplementedError('Unexpected grammar path. Use str.')
+        try:
+            p = Popen(['vislcg3', '-g', gram_path],
+                      stdin=PIPE,
+                      stdout=PIPE)
+            output = p.communicate(input=self.CG_str().encode('utf8'))[0]
+            self.reads = self.parse_cg3(output.decode('utf8'))
+        except FileNotFoundError:
+            raise FileNotFoundError('vislcg3 must be installed, and in your '
+                                    'PATH variable to disambiguate a text.')
+
+    @staticmethod
+    def parse_cg3(stream):
+        output = []
+        readings = []
+        orig = 'junk'  # will be thrown away
+        for line in stream.split('\n'):
+            try:
+                old_orig, orig = orig, re.match('"<(.*?)>"', line).group(1)
+                output.append(Token(old_orig, readings))
+                readings = []
+                continue
+            except AttributeError:
+                try:
+                    lemma, tags, weight = re.match(r'\t"(.*)" (.*?) <W:(.*)>$',
+                                                   line).groups()
+                    tags = tags.replace(' ', '+')
+                    readings.append((f'{lemma}+{tags}', weight))
+                except AttributeError:
+                    continue
+        return output[1:]  # throw away 'junk' token
 
 
 class Udar:
@@ -209,7 +308,7 @@ def stressify(text, safe=True, CG=False):
     init_accented_generator()
     # process text
     out_text = []
-    for tok in tokenize(text):
+    for tok in nltk_tokenize(text):
         tok = analyzer.lookup(tok)
         stresses = tok2stress(tok)
         if len(stresses) == 1:
@@ -243,7 +342,7 @@ def diagnose_L2(text):
     """
     out_dict = defaultdict(set)
     init_L2_analyzer()
-    for tok_str in tokenize(text):
+    for tok_str in nltk_tokenize(text):
         tok = L2_analyzer.lookup(tok_str)
         if tok.is_L2():
             for r in tok.readings:
@@ -334,3 +433,12 @@ if __name__ == '__main__':
             print('\t', e)
     print(noun_distractors('слово'))
     print(noun_distractors('словам'))
+
+    t = Text('Мы нашли то, что искали.')
+    print(t)
+    t.tokenize()
+    print(t)
+    t.analyze()
+    print(t.CG_str())
+    t.disambiguate()
+    print(t)
