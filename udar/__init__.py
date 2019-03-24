@@ -135,6 +135,18 @@ class Token:
                         else char
                         for i, char in enumerate(in_str)])
 
+    def stresses(self, recase=True):
+        """Return set of all surface forms from a token's readings."""
+        init_accented_generator()
+        if self.readings == []:
+            return None
+        elif recase:
+            stresses = {self.recase(r.generate(acc_generator))
+                        for r in self.readings}
+        else:
+            stresses = {r.generate(acc_generator) for r in self.readings}
+        return stresses
+
     def hfst_stream(self):
         """An HFST stream repr for command-line pipelines."""
         return '\n'.join(f'{self.orig}\t{r!s}\t{r.weight}'
@@ -155,14 +167,25 @@ class Text:
     """String of `Token`s."""
     def __init__(self, input_text, tokenize=True, analyze=True,
                  disambiguate=False):
+        """Note the difference between self.toks and self.Toks, where the
+        latter is a list of Token objects, the former a list of strings.
+        """
+        self._analyzed = False
+        self._disambiguated = False
+        self.Toks = None
         if isinstance(input_text, str):
+            self._from_str = True
             self.orig = input_text
+            self._tokenized = False
             self.toks = None
         elif isinstance(input_text, list):
+            self._from_str = False
             self.orig = ' '.join(input_text)
+            self._tokenized = True
             self.toks = input_text
         else:
-            raise NotImplementedError(f'Expected `str` or `list`, not {type(input_text)}.')  # noqa
+            t = type(input_text)
+            raise NotImplementedError(f'Expected `str` or `list`, got {t}.')
         if tokenize and not self.toks:
             self.tokenize()
         if analyze:
@@ -170,28 +193,28 @@ class Text:
         if disambiguate:
             self.disambiguate()
 
-        self.disambiguated = False
-
     def __repr__(self):
-        if self.reads:
-            return '\n\n'.join(tok.hfst_stream() for tok in self.reads) + '\n'
+        if self.Toks:
+            return '\n\n'.join(tok.hfst_stream() for tok in self.Toks) + '\n'
         elif self.toks:
             return f'(Text (not analyzed) {self.toks[:10]})'
         else:
             return f'(Text (not tokenized) {self.orig[:30]})'
 
     def CG_str(self):
-        return '\n'.join(tok.cg3_stream() for tok in self.reads) + '\n'
+        return '\n'.join(tok.cg3_stream() for tok in self.Toks) + '\n'
 
     def tokenize(self, func=nltk_tokenize):
         # TODO try to use hfst-tokenize instead of nltk
         self.toks = func(self.orig)
+        self._tokenized = True
 
     def analyze(self, fst=None):
         if not fst:
             init_analyzer()
             fst = analyzer
-        self.reads = [fst.lookup(tok) for tok in self.toks]
+        self.Toks = [fst.lookup(tok) for tok in self.toks]
+        self._analyzed = True
 
     def disambiguate(self, gram_path=None):
         """Remove readings based on CG3 disambiguation grammar at gram_path."""
@@ -206,7 +229,8 @@ class Text:
                       stdin=PIPE,
                       stdout=PIPE)
             output = p.communicate(input=self.CG_str().encode('utf8'))[0]
-            self.reads = self.parse_cg3(output.decode('utf8'))
+            self.Toks = self.parse_cg3(output.decode('utf8'))
+            self._disambiguated = True
         except FileNotFoundError:
             raise FileNotFoundError('vislcg3 must be installed, and in your '
                                     'PATH variable to disambiguate a text.')
@@ -231,6 +255,50 @@ class Text:
                 except AttributeError:
                     continue
         return output[1:]  # throw away 'junk' token
+
+    def stressify(self, approach='safe', guess=False):
+        """Return str of running text with stress marked.
+
+        approach  (Applies only to words in the lexicon.)
+            safe   -- Only add stress if it is unambiguous.
+            random -- Randomly choose between specified stress positions.
+            all    -- Add stress to all possible specified stress positions.
+
+        guess
+            Applies only to out-of-lexicon words. Makes an "intelligent" guess.
+        """
+        out_text = []
+        for tok in self.Toks:
+            stresses = tok.stresses()
+            if stresses is None:
+                if guess:
+                    raise NotImplementedError
+                else:
+                    out_text.append(tok.orig)
+            elif len(stresses) == 1:
+                out_text.append(stresses.pop())
+            elif len(stresses) == 0:
+                raise ValueError(f'{tok} is not found.')
+            else:
+                if approach == 'safe':
+                    out_text.append(tok.orig)
+                elif approach == 'random':
+                    out_text.append(choice(list(stresses)))
+                elif approach == 'all':
+                    raise NotImplementedError
+                else:
+                    raise NotImplentedError
+        return self.respace(out_text)
+
+    def respace(self, toks):
+        if self._from_str:
+            return unspace_punct(' '.join(toks))
+            # TODO do something cool, but not obvious
+            if isinstance(toks, list):
+                for match in re.finditer(r'\s+', self.orig):
+                    pass
+        else:
+            return unspace_punct(' '.join(out_text))
 
 
 class Udar:
@@ -297,37 +365,10 @@ class Udar:
         return tok
 
 
-def stressify(text, safe=True, CG=False):
+def stressify(text, disambiguate=False, **kwargs):
     """Automatically add stress to running text."""
-    # check for unimplemented parameters
-    if not safe:
-        raise NotImplementedError('non-`safe` approaches not yet implemented.')
-    if CG:
-        raise NotImplementedError('Constraint Grammar not yet implemented.')
-    init_analyzer()
-    init_accented_generator()
-    # process text
-    out_text = []
-    for tok in nltk_tokenize(text):
-        tok = analyzer.lookup(tok)
-        stresses = tok2stress(tok)
-        if len(stresses) == 1:
-            out_text.append(stresses.pop())
-        elif len(stresses) == 0:
-            raise ValueError(f'{tok} is not found.')
-        else:
-            if safe:
-                out_text.append(tok.orig)
-            else:
-                out_text.append(choice(list(stresses)))
-    return unspace_punct(' '.join(out_text))
-
-
-def tok2stress(tok):
-    """Return set of all surface forms from a token's readings."""
-    init_accented_generator()
-    stresses = {tok.recase(r.generate(acc_generator)) for r in tok.readings}
-    return stresses
+    text = Text(text, disambiguate=disambiguate)
+    return text.stressify(**kwargs)
 
 
 def unspace_punct(in_str):
@@ -434,11 +475,5 @@ if __name__ == '__main__':
     print(noun_distractors('слово'))
     print(noun_distractors('словам'))
 
-    t = Text('Мы нашли то, что искали.')
-    print(t)
-    t.tokenize()
-    print(t)
-    t.analyze()
-    print(t.CG_str())
-    t.disambiguate()
+    t = Text('Мы нашли то, что искали.', disambiguate=True)
     print(t)
