@@ -69,7 +69,7 @@ class Reading:
 
     def CG_str(self):
         """CG3-style __str__"""
-        return f'"{self.lemma}" {" ".join(t.name for t in self.tags)} <W:{r.weight}>'  # noqa
+        return f'"{self.lemma}" {" ".join(t.name for t in self.tags)} <W:{self.weight}>'  # noqa
 
     def noL2_str(self):
         return f'{self.lemma}+{"+".join(t.name for t in self.tags if not t.is_L2)}'  # noqa
@@ -82,7 +82,8 @@ class Reading:
             return fst.generate(self.noL2_str())
         except IndexError:
             print('ERROR Failed to generate: '
-                  f'{self} {self.noL2_str()} {fst.generate(self.noL2_str())}')
+                  f'{self} {self.noL2_str()} {fst.generate(self.noL2_str())}',
+                  file=sys.stderr)
 
     def replace_tag(self, orig_tag, new_tag):
         if isinstance(orig_tag, str):
@@ -138,14 +139,73 @@ class Token:
     def stresses(self, recase=True):
         """Return set of all surface forms from a token's readings."""
         init_accented_generator()
-        if self.readings == []:
-            return None
-        elif recase:
+        if recase:
             stresses = {self.recase(r.generate(acc_generator))
                         for r in self.readings}
         else:
             stresses = {r.generate(acc_generator) for r in self.readings}
-        return stresses
+        return stresses or None
+
+    def guess(self, backoff=None):
+        # if self.isInsane():
+        #     if backoff is None:
+        #         return self.surface
+        #     if backoff == 'syllable':
+        #         return self.guess_syllable()
+        if len(self.readingsdict) > 0:
+            randomchoice = choice(list(self.readingsdict))
+            return self.readingsdict[randomchoice][0]
+        else:
+            return self.guess_syllable()
+
+    def guess_freq(self, backoff=None):
+        """Leftovers from dissertation script. TODO refactor."""
+        # if self.isInsane():
+        #     if backoff is None:
+        #         return self.surface
+        #     if backoff == 'syllable':
+        #         return self.guess_syllable()
+        reading = (0, '')
+        tag = (0, '')
+        for r in self.readingsdict:
+            if '<' in r:
+                tagSeq = r[r.index('<'):]
+            else:
+                tagSeq = ' '*16  # force tag backoff to fail if there is no '<'
+
+            if tagSeq in tag_freq_dict:
+                if tag_freq_dict[tagSeq] > tag[0]:
+                    tag = (tag_freq_dict[tagSeq], r)
+
+            if r in lem_tag_freq_dict:
+                if lem_tag_freq_dict[r] > reading[0]:
+                    reading = (lem_tag_freq_dict[r], r)
+
+        if reading[0] > 0:
+            return self.readingsdict[reading[1]][0]
+        elif tag[0] > 0:
+            return self.readingsdict[tag[1]][0]
+        else:
+            if backoff is None:
+                return self.surface
+            elif backoff == 'syllable':
+                return self.guess_syllable()
+
+    def guess_syllable(self):
+        """Place stress on the last vowel followed by a consonant.
+
+        This is a (bad) approximation of the last syllable of the stem. Not
+        reliable at all, especially for forms with a consonant in the
+        grammatical ending.
+        """
+        V = 'аэоуыяеёюи'
+        # TODO make this less bad
+        if 'ё' in self.orig or '\u0301' in self.orig:
+            return self.orig
+        else:
+            return re.sub(f'([{V}])([^{V}]+[{V}]+(?:[^{V}]+)?)$',
+                          '\\1\u0301\\2',
+                          self.orig)
 
     def hfst_stream(self):
         """An HFST stream repr for command-line pipelines."""
@@ -154,8 +214,7 @@ class Token:
 
     def cg3_stream(self):
         """A vislcg3 stream repr for command-line pipelines."""
-        output = '\n\t'.join(f'{r.CG_str()} <W:{r.weight}>'
-                             for r in self.readings)
+        output = '\n\t'.join(f'{r.CG_str()}' for r in self.readings)
         return f'"<{self.orig}>"\n\t{output}'
 
     @staticmethod
@@ -204,6 +263,9 @@ class Text:
     def CG_str(self):
         return '\n'.join(tok.cg3_stream() for tok in self.Toks) + '\n'
 
+    def __iter__(self):
+        return (t for t in self.Toks)
+
     def tokenize(self, func=nltk_tokenize):
         # TODO try to use hfst-tokenize instead of nltk
         self.toks = func(self.orig)
@@ -222,17 +284,21 @@ class Text:
             gram_path = 'resources/disambiguator.cg3'
         elif isinstance(gram_path, str):
             pass
+        elif isinstance(gram_path, Path):
+            gram_path = repr(gram_path)
         else:
             raise NotImplementedError('Unexpected grammar path. Use str.')
         try:
             p = Popen(['vislcg3', '-g', gram_path],
                       stdin=PIPE,
-                      stdout=PIPE)
-            output = p.communicate(input=self.CG_str().encode('utf8'))[0]
-            self.Toks = self.parse_cg3(output.decode('utf8'))
+                      stdout=PIPE,
+                      universal_newlines=True)
+            output = p.communicate(input=self.CG_str())[0]
+            # TODO Losing last token! need to flush pipeline somehow
+            self.Toks = self.parse_cg3(output)
             self._disambiguated = True
         except FileNotFoundError:
-            raise FileNotFoundError('vislcg3 must be installed, and in your '
+            raise FileNotFoundError('vislcg3 must be installed and be in your '
                                     'PATH variable to disambiguate a text.')
 
     @staticmethod
@@ -248,8 +314,7 @@ class Text:
                 continue
             except AttributeError:
                 try:
-                    lemma, tags, weight = re.match(r'\t"(.*)" (.*?) <W:(.*)>$',
-                                                   line).groups()
+                    lemma, tags, weight = re.match(r'\t"(.*)" (.*?) <W:(.*)>$', line).groups()  # noqa
                     tags = tags.replace(' ', '+')
                     readings.append((f'{lemma}+{tags}', weight))
                 except AttributeError:
@@ -261,6 +326,7 @@ class Text:
 
         approach  (Applies only to words in the lexicon.)
             safe   -- Only add stress if it is unambiguous.
+            freq   -- lemma+reading > lemma > reading
             random -- Randomly choose between specified stress positions.
             all    -- Add stress to all possible specified stress positions.
 
@@ -272,22 +338,22 @@ class Text:
             stresses = tok.stresses()
             if stresses is None:
                 if guess:
-                    raise NotImplementedError
+                    return self.guess_syllable()
                 else:
                     out_text.append(tok.orig)
             elif len(stresses) == 1:
                 out_text.append(stresses.pop())
-            elif len(stresses) == 0:
-                raise ValueError(f'{tok} is not found.')
             else:
                 if approach == 'safe':
                     out_text.append(tok.orig)
                 elif approach == 'random':
                     out_text.append(choice(list(stresses)))
+                elif approach == 'freq':
+                    raise NotImplementedError
                 elif approach == 'all':
                     raise NotImplementedError
                 else:
-                    raise NotImplentedError
+                    raise NotImplementedError
         return self.respace(out_text)
 
     def respace(self, toks):
@@ -298,7 +364,7 @@ class Text:
                 for match in re.finditer(r'\s+', self.orig):
                     pass
         else:
-            return unspace_punct(' '.join(out_text))
+            return unspace_punct(' '.join(toks))
 
 
 class Udar:
@@ -425,32 +491,32 @@ def noun_distractors(noun, stressed=True):
 
 
 def init_analyzer():
+    global analyzer
     try:
-        global analyzer
         analyzer
     except NameError:
         analyzer = Udar('analyzer')
 
 
 def init_L2_analyzer():
+    global L2_analyzer
     try:
-        global L2_analyzer
         L2_analyzer
     except NameError:
         L2_analyzer = Udar('L2-analyzer')
 
 
 def init_generator():
+    global generator
     try:
-        global generator
         generator
     except NameError:
         generator = Udar('generator')
 
 
 def init_accented_generator():
+    global acc_generator
     try:
-        global acc_generator
         acc_generator
     except NameError:
         acc_generator = Udar('accented-generator')
@@ -475,5 +541,6 @@ if __name__ == '__main__':
     print(noun_distractors('слово'))
     print(noun_distractors('словам'))
 
-    t = Text('Мы нашли то, что искали.', disambiguate=True)
-    print(t)
+    text = Text('Мы нашли то, что искали. Денег еще нет.', disambiguate=True)
+    print(text)
+    print(text.stressify())
