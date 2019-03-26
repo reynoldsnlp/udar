@@ -17,6 +17,8 @@ TAG_FNAME = 'udar_tags.tsv'
 
 class Tag:
     """Grammatical tag expressing a morphosyntactic or other value."""
+    __slots__ = ['name', 'other', 'is_L2', 'is_Err']
+
     def __init__(self, name, *other):
         self.name = name
         self.other = other
@@ -50,6 +52,8 @@ class Reading:
 
     A given Token can have many Readings.
     """
+    __slots__ = ['lemma', 'tags', 'weight', 'tagset', 'L2_tags']
+
     def __init__(self, in_tup):
         """Convert HFST tuples to more user-friendly interface."""
         r, self.weight = in_tup
@@ -63,17 +67,17 @@ class Reading:
         return key in self.tagset or _tag_dict[key] in self.tagset
 
     def __repr__(self):
-        return f'(Reading {self.lemma} {" ".join([t.name for t in self.tags])})'  # noqa
+        return f'(Reading {self.lemma} {" ".join([t.name for t in self.tags])})'  # noqa: E501
 
     def __str__(self):
         return f'{self.lemma}+{"+".join(t.name for t in self.tags)}'
 
     def CG_str(self):
         """CG3-style __str__"""
-        return f'"{self.lemma}" {" ".join(t.name for t in self.tags)} <W:{self.weight}>'  # noqa
+        return f'"{self.lemma}" {" ".join(t.name for t in self.tags)} <W:{self.weight}>'  # noqa: E501
 
     def noL2_str(self):
-        return f'{self.lemma}+{"+".join(t.name for t in self.tags if not t.is_L2)}'  # noqa
+        return f'{self.lemma}+{"+".join(t.name for t in self.tags if not t.is_L2)}'  # noqa: E501
 
     def generate(self, fst=None):
         if not fst:
@@ -97,6 +101,8 @@ class Reading:
 
 class Token:
     """Custom token object"""
+    __slots__ = ['orig', 'readings', 'lemmas', 'upper_indices']
+
     def __init__(self, orig=None, readings=[]):
         self.orig = orig
         self.readings = [Reading(r) for r in readings]
@@ -161,6 +167,8 @@ class Token:
 
     def guess_freq(self, backoff=None):
         """Leftovers from dissertation script. TODO refactor."""
+        tag_freq_dict = None  # Just to get flake8 off my back
+        lem_tag_freq_dict = None  # Just to get flake8 off my back
         # if self.isInsane():
         #     if backoff is None:
         #         return self.surface
@@ -220,11 +228,14 @@ class Token:
 
     @staticmethod
     def clean_surface(tok):
-        return tok.lower().replace('\u0301', '').replace('\u0300', '').replace('ё', 'е')  # noqa
+        return tok.lower().replace('\u0301', '').replace('\u0300', '').replace('ё', 'е')  # noqa: E501
 
 
 class Text:
     """String of `Token`s."""
+    __slots__ = ['_tokenized', '_analyzed', '_disambiguated', '_from_str',
+                 'orig', 'toks', 'Toks']
+
     def __init__(self, input_text, tokenize=True, analyze=True,
                  disambiguate=False):
         """Note the difference between self.toks and self.Toks, where the
@@ -262,6 +273,7 @@ class Text:
             return f'(Text (not tokenized) {self.orig[:30]})'
 
     def CG_str(self):
+        # TODO find a better way than <dummy> to flush the last token
         return '\n'.join(tok.cg3_stream() for tok in self.Toks) + '\n"<dummy>"\n\t""\n'  # noqa: E501
 
     def __iter__(self):
@@ -295,7 +307,6 @@ class Text:
                       stdout=PIPE,
                       universal_newlines=True)
             output, error = p.communicate(input=self.CG_str())
-            # TODO Losing last token! need to flush pipeline somehow
             self.Toks = self.parse_cg3(output)
             self._disambiguated = True
         except FileNotFoundError:
@@ -315,7 +326,7 @@ class Text:
                 continue
             except AttributeError:
                 try:
-                    lemma, tags, weight = re.match(r'\t"(.*)" (.*?) <W:(.*)>$', line).groups()  # noqa
+                    lemma, tags, weight = re.match(r'\t"(.*)" (.*?) <W:(.*)>$', line).groups()  # noqa: E501
                     tags = tags.replace(' ', '+')
                     readings.append((f'{lemma}+{tags}', weight))
                 except AttributeError:
@@ -377,6 +388,8 @@ class Udar:
     >>> fst.generate('слово+N+Neu+Inan+Sg+Gen')
     сло́ва
     """
+    __slots__ = ['flavor', 'path2fst', 'fst']
+
     def __init__(self, flavor):
         """Build fst for lookup. Flavor must be one of the following:
             - 'analyzer' (or 'analyser')
