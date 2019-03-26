@@ -59,6 +59,7 @@ class Reading:
         self.L2_tags = {tag for tag in self.tags if tag.is_L2}
 
     def __contains__(self, key):
+        """Fastest if `key` is a Tag, but works with str."""
         return key in self.tagset or _tag_dict[key] in self.tagset
 
     def __repr__(self):
@@ -261,7 +262,7 @@ class Text:
             return f'(Text (not tokenized) {self.orig[:30]})'
 
     def CG_str(self):
-        return '\n'.join(tok.cg3_stream() for tok in self.Toks) + '\n'
+        return '\n'.join(tok.cg3_stream() for tok in self.Toks) + '\n"<dummy>"\n\t""\n'  # noqa: E501
 
     def __iter__(self):
         return (t for t in self.Toks)
@@ -293,7 +294,7 @@ class Text:
                       stdin=PIPE,
                       stdout=PIPE,
                       universal_newlines=True)
-            output = p.communicate(input=self.CG_str())[0]
+            output, error = p.communicate(input=self.CG_str())
             # TODO Losing last token! need to flush pipeline somehow
             self.Toks = self.parse_cg3(output)
             self._disambiguated = True
@@ -530,6 +531,7 @@ if __name__ == '__main__':
     for i in toks:
         t = fst.lookup(i)
         for r in t.readings:
+            print(r, 'Is this a GEN form?:', 'Gen' in r)
             print(t, '\t===>\t', t.recase(r.generate(acc_generator)))
     print(stressify('Это - первая попытка.'))
     L2_sent = 'Я забыл дать девушекам денеги, которые упали на землу.'
@@ -541,6 +543,6 @@ if __name__ == '__main__':
     print(noun_distractors('слово'))
     print(noun_distractors('словам'))
 
-    text = Text('Мы нашли то, что искали. Денег еще нет.', disambiguate=True)
+    text = Text('Мы нашли то, что искали.', disambiguate=True)
     print(text)
     print(text.stressify())
