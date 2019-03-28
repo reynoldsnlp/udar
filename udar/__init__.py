@@ -1,6 +1,7 @@
 """Python wrapper of UDAR, a part-of-speech tagger for (accented) Russian"""
 
 from collections import defaultdict
+import os
 from pathlib import Path
 from random import choice
 from random import shuffle
@@ -10,9 +11,48 @@ from subprocess import Popen
 import sys
 
 import hfst
-from nltk import word_tokenize as nltk_tokenize
 
 TAG_FNAME = 'udar_tags.tsv'
+
+
+def is_exe(fpath):
+    return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+
+def which(program):
+    """UNIX `which`, from https://stackoverflow.com/a/377028/2903532"""
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+    return None
+
+
+def hfst_tokenize(text):
+    try:
+        p = Popen(['hfst-tokenize',
+                   'resources/tokeniser-disamb-gt-desc.pmhfst'],
+                  stdin=PIPE,
+                  stdout=PIPE,
+                  universal_newlines=True)
+        output, error = p.communicate(text)
+        if error:
+            print('ERROR (tokenizer):', error)
+        return output.rstrip().split('\n')
+    except FileNotFoundError as e:
+        raise e('Command-line hfst must be installed to use the tokenizer.')
+
+
+if which('hfst-tokenize'):
+    DEFAULT_TOKENIZER = hfst_tokenize
+else:
+    from nltk import word_tokenize as nltk_tokenize
+    DEFAULT_TOKENIZER = nltk_tokenize
 
 
 class Tag:
@@ -237,7 +277,7 @@ class Text:
                  'orig', 'toks', 'Toks']
 
     def __init__(self, input_text, tokenize=True, analyze=True,
-                 disambiguate=False):
+                 disambiguate=False, tokenizer=DEFAULT_TOKENIZER):
         """Note the difference between self.toks and self.Toks, where the
         latter is a list of Token objects, the former a list of strings.
         """
@@ -258,7 +298,7 @@ class Text:
             t = type(input_text)
             raise NotImplementedError(f'Expected `str` or `list`, got {t}.')
         if tokenize and not self.toks:
-            self.tokenize()
+            self.tokenize(tokenizer=tokenizer)
         if analyze:
             self.analyze()
         if disambiguate:
@@ -279,13 +319,12 @@ class Text:
     def __iter__(self):
         return (t for t in self.Toks)
 
-    def tokenize(self, func=nltk_tokenize):
-        # TODO try to use hfst-tokenize instead of nltk
-        self.toks = func(self.orig)
+    def tokenize(self, tokenizer=DEFAULT_TOKENIZER):
+        self.toks = tokenizer(self.orig)
         self._tokenized = True
 
     def analyze(self, fst=None):
-        if not fst:
+        if fst is None:
             init_analyzer()
             fst = analyzer
         self.Toks = [fst.lookup(tok) for tok in self.toks]
@@ -456,15 +495,16 @@ def unspace_punct(in_str):
     return re.sub(r' +([.?!;:])', r'\1', in_str)
 
 
-def diagnose_L2(text):
+def diagnose_L2(text, tokenizer=DEFAULT_TOKENIZER):
     """Analyze running text for L2 errors.
 
     Return dict of errors: {<Tag>: {set, of, exemplars, in, text}, ...}
     """
     out_dict = defaultdict(set)
     init_L2_analyzer()
-    for tok_str in nltk_tokenize(text):
-        tok = L2_analyzer.lookup(tok_str)
+    text = Text(text, analyze=False)
+    text.analyze(fst=L2_analyzer)
+    for tok in text:
         if tok.is_L2():
             for r in tok.readings:
                 for tag in r.L2_tags:
@@ -537,6 +577,7 @@ def init_accented_generator():
 
 
 if __name__ == '__main__':
+    print(hfst_tokenize('Мы нашли все проблемы, и т.д.'))
     toks = ['слово', 'земла', 'Работа']
     fst = Udar('L2-analyzer')
     init_accented_generator()
