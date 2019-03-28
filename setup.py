@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     url='https://github.com/reynoldsnlp/udar',
     packages=setuptools.find_packages(),
-    dependency_links=['https://github.com/ljos/pyvislcg3'],
+    # dependency_links=['https://github.com/ljos/pyvislcg3'],
     classifiers=[
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
