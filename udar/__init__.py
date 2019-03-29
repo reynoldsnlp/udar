@@ -62,11 +62,11 @@ else:
 
 class Tag:
     """Grammatical tag expressing a morphosyntactic or other value."""
-    __slots__ = ['name', 'other', 'is_L2', 'is_Err']
+    __slots__ = ['name', 'detail', 'is_L2', 'is_Err']
 
-    def __init__(self, name, *other):
+    def __init__(self, name, detail):
         self.name = name
-        self.detail = other[0]
+        self.detail = detail
         self.is_L2 = name.startswith('Err/L2')
         self.is_Err = name.startswith('Err')
 
@@ -83,11 +83,11 @@ class Tag:
 _tag_dict = {}
 with Path(TAG_FNAME).open() as f:
     for line in f:
-        tag, other = line.strip().split('\t', maxsplit=1)
+        tag, detail = line.strip().split('\t', maxsplit=1)
         tag = tag[1:]
         if tag in _tag_dict:
             raise NameError(f'{tag} is listed twice in {TAG_FNAME}.')
-        _tag_dict[tag] = Tag(tag, other)
+        _tag_dict[tag] = Tag(tag, detail)
 CASES = ['Nom', 'Acc', 'Gen', 'Gen2', 'Loc', 'Loc2', 'Dat', 'Ins', 'Voc']
 CASES = [_tag_dict[c] for c in CASES]
 
@@ -609,7 +609,7 @@ if __name__ == '__main__':
     L2_sent = 'Я забыл дать девушекам денеги, которые упали на землу.'
     err_dict = diagnose_L2(L2_sent)
     for tag, exemplars in err_dict.items():
-        print(tag, tag.other)
+        print(tag, tag.detail)
         for e in exemplars:
             print('\t', e)
     print(noun_distractors('слово'))
