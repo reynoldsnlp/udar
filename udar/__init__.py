@@ -3,6 +3,7 @@
 from collections import defaultdict
 import os
 from pathlib import Path
+from pkg_resources import resource_filename
 from random import choice
 from random import shuffle
 import re
@@ -12,7 +13,8 @@ import sys
 
 import hfst
 
-TAG_FNAME = 'resources/udar_tags.tsv'
+RSRC_PATH = resource_filename('udar', 'resources/')
+TAG_FNAME = RSRC_PATH + 'udar_tags.tsv'
 
 
 def is_exe(fpath):
@@ -36,7 +38,7 @@ def which(program):
 def hfst_tokenize(text):
     try:
         p = Popen(['hfst-tokenize',
-                   'resources/tokeniser-disamb-gt-desc.pmhfst'],
+                   RSRC_PATH + 'tokeniser-disamb-gt-desc.pmhfst'],
                   stdin=PIPE,
                   stdout=PIPE,
                   universal_newlines=True)
@@ -336,7 +338,7 @@ class Text:
     def disambiguate(self, gram_path=None):
         """Remove readings based on CG3 disambiguation grammar at gram_path."""
         if gram_path is None:
-            gram_path = 'resources/disambiguator.cg3'
+            gram_path = RSRC_PATH + 'disambiguator.cg3'
         elif isinstance(gram_path, str):
             pass
         elif isinstance(gram_path, Path):
@@ -447,7 +449,7 @@ class Udar:
         fnames['analyser'] = fnames['analyzer']
         fnames['L2-analyser'] = fnames['L2-analyzer']
         try:
-            self.path2fst = f'resources/{fnames[flavor]}'
+            self.path2fst = f'{RSRC_PATH}{fnames[flavor]}'
         except KeyError as e:
             raise e(f'flavor must be in {set(fnames.keys())}')
         fst_stream = hfst.HfstInputStream(self.path2fst)
