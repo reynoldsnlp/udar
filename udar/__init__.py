@@ -12,7 +12,7 @@ import sys
 
 import hfst
 
-TAG_FNAME = 'udar_tags.tsv'
+TAG_FNAME = 'resources/udar_tags.tsv'
 
 
 def is_exe(fpath):
