@@ -51,8 +51,11 @@ def hfst_tokenize(text):
 if which('hfst-tokenize'):
     DEFAULT_TOKENIZER = hfst_tokenize
 else:
-    from nltk import word_tokenize as nltk_tokenize
-    DEFAULT_TOKENIZER = nltk_tokenize
+    try:
+        from nltk import word_tokenize as nltk_tokenize
+        DEFAULT_TOKENIZER = nltk_tokenize
+    except ModuleNotFoundError:
+        print('hfst-tokenize and nltk not found. DEFAULT_TOKENIZER not set.')
 
 
 class Tag:
