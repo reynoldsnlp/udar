@@ -10,6 +10,7 @@ setuptools.setup(
     author='Robert Reynolds',
     author_email='ReynoldsRJR@gmail.com',
     description='Detailed part-of-speech tagger for (accented) Russian.',
+    include_package_data=True,
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/reynoldsnlp/udar',
