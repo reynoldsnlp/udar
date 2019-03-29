@@ -15,7 +15,7 @@ setuptools.setup(
     url='https://github.com/reynoldsnlp/udar',
     packages=setuptools.find_packages(),
     install_requires=['hfst'],
-    extras_require=['nltk'],
+    extras_require={'nltk': 'nltk'},
     # dependency_links=['https://github.com/ljos/pyvislcg3'],
     classifiers=[
         'Programming Language :: Python :: 3',
