@@ -66,7 +66,7 @@ class Tag:
 
     def __init__(self, name, *other):
         self.name = name
-        self.other = other
+        self.detail = other[0]
         self.is_L2 = name.startswith('Err/L2')
         self.is_Err = name.startswith('Err')
 
@@ -77,7 +77,7 @@ class Tag:
         return f'{self.name}'
 
     def info(self):
-        return self.other
+        return f'{self.name}\t{self.detail}'
 
 
 _tag_dict = {}
@@ -90,6 +90,10 @@ with Path(TAG_FNAME).open() as f:
         _tag_dict[tag] = Tag(tag, other)
 CASES = ['Nom', 'Acc', 'Gen', 'Gen2', 'Loc', 'Loc2', 'Dat', 'Ins', 'Voc']
 CASES = [_tag_dict[c] for c in CASES]
+
+
+def tag_info(tag):
+    return _tag_dict[tag].info()
 
 
 class Reading:
@@ -112,7 +116,7 @@ class Reading:
         return key in self.tagset or _tag_dict[key] in self.tagset
 
     def __repr__(self):
-        return f'(Reading {self.lemma} {" ".join([t.name for t in self.tags])})'  # noqa: E501
+        return f'{self.lemma} {" ".join([t.name for t in self.tags])}'  # noqa: E501
 
     def __str__(self):
         return f'{self.lemma}+{"+".join(t.name for t in self.tags)}'
@@ -155,10 +159,11 @@ class Token:
         self.upper_indices = self.cap_indices()
 
     def __contains__(self, key):
-        return key in self.lemmas
+        """Checks membership for lemmas and tags."""
+        return key in self.lemmas or any(key in r for r in self.readings)
 
     def __repr__(self):
-        return f'(Token {self.orig} {self.readings})'
+        return f'{self.orig} {self.readings}'
 
     def is_L2(self):
         """Return True if ALL readings contain an L2 error tag."""
@@ -167,6 +172,14 @@ class Token:
     def has_L2(self):
         """Return True if ANY readings contain an L2 error tag."""
         return any(r.L2_tags for r in self.readings)
+
+    def has_lemma(self, lemma):
+        """Return True if ANY readings contain a given lemma."""
+        return lemma in self.lemmas
+
+    def has_tag(self, tag):
+        """Return True if ANY readings contain a given tag."""
+        return any(tag in r for r in self.readings)
 
     def cap_indices(self):
         """Indices of capitalized characters in original token."""
@@ -183,7 +196,7 @@ class Token:
         if acute_i == -1:
             acute_i = 255
         return ''.join([char.upper()
-                        if i + (i >= grave_i) + (i >= acute_i)  # True = 1
+                        if i + (i >= grave_i) + (i >= acute_i)  # True evaluates to 1  # noqa: E501
                         in self.upper_indices
                         else char
                         for i, char in enumerate(in_str)])
