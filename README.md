@@ -34,31 +34,31 @@ The following objects are provided for convenience:
 
 The `Udar` class has four flavors.
 
-1. `analyzer`
-1. `L2-analyzer`
-1. `generator`
-1. `accented-generator`
+1. `analyzer`: General-purpose analyzer
+1. `L2-analyzer`: General analyzer with second-language learner errors added
+1. `generator`: Generator of unstressed wordforms
+1. `accented-generator`: Generator of stressed wordforms
 
 ```python
 import udar
 analyzer = udar.Udar('analyzer')
 ```
 
-The `Udar.lookup()` method takes a token `str` and returns a Token.
+The `Udar.lookup()` method takes a token `str` and returns a `Token`.
 
 ```python
 token1 = analyzer.lookup('сло́ва')
+token1
+# сло́ва [слово_N_Neu_Inan_Sg_Gen]
 'Gen' in token1  # do any of the readings include Genitive case?
 # True
-token1
-# (Token сло́ва [(Reading слово N Neu Inan Sg Gen)])
 token2 = analyzer.lookup('слова')
 token2
-# (Token слова [(Reading слово N Neu Inan Pl Acc), (Reading слово N Neu Inan Pl Nom), (Reading слово N Neu Inan Sg Gen)])
+# слова [слово_N_Neu_Inan_Pl_Acc  слово_N_Neu_Inan_Pl_Nom  слово_N_Neu_Inan_Sg_Gen]
 ```
 
-The Text constructor automatically tokenizes and analyzes a text. The `repr` is
-an `xfst`/`hfst` stream:
+The `Text` constructor automatically tokenizes and analyzes a text. The `repr`
+is an `xfst`/`hfst` stream:
 
 ```python
 text1 = udar.Text('Мы удивились простотой системы.')
@@ -76,17 +76,17 @@ text1
 # .	.+CLB	0.0
 ```
 
-Text objects have convenient functions, like returning the original text with
-stress/accents.
+`Text` objects have convenience functions, like returning the original text
+with stress/accents.
 
 ```python
 text1.stressify()
 # 'Мы́ удиви́лись простото́й систе́мы.'
 ```
 
-Tags can be looked up using the `tag_info()` function:
+`Tag`s can be looked up using the `tag_info()` function:
 
 ```python
-tag_info('Err/L2_NoFV')
+udar.tag_info('Err/L2_NoFV')
 # Err/L2_NoFV	L2 error: Lack of fleeting vowel where it should be inserted, e.g. окн (compare окон)
 ```

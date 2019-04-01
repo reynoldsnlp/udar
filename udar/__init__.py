@@ -116,7 +116,7 @@ class Reading:
         return key in self.tagset or _tag_dict[key] in self.tagset
 
     def __repr__(self):
-        return f'{self.lemma} {" ".join([t.name for t in self.tags])}'  # noqa: E501
+        return f'{self.lemma}_{"_".join([t.name for t in self.tags])}'  # noqa: E501
 
     def __str__(self):
         return f'{self.lemma}+{"+".join(t.name for t in self.tags)}'
@@ -163,7 +163,7 @@ class Token:
         return key in self.lemmas or any(key in r for r in self.readings)
 
     def __repr__(self):
-        return f'{self.orig} {self.readings}'
+        return f'{self.orig} [{"  ".join(repr(r) for r in self.readings)}]'
 
     def is_L2(self):
         """Return True if ALL readings contain an L2 error tag."""
