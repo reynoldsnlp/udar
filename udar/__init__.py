@@ -323,19 +323,34 @@ class Text:
             self.disambiguate()
 
     def __repr__(self):
-        if self.Toks:
+        try:
             return '\n\n'.join(tok.hfst_stream() for tok in self.Toks) + '\n'
-        elif self.toks:
-            return f'(Text (not analyzed) {self.toks[:10]})'
-        else:
-            return f'(Text (not tokenized) {self.orig[:30]})'
+        except TypeError:
+            try:
+                return f'(Text (not analyzed) {self.toks[:10]})'
+            except TypeError:
+                return f'(Text (not tokenized) {self.orig[:30]})'
 
     def CG_str(self):
         # TODO find a better way than <dummy> to flush the last token
         return '\n'.join(tok.cg3_stream() for tok in self.Toks) + '\n"<dummy>"\n\t""\n'  # noqa: E501
 
+    def __getitem__(self, i):
+        try:
+            return self.Toks[i]
+        except TypeError:
+            try:
+                return self.toks[i]
+            except TypeError as e:
+                raise e('Text object not yet tokenized. Try Text.tokenize() '
+                        'or Text.analyze() first.')
+
     def __iter__(self):
-        return (t for t in self.Toks)
+        try:
+            return (t for t in self.Toks)
+        except TypeError as e:
+            raise e('Text object only iterable after morphological analysis. '
+                    'Try Text.analyze() first.')
 
     def tokenize(self, tokenizer=DEFAULT_TOKENIZER):
         self.toks = tokenizer(self.orig)
