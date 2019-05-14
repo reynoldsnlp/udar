@@ -15,6 +15,7 @@ import hfst
 
 RSRC_PATH = resource_filename('udar', 'resources/')
 TAG_FNAME = RSRC_PATH + 'udar_tags.tsv'
+PHONE_FNAME = RSRC_PATH + 'g2p.hfstol'
 
 
 def is_exe(fpath):
@@ -440,6 +441,70 @@ class Text:
                     raise NotImplementedError
         return self.respace(out_text)
 
+    def phoneticize(self, approach='safe', guess=False, context=False):
+        """Return str of running text of phonetic transcription.
+
+        approach  (Applies only to words in the lexicon.)
+            safe   -- Only add stress if it is unambiguous.
+            freq   -- lemma+reading > lemma > reading
+            random -- Randomly choose between specified stress positions.
+            all    -- Add stress to all possible specified stress positions.
+
+        guess
+            Applies only to out-of-lexicon words. Makes an "intelligent" guess.
+
+        context
+            Applies phonetic transcription based on context between words
+        """
+        if context:
+            raise NotImplementedError
+
+        init_g2p()
+
+        out_text = []
+        for tok in self.Toks:
+            stresses = tok.stresses()
+            if stresses is None:
+                if guess:
+                    return self.guess_syllable()
+                else:
+                    out_token = tok.orig
+            elif len(stresses) == 1:
+                out_token = stresses.pop()
+            else:
+                if approach == 'safe':
+                    out_token = tok.orig
+                elif approach == 'random':
+                    out_token = choice(list(stresses))
+                elif approach == 'freq':
+                    raise NotImplementedError
+                elif approach == 'all':
+                    raise NotImplementedError
+                else:
+                    raise NotImplementedError
+
+            if 'Gen' in tok:
+                out_token += "G"
+            if 'Pl3' in tok:
+                out_token += "P"
+            if 'Loc' in tok:
+                out_token += "L"
+            if 'Dat' in tok:
+                out_token += "D"
+            if 'Ins' in tok:
+                out_token += "I"
+            if out_token.endswith("я") or out_token.endswith("Я"):
+                out_token += "Y"
+            if out_token.endswith("ясь") or out_token.endswith("ЯСЬ"):
+                out_token += "S"
+
+            outputs = g2p.lookup(out_token)
+            assert len(outputs) == 1
+            output = outputs[0][0]
+            out_text.append(output)
+
+        return self.respace(out_text)
+
     def respace(self, toks):
         if self._from_str:
             return unspace_punct(' '.join(toks))
@@ -607,6 +672,14 @@ def init_accented_generator():
         acc_generator
     except NameError:
         acc_generator = Udar('accented-generator')
+
+def init_g2p():
+    global g2p
+    try:
+        g2p
+    except NameError:
+        input_stream = hfst.HfstInputStream(PHONE_FNAME)
+        g2p = input_stream.read()
 
 
 if __name__ == '__main__':
