@@ -15,8 +15,12 @@ import hfst
 
 RSRC_PATH = resource_filename('udar', 'resources/')
 TAG_FNAME = RSRC_PATH + 'udar_tags.tsv'
-PHONE_FNAME = RSRC_PATH + 'g2p.hfstol'
-fst_dict = {}  # container for globally initialized FSTs
+G2P_FNAME = RSRC_PATH + 'g2p.hfstol'
+
+_fst_cache = {}  # container for globally initialized FSTs
+ALIAS = {'analyser': 'analyzer',
+         'L2-analyser': 'L2-analyzer',
+         'acc-generator': 'accented-generator'}
 
 
 def is_exe(fpath):
@@ -48,10 +52,10 @@ def hfst_tokenize(text):
         if error:
             print('ERROR (tokenizer):', error)
         return output.rstrip().split('\n')
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         print('Command-line hfst must be installed to use the tokenizer.',
               file=sys.stderr)
-        raise e
+        raise
 
 
 if which('hfst-tokenize'):
@@ -71,7 +75,8 @@ def _readify(r):
         return Reading(r)
     except KeyError:
         return MultiReading(r)
-    raise NotImplementedError(f'Cannot parse reading {r}.')
+    print(f'Cannot parse reading {r}.', file=sys.stderr)
+    raise NotImplementedError
 
 
 def _get_lemmas(reading):
@@ -111,7 +116,9 @@ with Path(TAG_FNAME).open() as f:
         tag_name, detail = line.strip().split('\t', maxsplit=1)
         tag_name = tag_name[1:]
         if tag_name in _tag_dict:
-            raise NameError(f'{tag_name} is listed twice in {TAG_FNAME}.')
+            print(f'{tag_name} is listed twice in {TAG_FNAME}.',
+                  file=sys.stderr)
+            raise NameError
         tag = Tag(tag_name, detail)
         _tag_dict[tag_name] = tag
         _tag_dict[tag] = tag  # identity added for versatile lookup
@@ -157,8 +164,7 @@ class Reading:
 
     def generate(self, fst=None):
         if fst is None:
-            init_generator()
-            fst = fst_dict['generator']
+            fst = get_fst('generator')
         try:
             return fst.generate(self.noL2_str())
         except IndexError:
@@ -218,8 +224,7 @@ class MultiReading(Reading):
 
     def generate(self, fst=None):
         if fst is None:
-            init_generator()
-            fst = fst_dict['generator']
+            fst = get_fst('generator')
         try:
             return fst.generate(self.noL2_str())
         except IndexError:
@@ -323,13 +328,12 @@ class Token:
 
     def stresses(self, recase=True):
         """Return set of all surface forms from a token's readings."""
-        init_accented_generator()
+        acc_gen = get_fst('acc-generator')
         if recase:
-            stresses = {self.recase(r.generate(fst_dict['acc-generator']))
+            stresses = {self.recase(r.generate(acc_gen))
                         for r in self.readings}
         else:
-            stresses = {r.generate(fst_dict['acc-generator'])
-                        for r in self.readings}
+            stresses = {r.generate(acc_gen) for r in self.readings}
         return stresses or None
 
     def guess(self, backoff=None):
@@ -436,7 +440,8 @@ class Text:
             self.toks = input_text
         else:
             t = type(input_text)
-            raise NotImplementedError(f'Expected `str` or `list`, got {t}.')
+            print(f'Expected `str` or `list`, got {t}.', file=sys.stderr)
+            raise NotImplementedError
         if tokenize and not self.toks:
             self.tokenize(tokenizer=tokenizer)
         if analyze:
@@ -463,16 +468,18 @@ class Text:
         except TypeError:
             try:
                 return self.toks[i]
-            except TypeError as e:
-                raise e('Text object not yet tokenized. Try Text.tokenize() '
-                        'or Text.analyze() first.')
+            except TypeError:
+                print('Text object not yet tokenized. Try Text.tokenize() '
+                      'or Text.analyze() first.', file=sys.stderr)
+                raise
 
     def __iter__(self):
         try:
             return (t for t in self.Toks)
-        except TypeError as e:
-            raise e('Text object only iterable after morphological analysis. '
-                    'Try Text.analyze() first.')
+        except TypeError:
+            print('Text object only iterable after morphological analysis. '
+                  'Try Text.analyze() first.', file=sys.stderr)
+            raise
 
     def tokenize(self, tokenizer=DEFAULT_TOKENIZER):
         self.toks = tokenizer(self.orig)
@@ -480,8 +487,7 @@ class Text:
 
     def analyze(self, analyzer=None):
         if analyzer is None:
-            init_analyzer()
-            analyzer = fst_dict['analyzer']
+            analyzer = get_fst('analyzer')
         self.Toks = [analyzer.lookup(tok) for tok in self.toks]
         self._analyzed = True
 
@@ -494,7 +500,8 @@ class Text:
         elif isinstance(gram_path, Path):
             gram_path = repr(gram_path)
         else:
-            raise NotImplementedError('Unexpected grammar path. Use str.')
+            print('Unexpected grammar path. Use str.', file=sys.stderr)
+            raise NotImplementedError
         try:
             p = Popen(['vislcg3', '-g', gram_path],
                       stdin=PIPE,
@@ -504,8 +511,9 @@ class Text:
             self.Toks = self.parse_cg3(output)
             self._disambiguated = True
         except FileNotFoundError:
-            raise FileNotFoundError('vislcg3 must be installed and be in your '
-                                    'PATH variable to disambiguate a text.')
+            print('vislcg3 must be installed and be in your '
+                  'PATH variable to disambiguate a text.', file=sys.stderr)
+            raise FileNotFoundError
 
     @staticmethod
     def parse_cg3(stream):
@@ -580,7 +588,7 @@ class Text:
         if context:
             raise NotImplementedError
 
-        init_g2p()
+        g2p = get_g2p()
 
         out_text = []
         for tok in self.Toks:
@@ -619,9 +627,7 @@ class Text:
             if out_token.endswith("ясь") or out_token.endswith("ЯСЬ"):
                 out_token += "S"
 
-            outputs = g2p.lookup(out_token)
-            assert len(outputs) == 1
-            output = outputs[0][0]
+            output = g2p.lookup(out_token)[0][0]
             out_text.append(output)
 
         return self.respace(out_text)
@@ -653,19 +659,23 @@ class Udar:
             - 'analyzer' (or 'analyser')
             - 'L2-analyzer' (or 'L2-analyser')
             - 'generator'
-            - 'accented-generator'
+            - 'accented-generator' (or 'acc-generator')
         """
+        if flavor == 'g2p':
+            print('For g2p, use get_g2p().')
+            raise TypeError
         self.flavor = flavor
         fnames = {'analyzer': 'analyser-gt-desc.hfstol',
                   'L2-analyzer': 'analyser-gt-desc-L2.hfstol',
                   'generator': 'generator-gt-norm.hfstol',
                   'accented-generator': 'generator-gt-norm.accented.hfstol'}
-        fnames['analyser'] = fnames['analyzer']
-        fnames['L2-analyser'] = fnames['L2-analyzer']
+        for alias, orig in ALIAS.items():
+            fnames[alias] = fnames[orig]
         try:
             self.path2fst = f'{RSRC_PATH}{fnames[flavor]}'
-        except KeyError as e:
-            raise e(f'flavor must be in {set(fnames.keys())}')
+        except KeyError:
+            print(f'flavor must be in {set(fnames.keys())}', file=sys.stderr)
+            raise
         fst_stream = hfst.HfstInputStream(self.path2fst)
         self.fst = fst_stream.read()
         assert fst_stream.is_eof()  # be sure the hfstol file only had one fst
@@ -720,9 +730,9 @@ def diagnose_L2(text, tokenizer=DEFAULT_TOKENIZER):
     Return dict of errors: {<Tag>: {set, of, exemplars, in, text}, ...}
     """
     out_dict = defaultdict(set)
-    init_L2_analyzer()
+    L2an = get_fst('L2-analyzer')
     text = Text(text, analyze=False)
-    text.analyze(analyzer=fst_dict['L2-analyzer'])
+    text.analyze(analyzer=L2an)
     for tok in text:
         if tok.is_L2():
             for r in tok.readings:
@@ -738,14 +748,13 @@ def noun_distractors(noun, stressed=True):
     NUMBER value of the input (i.e. SG or PL). In other words, if a singular
     noun is given, the singular paradigm is returned.
     """
-    init_analyzer()
-    init_generator()
+    analyzer = get_fst('analyzer')
     if stressed:
-        gen = fst_dict['acc-generator']
+        gen = get_fst('acc-generator')
     else:
-        gen = fst_dict['generator']
+        gen = get_fst('generator')
     if isinstance(noun, str):
-        tok = fst_dict['analyzer'].lookup(noun)
+        tok = analyzer.lookup(noun)
         readings = [r for r in tok.readings if _tag_dict['N'] in r]
         try:
             reading = readings[0]
@@ -754,7 +763,8 @@ def noun_distractors(noun, stressed=True):
     elif isinstance(noun, Reading):
         reading = noun
     else:
-        raise NotImplementedError('Argument must be str or Reading.')
+        print('Argument must be str or Reading.', file=sys.stderr)
+        raise NotImplementedError
     out_set = set()
     current_case = [t for t in reading.tags if t in CASES][0]
     for new_case in CASES:
@@ -764,58 +774,41 @@ def noun_distractors(noun, stressed=True):
     return out_set - {None}
 
 
-def init_analyzer():
-    global fst_dict
+def get_fst(flavor):
+    global _fst_cache
     try:
-        fst_dict['analyzer']
+        return _fst_cache[flavor]
     except KeyError:
-        fst_dict['analyzer'] = Udar('analyzer')
+        try:
+            return _fst_cache[ALIAS[flavor]]
+        except KeyError:
+            _fst_cache[flavor] = Udar(flavor)
+            return _fst_cache[flavor]
 
 
-def init_L2_analyzer():
-    global fst_dict
+def get_g2p():
+    global _fst_cache
     try:
-        fst_dict['L2-analyzer']
+        return _fst_cache['g2p']
     except KeyError:
-        fst_dict['L2-analyzer'] = Udar('L2-analyzer')
-
-
-def init_generator():
-    global fst_dict
-    try:
-        fst_dict['generator']
-    except KeyError:
-        fst_dict['generator'] = Udar('generator')
-
-
-def init_accented_generator():
-    global fst_dict
-    try:
-        fst_dict['acc-generator']
-    except KeyError:
-        fst_dict['acc-generator'] = Udar('accented-generator')
-
-def init_g2p():
-    global g2p
-    try:
-        g2p
-    except NameError:
-        input_stream = hfst.HfstInputStream(PHONE_FNAME)
+        input_stream = hfst.HfstInputStream(G2P_FNAME)
         g2p = input_stream.read()
+        _fst_cache['g2p'] = g2p
+        return _fst_cache['g2p']
 
 
 if __name__ == '__main__':
     print(hfst_tokenize('Мы нашли все проблемы, и т.д.'))
     toks = ['слово', 'земла', 'Работа']
     fst = Udar('L2-analyzer')
-    init_accented_generator()
-    print(fst_dict['acc-generator'].generate('слово+N+Neu+Inan+Sg+Gen'))
+    print(get_fst('acc-generator').generate('слово+N+Neu+Inan+Sg+Gen'))
+    acc_gen = get_fst('acc-generator')
     for i in toks:
         t = fst.lookup(i)
         for r in t.readings:
             print(r, 'Is this a GEN form?:', 'Gen' in r)
             print(t, '\t===>\t',
-                  t.recase(r.generate(fst_dict['acc-generator'])))
+                  t.recase(r.generate(acc_gen)))
     print(stressify('Это - первая попытка.'))
     L2_sent = 'Я забыл дать девушекам денеги, которые упали на землу.'
     err_dict = diagnose_L2(L2_sent)
