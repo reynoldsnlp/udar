@@ -17,10 +17,12 @@ RSRC_PATH = resource_filename('udar', 'resources/')
 TAG_FNAME = RSRC_PATH + 'udar_tags.tsv'
 G2P_FNAME = RSRC_PATH + 'g2p.hfstol'
 
-_fst_cache = {}  # container for globally initialized FSTs
+fst_cache = {}  # container for globally initialized FSTs
 ALIAS = {'analyser': 'analyzer',
          'L2-analyser': 'L2-analyzer',
          'acc-generator': 'accented-generator'}
+
+V = 'аэоуыяеёюи'
 
 
 def is_exe(fpath):
@@ -74,9 +76,11 @@ def _readify(r):
     try:
         return Reading(r)
     except KeyError:
-        return MultiReading(r)
-    print(f'Cannot parse reading {r}.', file=sys.stderr)
-    raise NotImplementedError
+        try:
+            return MultiReading(r)
+        except AssertionError:
+            print(f'Cannot parse reading {r}.', file=sys.stderr)
+            raise NotImplementedError
 
 
 def _get_lemmas(reading):
@@ -196,7 +200,7 @@ class MultiReading(Reading):
         readings, self.weight = in_tup
         assert '#' in readings
         self.readings = [_readify((r, self.weight))
-                         for r in readings.split('#')]
+                         for r in readings.split('#')]  # TODO make # robuster
 
     def __contains__(self, key):
         """Fastest if `key` is a Tag, but works with str."""
@@ -349,7 +353,11 @@ class Token:
             return self.guess_syllable()
 
     def guess_freq(self, backoff=None):
-        """Leftovers from dissertation script. TODO refactor."""
+        """Guess stress location by selecting the most likely Reading based on
+        frequency of Reading (backoff to frequency of tagset).
+
+        Leftovers from dissertation script.
+        """
         tag_freq_dict = None  # Just to get flake8 off my back
         lem_tag_freq_dict = None  # Just to get flake8 off my back
         # if self.isInsane():
@@ -390,8 +398,6 @@ class Token:
         reliable at all, especially for forms with a consonant in the
         grammatical ending.
         """
-        V = 'аэоуыяеёюи'
-        # TODO make this less bad
         if 'ё' in self.orig or '\u0301' in self.orig:
             return self.orig
         else:
@@ -635,7 +641,6 @@ class Text:
     def respace(self, toks):
         if self._from_str:
             return unspace_punct(' '.join(toks))
-            # TODO do something cool, but not obvious
             if isinstance(toks, list):
                 for match in re.finditer(r'\s+', self.orig):
                     pass
@@ -648,8 +653,12 @@ class Udar:
     tagger for (accented) Russian.
 
     Example:
-    >>> fst = Udar('accented-generator')
-    >>> fst.generate('слово+N+Neu+Inan+Sg+Gen')
+
+    >>> ana = Udar('analyzer')
+    >>> ana.analyze('сло́ва')
+    слово+N+Neu+Inan+Sg+Gen
+    >>> gen = Udar('accented-generator')
+    >>> gen.generate('слово+N+Neu+Inan+Sg+Gen')
     сло́ва
     """
     __slots__ = ['flavor', 'path2fst', 'fst']
@@ -775,26 +784,26 @@ def noun_distractors(noun, stressed=True):
 
 
 def get_fst(flavor):
-    global _fst_cache
+    global fst_cache
     try:
-        return _fst_cache[flavor]
+        return fst_cache[flavor]
     except KeyError:
         try:
-            return _fst_cache[ALIAS[flavor]]
+            return fst_cache[ALIAS[flavor]]
         except KeyError:
-            _fst_cache[flavor] = Udar(flavor)
-            return _fst_cache[flavor]
+            fst_cache[flavor] = Udar(flavor)
+            return fst_cache[flavor]
 
 
 def get_g2p():
-    global _fst_cache
+    global fst_cache
     try:
-        return _fst_cache['g2p']
+        return fst_cache['g2p']
     except KeyError:
         input_stream = hfst.HfstInputStream(G2P_FNAME)
         g2p = input_stream.read()
-        _fst_cache['g2p'] = g2p
-        return _fst_cache['g2p']
+        fst_cache['g2p'] = g2p
+        return fst_cache['g2p']
 
 
 if __name__ == '__main__':
