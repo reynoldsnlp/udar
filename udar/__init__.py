@@ -1,6 +1,7 @@
 """Python wrapper of UDAR, a part-of-speech tagger for (accented) Russian"""
 
 from collections import defaultdict
+from collections import namedtuple
 import os
 from pathlib import Path
 from pkg_resources import resource_filename
@@ -23,6 +24,9 @@ ALIAS = {'analyser': 'analyzer',
          'acc-generator': 'accented-generator'}
 
 V = 'аэоуыяеёюи'
+
+PredictKey = namedtuple('PredictKey', ['disamb', 'approach', 'guess',
+                                       'experiment'])
 
 
 def is_exe(fpath):
@@ -260,7 +264,8 @@ class MultiReading(Reading):
 
 class Token:
     """Custom token object"""
-    __slots__ = ['orig', 'readings', 'lemmas', 'upper_indices']
+    __slots__ = ['orig', 'readings', 'lemmas', 'upper_indices',
+                 'stress_predictions', 'phon_predictions']
 
     def __init__(self, orig=None, readings=[]):
         self.orig = orig
@@ -274,6 +279,8 @@ class Token:
                 for lemma in lemmas:
                     self.lemmas.add(lemma)
         self.upper_indices = self.cap_indices()
+        self.stress_predictions = {}
+        self.phon_predictions = {}
 
     def __contains__(self, key):
         """Checks membership for lemmas and tags."""
@@ -339,6 +346,93 @@ class Token:
         else:
             stresses = {r.generate(acc_gen) for r in self.readings}
         return stresses or None
+
+    def stressify(self, disambiguated=None, approach='safe', guess=False,
+                  experiment=False):
+        """Return surface form with stress marked.
+
+        disambiguated
+            Boolean indicated whether the Text/Token has undergone CG3 disamb.
+
+        approach  (Applies only to words in the lexicon.)
+            safe   -- Only add stress if it is unambiguous.
+            freq   -- lemma+reading > lemma > reading
+            random -- Randomly choose between specified stress positions.
+            all    -- Add stress to all possible specified stress positions.
+
+        guess
+            Applies only to out-of-lexicon words. Makes an "intelligent" guess.
+
+        experiment
+            1) Remove stress from Token.orig
+            2) Save prediction in each Token.stress_predictions[prediction_key]
+        """
+        prediction_key = PredictKey(disambiguated, approach, guess, experiment)
+        stresses = self.stresses()
+        if stresses is None:
+            if guess:
+                pred = self.guess_syllable()
+            elif experiment:
+                pred = destress(self.orig)
+            else:
+                pred = self.orig
+        elif len(stresses) == 1:
+            pred = stresses.pop()
+        else:
+            if approach == 'safe':
+                if experiment:
+                    pred = destress(self.orig)
+                else:
+                    pred = self.orig
+            elif approach == 'random':
+                pred = choice(list(stresses))
+            elif approach == 'freq':
+                raise NotImplementedError
+            elif approach == 'all':
+                raise NotImplementedError
+            else:
+                raise NotImplementedError
+        self.stress_predictions[prediction_key] = pred
+        return pred
+
+    def phoneticize(self, disambiguated=None, approach='safe', guess=False,
+                    experiment=False, context=False):
+        """Return str of running text of phonetic transcription.
+
+        approach  (Applies only to words in the lexicon.)
+            safe   -- Only add stress if it is unambiguous.
+            freq   -- lemma+reading > lemma > reading
+            random -- Randomly choose between specified stress positions.
+            all    -- Add stress to all possible specified stress positions.
+
+        guess
+            Applies only to out-of-lexicon words. Makes an "intelligent" guess.
+
+        context
+            Applies phonetic transcription based on context between words
+        """
+        prediction_key = PredictKey(disambiguated, approach, guess, experiment)
+        g2p = get_g2p()
+        out_token = self.stressify(disambiguated=disambiguated,
+                                   approach=approach, guess=guess,
+                                   experiment=experiment)
+        if 'Gen' in self:
+            out_token += "G"
+        if 'Pl3' in self:
+            out_token += "P"
+        if 'Loc' in self:
+            out_token += "L"
+        if 'Dat' in self:
+            out_token += "D"
+        elif 'Ins' in self:
+            out_token += "I"
+        if out_token.endswith("я") or out_token.endswith("Я"):
+            out_token += "Y"
+        elif out_token.endswith("ясь") or out_token.endswith("ЯСЬ"):
+            out_token += "S"
+        pred = g2p.lookup(out_token)[0][0]
+        self.phon_predictions[prediction_key] = pred
+        return pred
 
     def guess(self, backoff=None):
         # if self.isInsane():
@@ -417,23 +511,25 @@ class Token:
 
     @staticmethod
     def clean_surface(tok):
-        return tok.lower().replace('\u0301', '').replace('\u0300', '').replace('ё', 'е')  # noqa: E501
+        """TODO delete this method?"""
+        return destress(tok.lower())
 
 
 class Text:
-    """String of `Token`s."""
+    """Sequence of `Token`s."""
     __slots__ = ['_tokenized', '_analyzed', '_disambiguated', '_from_str',
-                 'orig', 'toks', 'Toks']
+                 'orig', 'toks', 'Toks', 'text_name']
 
     def __init__(self, input_text, tokenize=True, analyze=True,
                  disambiguate=False, tokenizer=DEFAULT_TOKENIZER,
-                 analyzer=None, gram_path=None):
+                 analyzer=None, gram_path=None, text_name=None):
         """Note the difference between self.toks and self.Toks, where the
         latter is a list of Token objects, the former a list of strings.
         """
         self._analyzed = False
         self._disambiguated = False
         self.Toks = None
+        self.text_name = text_name
         if isinstance(input_text, str):
             self._from_str = True
             self.orig = input_text
@@ -541,7 +637,7 @@ class Text:
                     continue
         return output[1:]  # throw away 'junk' token
 
-    def stressify(self, approach='safe', guess=False):
+    def stressify(self, approach='safe', guess=False, experiment=False):
         """Return str of running text with stress marked.
 
         approach  (Applies only to words in the lexicon.)
@@ -552,31 +648,20 @@ class Text:
 
         guess
             Applies only to out-of-lexicon words. Makes an "intelligent" guess.
+
+        experiment
+            1) Remove stress from Token.orig
+            2) Save prediction in each Token.stress_predictions[prediction_key]
         """
         out_text = []
         for tok in self.Toks:
-            stresses = tok.stresses()
-            if stresses is None:
-                if guess:
-                    return self.guess_syllable()
-                else:
-                    out_text.append(tok.orig)
-            elif len(stresses) == 1:
-                out_text.append(stresses.pop())
-            else:
-                if approach == 'safe':
-                    out_text.append(tok.orig)
-                elif approach == 'random':
-                    out_text.append(choice(list(stresses)))
-                elif approach == 'freq':
-                    raise NotImplementedError
-                elif approach == 'all':
-                    raise NotImplementedError
-                else:
-                    raise NotImplementedError
+            out_text.append(tok.stressify(disambiguated=self._disambiguated,
+                                          approach=approach, guess=guess,
+                                          experiment=experiment))
         return self.respace(out_text)
 
-    def phoneticize(self, approach='safe', guess=False, context=False):
+    def phoneticize(self, approach='safe', guess=False, experiment=False,
+                    context=False):
         """Return str of running text of phonetic transcription.
 
         approach  (Applies only to words in the lexicon.)
@@ -588,54 +673,20 @@ class Text:
         guess
             Applies only to out-of-lexicon words. Makes an "intelligent" guess.
 
+        experiment
+            1) Remove stress from Token.orig
+            2) Save prediction in each Token.stress_predictions[prediction_key]
+
         context
             Applies phonetic transcription based on context between words
         """
         if context:
             raise NotImplementedError
-
-        g2p = get_g2p()
-
         out_text = []
         for tok in self.Toks:
-            stresses = tok.stresses()
-            if stresses is None:
-                if guess:
-                    return self.guess_syllable()
-                else:
-                    out_token = tok.orig
-            elif len(stresses) == 1:
-                out_token = stresses.pop()
-            else:
-                if approach == 'safe':
-                    out_token = tok.orig
-                elif approach == 'random':
-                    out_token = choice(list(stresses))
-                elif approach == 'freq':
-                    raise NotImplementedError
-                elif approach == 'all':
-                    raise NotImplementedError
-                else:
-                    raise NotImplementedError
-
-            if 'Gen' in tok:
-                out_token += "G"
-            if 'Pl3' in tok:
-                out_token += "P"
-            if 'Loc' in tok:
-                out_token += "L"
-            if 'Dat' in tok:
-                out_token += "D"
-            if 'Ins' in tok:
-                out_token += "I"
-            if out_token.endswith("я") or out_token.endswith("Я"):
-                out_token += "Y"
-            if out_token.endswith("ясь") or out_token.endswith("ЯСЬ"):
-                out_token += "S"
-
-            output = g2p.lookup(out_token)[0][0]
-            out_text.append(output)
-
+            out_text.append(tok.phoneticize(disambiguated=self._disambiguated,
+                                            approach=approach, guess=guess,
+                                            experiment=experiment))
         return self.respace(out_text)
 
     def respace(self, toks):
@@ -699,8 +750,12 @@ class Udar:
             return None
 
     def lookup(self, tok):
-        """Return Token with all readings."""
-        return Token(tok, self.fst.lookup(tok))
+        """Return Token with all readings.
+
+        If lookup returns nothing, try lookup with stress removed.
+        """
+        return Token(tok, (self.fst.lookup(tok)
+                           or self.fst.lookup(destress(tok))))
 
     def lookup_all_best(self, tok):
         """Return Token with only the highest-weighted reading(s)."""
@@ -720,6 +775,10 @@ class Udar:
         tok.readings = [max(tok.readings, default=Token(),
                             key=lambda r: r.weight)]
         return tok
+
+
+def destress(token):
+    return token.replace('\u0301', '').replace('\u0300', '').replace('ё', 'е').replace('Ё', 'Е')  # noqa: E501
 
 
 def stressify(text, disambiguate=False, **kwargs):
@@ -806,14 +865,16 @@ def get_g2p():
         return fst_cache['g2p']
 
 
-if __name__ == '__main__':
+def crappy_tests():
     print(hfst_tokenize('Мы нашли все проблемы, и т.д.'))
     toks = ['слово', 'земла', 'Работа']
-    fst = Udar('L2-analyzer')
+    L2an = Udar('L2-analyzer')
+    an = Udar('analyzer')
+    print(an.lookup('Ивано́вы'))  # test destressed backoff
     print(get_fst('acc-generator').generate('слово+N+Neu+Inan+Sg+Gen'))
     acc_gen = get_fst('acc-generator')
     for i in toks:
-        t = fst.lookup(i)
+        t = L2an.lookup(i)
         for r in t.readings:
             print(r, 'Is this a GEN form?:', 'Gen' in r)
             print(t, '\t===>\t',
@@ -828,7 +889,15 @@ if __name__ == '__main__':
     print(noun_distractors('слово'))
     print(noun_distractors('словам'))
 
-    text = Text('Мы нашли то, что искали и т.д.', disambiguate=True)
-    print(text)
+    text = Text('Ивано́вы нашли то, что искали без его нового цю́ба и т.д.',
+                disambiguate=True)
+    print(text.Toks)
     print(text.stressify())
+    print(text.stressify(experiment=True))
     print(text.phoneticize())
+
+
+if __name__ == '__main__':
+    # import pdb
+    # pdb.run('crappy_tests()')
+    crappy_tests()
