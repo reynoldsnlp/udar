@@ -706,3 +706,4 @@ if __name__ == '__main__':
     text = Text('Мы нашли то, что искали.', disambiguate=True)
     print(text)
     print(text.stressify())
+    print(text.phoneticize())
