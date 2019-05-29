@@ -91,6 +91,8 @@
 +QUOT	'Ambidextrous' quotation
 +LPAR	Left parenthesis/bracket
 +RPAR	Right parenthesis/bracket
++LEFT	Left bracket punctuation
++RIGHT	Right bracket punctuation
 +Prb	+Prb(lematic): затруднительно - предположительно - нет
 +Fac	Facultative
 +PObj	Object of preposition (epenthetic н: него нее них) TODO FIX WITHFRAN merge PObj and Epenth > Epenth? Sandhi?

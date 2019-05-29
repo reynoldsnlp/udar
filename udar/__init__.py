@@ -16,6 +16,7 @@ import hfst
 RSRC_PATH = resource_filename('udar', 'resources/')
 TAG_FNAME = RSRC_PATH + 'udar_tags.tsv'
 PHONE_FNAME = RSRC_PATH + 'g2p.hfstol'
+fst_dict = {}  # container for globally initialized FSTs
 
 
 def is_exe(fpath):
@@ -48,7 +49,9 @@ def hfst_tokenize(text):
             print('ERROR (tokenizer):', error)
         return output.rstrip().split('\n')
     except FileNotFoundError as e:
-        raise e('Command-line hfst must be installed to use the tokenizer.')
+        print('Command-line hfst must be installed to use the tokenizer.',
+              file=sys.stderr)
+        raise e
 
 
 if which('hfst-tokenize'):
@@ -58,7 +61,28 @@ else:
         from nltk import word_tokenize as nltk_tokenize
         DEFAULT_TOKENIZER = nltk_tokenize
     except ModuleNotFoundError:
-        print('hfst-tokenize and nltk not found. DEFAULT_TOKENIZER not set.')
+        print('hfst-tokenize and nltk not found. DEFAULT_TOKENIZER not set.',
+              file=sys.stderr)
+
+
+def _readify(r):
+    """Try to make Reading. If that fails, try to make a MultiReading."""
+    try:
+        return Reading(r)
+    except KeyError:
+        return MultiReading(r)
+    raise NotImplementedError(f'Cannot parse reading {r}.')
+
+
+def _get_lemmas(reading):
+    try:
+        return [reading.lemma]
+    except AttributeError:
+        out = []
+        for r in reading.readings:
+            out.extend(_get_lemmas(r))
+        return out
+    raise NotImplementedError
 
 
 class Tag:
@@ -84,13 +108,15 @@ class Tag:
 _tag_dict = {}
 with Path(TAG_FNAME).open() as f:
     for line in f:
-        tag, detail = line.strip().split('\t', maxsplit=1)
-        tag = tag[1:]
-        if tag in _tag_dict:
-            raise NameError(f'{tag} is listed twice in {TAG_FNAME}.')
-        _tag_dict[tag] = Tag(tag, detail)
-CASES = ['Nom', 'Acc', 'Gen', 'Gen2', 'Loc', 'Loc2', 'Dat', 'Ins', 'Voc']
-CASES = [_tag_dict[c] for c in CASES]
+        tag_name, detail = line.strip().split('\t', maxsplit=1)
+        tag_name = tag_name[1:]
+        if tag_name in _tag_dict:
+            raise NameError(f'{tag_name} is listed twice in {TAG_FNAME}.')
+        tag = Tag(tag_name, detail)
+        _tag_dict[tag_name] = tag
+        _tag_dict[tag] = tag  # identity added for versatile lookup
+CASES = [_tag_dict[c] for c in
+         ['Nom', 'Acc', 'Gen', 'Gen2', 'Loc', 'Loc2', 'Dat', 'Ins', 'Voc']]
 
 
 def tag_info(tag):
@@ -117,7 +143,7 @@ class Reading:
         return key in self.tagset or _tag_dict[key] in self.tagset
 
     def __repr__(self):
-        return f'{self.lemma}_{"_".join([t.name for t in self.tags])}'  # noqa: E501
+        return f'{self.lemma}_{"_".join(t.name for t in self.tags)}'
 
     def __str__(self):
         return f'{self.lemma}+{"+".join(t.name for t in self.tags)}'
@@ -130,9 +156,9 @@ class Reading:
         return f'{self.lemma}+{"+".join(t.name for t in self.tags if not t.is_L2)}'  # noqa: E501
 
     def generate(self, fst=None):
-        if not fst:
+        if fst is None:
             init_generator()
-            fst = generator
+            fst = fst_dict['generator']
         try:
             return fst.generate(self.noL2_str())
         except IndexError:
@@ -141,12 +167,86 @@ class Reading:
                   file=sys.stderr)
 
     def replace_tag(self, orig_tag, new_tag):
-        if isinstance(orig_tag, str):
-            orig_tag = _tag_dict[orig_tag]
-        if isinstance(new_tag, str):
-            new_tag = _tag_dict[new_tag]
-        self.tags[self.tags.index(orig_tag)] = new_tag
-        self.tagset = set(self.tags)
+        """Replace a given tag with new tag."""
+        # if given tags are `str`s, convert them to `Tag`s.
+        # (`Tag`s are mapped to themselves.)
+        orig_tag = _tag_dict[orig_tag]
+        new_tag = _tag_dict[new_tag]
+        try:
+            self.tags[self.tags.index(orig_tag)] = new_tag
+            self.tagset = set(self.tags)
+        except ValueError:
+            pass
+
+
+class MultiReading(Reading):
+    """Complex grammatical analysis of a Token.
+    (more than one underlying token)
+    """
+    __slots__ = ['readings', 'weight']
+
+    def __init__(self, in_tup):
+        """Convert HFST tuples to more user-friendly interface."""
+        readings, self.weight = in_tup
+        assert '#' in readings
+        self.readings = [_readify((r, self.weight))
+                         for r in readings.split('#')]
+
+    def __contains__(self, key):
+        """Fastest if `key` is a Tag, but works with str."""
+        if self.readings:
+            return any(key in r.tagset or _tag_dict[key] in r.tagset
+                       for r in self.readings)
+        else:
+            return False
+
+    def __repr__(self):
+        return f'''{'#'.join(f"""{r.lemma}_{"_".join(t.name for t in r.tags)}""" for r in self.readings)}'''  # noqa: E501
+
+    def __str__(self):
+        return f'''{'#'.join(f"""{r.lemma}+{"+".join(t.name for t in r.tags)}""" for r in self.readings)}'''  # noqa: E501
+
+    def CG_str(self):
+        """CG3-style __str__"""
+        *rest, last = self.readings
+        sep = '\n\t\t'
+        out_str = f'''"{last.lemma}" {" ".join(t.name for t in last.tags)} <W:{self.weight}>{sep}'''  # noqa: E501
+        return out_str + f'''{sep.join(f'"{r.lemma}" {" ".join(t.name for t in r.tags)} <W:{self.weight}>' for r in rest)}'''  # noqa: E501
+
+    def noL2_str(self):
+        return f'''{'#'.join(f"""{r.lemma}+{"+".join(t.name for t in r.tags if not t.is_L2)}""" for r in self.readings)}'''  # noqa: E501
+
+    def generate(self, fst=None):
+        if fst is None:
+            init_generator()
+            fst = fst_dict['generator']
+        try:
+            return fst.generate(self.noL2_str())
+        except IndexError:
+            print('ERROR Failed to generate: '
+                  f'{self} {self.noL2_str()} {fst.generate(self.noL2_str())}',
+                  file=sys.stderr)
+
+    def replace_tag(self, orig_tag, new_tag, which_reading=None):
+        """Attempt to replace tag in reading indexed by `which_reading`.
+        If which_reading is not supplied, replace tag in all readings.
+        """
+        # if given tags are `str`s, convert them to `Tag`s.
+        # (`Tag`s are mapped to themselves.)
+        orig_tag = _tag_dict[orig_tag]
+        new_tag = _tag_dict[new_tag]
+        if which_reading is None:
+            for r in self.readings:
+                try:
+                    r.tags[r.tags.index(orig_tag)] = new_tag
+                    r.tagset = set(r.tags)
+                except ValueError:
+                    continue
+        else:
+            try:
+                self.readings[which_reading].tags[self.readings[which_reading].tags.index(orig_tag)] = new_tag  # noqa: E501
+            except ValueError:
+                pass
 
 
 class Token:
@@ -155,24 +255,40 @@ class Token:
 
     def __init__(self, orig=None, readings=[]):
         self.orig = orig
-        self.readings = [Reading(r) for r in readings]
-        self.lemmas = set(r.lemma for r in self.readings)
+        self.readings = [_readify(r) for r in readings]
+        self.lemmas = set()
+        for r in self.readings:
+            try:
+                self.lemmas.add(r.lemma)
+            except AttributeError:
+                lemmas = _get_lemmas(r)
+                for lemma in lemmas:
+                    self.lemmas.add(lemma)
         self.upper_indices = self.cap_indices()
 
     def __contains__(self, key):
         """Checks membership for lemmas and tags."""
-        return key in self.lemmas or any(key in r for r in self.readings)
+        if self.readings:
+            return key in self.lemmas or any(key in r for r in self.readings)
+        else:
+            return False
 
     def __repr__(self):
         return f'{self.orig} [{"  ".join(repr(r) for r in self.readings)}]'
 
     def is_L2(self):
         """Return True if ALL readings contain an L2 error tag."""
-        return all(r.L2_tags for r in self.readings)
+        if self.readings:
+            return all(r.L2_tags for r in self.readings)
+        else:
+            return False
 
     def has_L2(self):
         """Return True if ANY readings contain an L2 error tag."""
-        return any(r.L2_tags for r in self.readings)
+        if self.readings:
+            return any(r.L2_tags for r in self.readings)
+        else:
+            return False
 
     def has_lemma(self, lemma):
         """Return True if ANY readings contain a given lemma."""
@@ -180,7 +296,10 @@ class Token:
 
     def has_tag(self, tag):
         """Return True if ANY readings contain a given tag."""
-        return any(tag in r for r in self.readings)
+        if self.readings:
+            return any(tag in r for r in self.readings)
+        else:
+            return False
 
     def cap_indices(self):
         """Indices of capitalized characters in original token."""
@@ -206,10 +325,11 @@ class Token:
         """Return set of all surface forms from a token's readings."""
         init_accented_generator()
         if recase:
-            stresses = {self.recase(r.generate(acc_generator))
+            stresses = {self.recase(r.generate(fst_dict['acc-generator']))
                         for r in self.readings}
         else:
-            stresses = {r.generate(acc_generator) for r in self.readings}
+            stresses = {r.generate(fst_dict['acc-generator'])
+                        for r in self.readings}
         return stresses or None
 
     def guess(self, backoff=None):
@@ -296,7 +416,8 @@ class Text:
                  'orig', 'toks', 'Toks']
 
     def __init__(self, input_text, tokenize=True, analyze=True,
-                 disambiguate=False, tokenizer=DEFAULT_TOKENIZER):
+                 disambiguate=False, tokenizer=DEFAULT_TOKENIZER,
+                 analyzer=None, gram_path=None):
         """Note the difference between self.toks and self.Toks, where the
         latter is a list of Token objects, the former a list of strings.
         """
@@ -319,9 +440,9 @@ class Text:
         if tokenize and not self.toks:
             self.tokenize(tokenizer=tokenizer)
         if analyze:
-            self.analyze()
+            self.analyze(analyzer=analyzer)
         if disambiguate:
-            self.disambiguate()
+            self.disambiguate(gram_path=gram_path)
 
     def __repr__(self):
         try:
@@ -357,11 +478,11 @@ class Text:
         self.toks = tokenizer(self.orig)
         self._tokenized = True
 
-    def analyze(self, fst=None):
-        if fst is None:
+    def analyze(self, analyzer=None):
+        if analyzer is None:
             init_analyzer()
-            fst = analyzer
-        self.Toks = [fst.lookup(tok) for tok in self.toks]
+            analyzer = fst_dict['analyzer']
+        self.Toks = [analyzer.lookup(tok) for tok in self.toks]
         self._analyzed = True
 
     def disambiguate(self, gram_path=None):
@@ -601,7 +722,7 @@ def diagnose_L2(text, tokenizer=DEFAULT_TOKENIZER):
     out_dict = defaultdict(set)
     init_L2_analyzer()
     text = Text(text, analyze=False)
-    text.analyze(fst=L2_analyzer)
+    text.analyze(analyzer=fst_dict['L2-analyzer'])
     for tok in text:
         if tok.is_L2():
             for r in tok.readings:
@@ -618,12 +739,13 @@ def noun_distractors(noun, stressed=True):
     noun is given, the singular paradigm is returned.
     """
     init_analyzer()
+    init_generator()
     if stressed:
-        gen = acc_generator
+        gen = fst_dict['acc-generator']
     else:
-        gen = generator
+        gen = fst_dict['generator']
     if isinstance(noun, str):
-        tok = analyzer.lookup(noun)
+        tok = fst_dict['analyzer'].lookup(noun)
         readings = [r for r in tok.readings if _tag_dict['N'] in r]
         try:
             reading = readings[0]
@@ -643,35 +765,35 @@ def noun_distractors(noun, stressed=True):
 
 
 def init_analyzer():
-    global analyzer
+    global fst_dict
     try:
-        analyzer
-    except NameError:
-        analyzer = Udar('analyzer')
+        fst_dict['analyzer']
+    except KeyError:
+        fst_dict['analyzer'] = Udar('analyzer')
 
 
 def init_L2_analyzer():
-    global L2_analyzer
+    global fst_dict
     try:
-        L2_analyzer
-    except NameError:
-        L2_analyzer = Udar('L2-analyzer')
+        fst_dict['L2-analyzer']
+    except KeyError:
+        fst_dict['L2-analyzer'] = Udar('L2-analyzer')
 
 
 def init_generator():
-    global generator
+    global fst_dict
     try:
-        generator
-    except NameError:
-        generator = Udar('generator')
+        fst_dict['generator']
+    except KeyError:
+        fst_dict['generator'] = Udar('generator')
 
 
 def init_accented_generator():
-    global acc_generator
+    global fst_dict
     try:
-        acc_generator
-    except NameError:
-        acc_generator = Udar('accented-generator')
+        fst_dict['acc-generator']
+    except KeyError:
+        fst_dict['acc-generator'] = Udar('accented-generator')
 
 def init_g2p():
     global g2p
@@ -687,12 +809,13 @@ if __name__ == '__main__':
     toks = ['слово', 'земла', 'Работа']
     fst = Udar('L2-analyzer')
     init_accented_generator()
-    print(acc_generator.generate('слово+N+Neu+Inan+Sg+Gen'))
+    print(fst_dict['acc-generator'].generate('слово+N+Neu+Inan+Sg+Gen'))
     for i in toks:
         t = fst.lookup(i)
         for r in t.readings:
             print(r, 'Is this a GEN form?:', 'Gen' in r)
-            print(t, '\t===>\t', t.recase(r.generate(acc_generator)))
+            print(t, '\t===>\t',
+                  t.recase(r.generate(fst_dict['acc-generator'])))
     print(stressify('Это - первая попытка.'))
     L2_sent = 'Я забыл дать девушекам денеги, которые упали на землу.'
     err_dict = diagnose_L2(L2_sent)
@@ -703,7 +826,7 @@ if __name__ == '__main__':
     print(noun_distractors('слово'))
     print(noun_distractors('словам'))
 
-    text = Text('Мы нашли то, что искали.', disambiguate=True)
+    text = Text('Мы нашли то, что искали и т.д.', disambiguate=True)
     print(text)
     print(text.stressify())
     print(text.phoneticize())
