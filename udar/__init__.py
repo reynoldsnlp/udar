@@ -26,6 +26,8 @@ ALIAS = {'analyser': 'analyzer',
          'acc-generator': 'accented-generator'}
 
 V = 'аэоуыяеёюи'
+ACUTE = '\u0301'  # acute combining accent: x́
+GRAVE = '\u0300'  # grave combining accent: x̀
 
 PredictKey = namedtuple('PredictKey', ['disamb', 'approach', 'guess'])
 
@@ -336,10 +338,10 @@ class Token:
         """Capitalize each letter in `in_str` indicated in `indices`."""
         if not self.upper_indices:
             return in_str
-        grave_i = in_str.find('\u0300')
+        grave_i = in_str.find(GRAVE)
         if grave_i == -1:
             grave_i = 255  # a small number bigger than the length of any word
-        acute_i = in_str.find('\u0301')
+        acute_i = in_str.find(ACUTE)
         if acute_i == -1:
             acute_i = 255
         return ''.join([char.upper()
@@ -408,31 +410,35 @@ class Token:
                                                        self.stress_eval(pred))
         return pred
 
-    def stress_eval(self, prediction, ignore_monosyll=True):
+    def stress_eval(self, pred, ignore_monosyll=True):
         """Return a Result Enum value.
 
         If ignore_monosyll is True, then monosyllabic original forms always
-        receive a score of None. This is because many corpora make the (bad)
+        receive a score of SKIP. This is because many corpora make the (bad)
         assumption that all monosyllabic words are stressed.
         """
         if ignore_monosyll and len(re.findall(f'[{V}]', self.orig)) < 2:
             return Result.SKIP
-        orig_prim = {m.start() for m in re.finditer('\u0301', self.orig)}
-        pred_prim = {m.start() for m in re.finditer('\u0301', prediction)}
+        orig_prim = {m.start()
+                     for m in re.finditer(ACUTE, self.orig.replace(GRAVE, ''))}
+        pred_prim = {m.start()
+                     for m in re.finditer(ACUTE, pred.replace(GRAVE, ''))}
         both_prim = orig_prim.intersection(pred_prim)
-        # orig_sec = {m.start() for m in re.finditer('\u0300', self.orig)}
-        # pred_sec = {m.start() for m in re.finditer('\u0300', prediction)}
+        # orig_sec = {m.start() for m
+        #             in re.finditer(GRAVE, self.orig.replace(ACUTE, ''))}
+        # pred_sec = {m.start() for m
+        #             in re.finditer(GRAVE, pred.replace(ACUTE, ''))}
         # both_sec = orig_sec.intersection(pred_sec)
         if len(orig_prim) > 1 and len(pred_prim) > 1:
-            print(f'Too many stress counts: {self.orig}\t{prediction}',
+            print(f'Too many stress counts: {self.orig}\t{pred}',
                   file=sys.stderr)
         if both_prim:  # if both have a primary stress mark present
             return Result.TP
         elif pred_prim:
             return Result.FP
-        elif not orig_prim:  # and not pred_prim
+        elif not orig_prim:  # (implicitly) and not pred_prim
             return Result.TN
-        elif orig_prim:  # and not pred_prim
+        elif orig_prim:  # (implicitly) and not pred_prim
             return Result.FN
         else:
             return Result.WTF
@@ -538,11 +544,11 @@ class Token:
         reliable at all, especially for forms with a consonant in the
         grammatical ending.
         """
-        if 'ё' in self.orig or '\u0301' in self.orig:
+        if 'ё' in self.orig or ACUTE in self.orig:
             return self.orig
         else:
             return re.sub(f'([{V}])([^{V}]+[{V}]+(?:[^{V}]+)?)$',
-                          '\\1\u0301\\2',
+                          f'\\1{ACUTE}\\2',
                           self.orig)
 
     def hfst_stream(self):
@@ -564,11 +570,12 @@ class Token:
 class Text:
     """Sequence of `Token`s."""
     __slots__ = ['_tokenized', '_analyzed', '_disambiguated', '_from_str',
-                 'orig', 'toks', 'Toks', 'text_name']
+                 'orig', 'toks', 'Toks', 'text_name', 'experiment']
 
     def __init__(self, input_text, tokenize=True, analyze=True,
                  disambiguate=False, tokenizer=DEFAULT_TOKENIZER,
-                 analyzer=None, gram_path=None, text_name=None):
+                 analyzer=None, gram_path=None, text_name=None,
+                 experiment=False):
         """Note the difference between self.toks and self.Toks, where the
         latter is a list of Token objects, the former a list of strings.
         """
@@ -576,6 +583,7 @@ class Text:
         self._disambiguated = False
         self.Toks = None
         self.text_name = text_name
+        self.experiment = experiment
         if isinstance(input_text, str):
             self._from_str = True
             self.orig = input_text
@@ -633,10 +641,15 @@ class Text:
         self.toks = tokenizer(self.orig)
         self._tokenized = True
 
-    def analyze(self, analyzer=None):
+    def analyze(self, analyzer=None, experiment=None):
         if analyzer is None:
             analyzer = get_fst('analyzer')
-        self.Toks = [analyzer.lookup(tok) for tok in self.toks]
+        if experiment is None:
+            experiment = self.experiment
+        if experiment:
+            self.Toks = [analyzer.lookup(destress(tok)) for tok in self.toks]
+        else:
+            self.Toks = [analyzer.lookup(tok) for tok in self.toks]
         self._analyzed = True
 
     def disambiguate(self, gram_path=None):
@@ -676,14 +689,15 @@ class Text:
                 continue
             except AttributeError:
                 try:
-                    lemma, tags, weight = re.match(r'\t"(.*)" (.*?) <W:(.*)>$', line).groups()  # noqa: E501
+                    lemma, tags, weight = re.match(r'\t"(.*)" (.*?) <W:(.*)>$',
+                                                   line).groups()
                     tags = tags.replace(' ', '+')
                     readings.append((f'{lemma}+{tags}', weight))
                 except AttributeError:
                     continue
         return output[1:]  # throw away 'junk' token
 
-    def stressify(self, approach='safe', guess=False, experiment=False):
+    def stressify(self, approach='safe', guess=False, experiment=None):
         """Return str of running text with stress marked.
 
         approach  (Applies only to words in the lexicon.)
@@ -699,6 +713,8 @@ class Text:
             1) Remove stress from Token.orig
             2) Save prediction in each Token.stress_predictions[prediction_key]
         """
+        if experiment is None:
+            experiment = self.experiment
         out_text = []
         for tok in self.Toks:
             out_text.append(tok.stressify(disambiguated=self._disambiguated,
@@ -710,25 +726,7 @@ class Text:
         """Return dictionary of evaluation metrics for stress predictions."""
         results = Counter(tok.stress_predictions[prediction_key][1]
                           for tok in self.Toks)
-        N = sum((results[Result.FP], results[Result.FN],
-                 results[Result.TP], results[Result.TN]))
-        assert N > 0
-        tot_T = results[Result.TP] + results[Result.TN]
-        tot_P = results[Result.TP] + results[Result.FP]
-        assert tot_P > 0
-        tot_relevant = results[Result.TP] + results[Result.FN]
-        out_dict = {'N': N,
-                    'tot_T': tot_T,
-                    'tot_P': tot_P,
-                    'tot_relevant': tot_relevant,
-                    'accuracy': tot_T / N,
-                    'error_rate': results[Result.FP] / N,
-                    'abstention_rate': results[Result.FN] / N,
-                    'attempt_rate': tot_P / N,
-                    'precision': results[Result.TP] / tot_P,
-                    'recall': results[Result.TP] / tot_relevant}
-        out_dict.update(results)
-        return out_dict
+        return compute_metrics(results)
 
     def phoneticize(self, approach='safe', guess=False, experiment=False,
                     context=False):
@@ -848,13 +846,36 @@ class Udar:
 
 
 def destress(token):
-    return token.replace('\u0301', '').replace('\u0300', '').replace('ё', 'е').replace('Ё', 'Е')  # noqa: E501
+    return token.replace(ACUTE, '').replace(GRAVE, '').replace('ё', 'е').replace('Ё', 'Е')  # noqa: E501
 
 
 def stressify(text, disambiguate=False, **kwargs):
     """Automatically add stress to running text."""
     text = Text(text, disambiguate=disambiguate)
     return text.stressify(**kwargs)
+
+
+def compute_metrics(results):
+    N = sum((results[Result.FP], results[Result.FN],
+             results[Result.TP], results[Result.TN]))
+    assert N > 0
+    tot_T = results[Result.TP] + results[Result.TN]
+    tot_P = results[Result.TP] + results[Result.FP]
+    assert tot_P > 0
+    tot_relevant = results[Result.TP] + results[Result.FN]
+    assert tot_relevant > 0
+    out_dict = {'N': N,
+                'tot_T': tot_T,
+                'tot_P': tot_P,
+                'tot_relevant': tot_relevant,
+                'accuracy': tot_T / N,
+                'error_rate': results[Result.FP] / N,
+                'abstention_rate': results[Result.FN] / N,
+                'attempt_rate': tot_P / N,
+                'precision': results[Result.TP] / tot_P,
+                'recall': results[Result.TP] / tot_relevant}
+    out_dict.update(results)
+    return out_dict
 
 
 def unspace_punct(in_str):
@@ -959,7 +980,7 @@ def crappy_tests():
     print(noun_distractors('слово'))
     print(noun_distractors('словам'))
 
-    text = Text('Ивано́вы нашли́ то́, что́ иска́ли без его́ но́вого цю́ба и т.д.',
+    text = Text('Ивано́вы нашли́ то́, что́ иска́ли без его́ но́вого цю́ба и т.д.',  # noqa: E501
                 disambiguate=True)
     print(text.Toks)
     print(text.stressify())
