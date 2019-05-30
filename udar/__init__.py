@@ -29,7 +29,9 @@ V = 'аэоуыяеёюи'
 ACUTE = '\u0301'  # acute combining accent: x́
 GRAVE = '\u0300'  # grave combining accent: x̀
 
-PredictKey = namedtuple('PredictKey', ['disamb', 'approach', 'guess'])
+StressParams = namedtuple('StressParams', ['disambiguate',
+                                           'selection',
+                                           'guess'])
 
 
 class Result(Enum):
@@ -360,14 +362,14 @@ class Token:
             stresses = {r.generate(acc_gen) for r in self.readings}
         return stresses or None
 
-    def stressify(self, disambiguated=None, approach='safe', guess=False,
+    def stressify(self, disambiguated=None, selection='safe', guess=False,
                   experiment=False):
         """Return surface form with stress marked.
 
         disambiguated
             Boolean indicated whether the Text/Token has undergone CG3 disamb.
 
-        approach  (Applies only to words in the lexicon.)
+        selection  (Applies only to words in the lexicon.)
             safe   -- Only add stress if it is unambiguous.
             freq   -- lemma+reading > lemma > reading
             random -- Randomly choose between specified stress positions.
@@ -378,9 +380,9 @@ class Token:
 
         experiment
             1) Remove stress from Token.orig
-            2) Save prediction in each Token.stress_predictions[prediction_key]
+            2) Save prediction in each Token.stress_predictions[stress_params]
         """
-        prediction_key = PredictKey(disambiguated, approach, guess)
+        stress_params = StressParams(disambiguated, selection, guess)
         stresses = self.stresses()
         if stresses is None:
             if guess:
@@ -392,22 +394,22 @@ class Token:
         elif len(stresses) == 1:
             pred = stresses.pop()
         else:
-            if approach == 'safe':
+            if selection == 'safe':
                 if experiment:
                     pred = destress(self.orig)
                 else:
                     pred = self.orig
-            elif approach == 'random':
+            elif selection == 'random':
                 pred = choice(list(stresses))
-            elif approach == 'freq':
+            elif selection == 'freq':
                 raise NotImplementedError
-            elif approach == 'all':
+            elif selection == 'all':
                 raise NotImplementedError
             else:
                 raise NotImplementedError
         if experiment:
-            self.stress_predictions[prediction_key] = (pred,
-                                                       self.stress_eval(pred))
+            self.stress_predictions[stress_params] = (pred,
+                                                      self.stress_eval(pred))
         return pred
 
     def stress_eval(self, pred, ignore_monosyll=True):
@@ -443,11 +445,11 @@ class Token:
         else:
             return Result.WTF
 
-    def phoneticize(self, disambiguated=None, approach='safe', guess=False,
+    def phoneticize(self, disambiguated=None, selection='safe', guess=False,
                     experiment=False):
         """Return str of running text of phonetic transcription.
 
-        approach  (Applies only to words in the lexicon.)
+        selection  (Applies only to words in the lexicon.)
             safe   -- Only add stress if it is unambiguous.
             freq   -- lemma+reading > lemma > reading
             random -- Randomly choose between specified stress positions.
@@ -456,11 +458,11 @@ class Token:
         guess
             Applies only to out-of-lexicon words. Makes an "intelligent" guess.
         """
-        # TODO check if `all` approach is compatible with g2p.hfstol
-        prediction_key = PredictKey(disambiguated, approach, guess)
+        # TODO check if `all` selection is compatible with g2p.hfstol
+        stress_params = StressParams(disambiguated, selection, guess)
         g2p = get_g2p()
         out_token = self.stressify(disambiguated=disambiguated,
-                                   approach=approach, guess=guess,
+                                   selection=selection, guess=guess,
                                    experiment=experiment)
         if 'Gen' in self:
             out_token += "G"
@@ -478,8 +480,7 @@ class Token:
             out_token += "S"
         pred = g2p.lookup(out_token)[0][0]
         if experiment:
-            self.phon_predictions[prediction_key] = (pred,
-                                                     self.phon_eval(pred))
+            self.phon_predictions[stress_params] = (pred, self.phon_eval(pred))
         return pred
 
     def phon_eval(self, pred):
@@ -697,10 +698,10 @@ class Text:
                     continue
         return output[1:]  # throw away 'junk' token
 
-    def stressify(self, approach='safe', guess=False, experiment=None):
+    def stressify(self, selection='safe', guess=False, experiment=None):
         """Return str of running text with stress marked.
 
-        approach  (Applies only to words in the lexicon.)
+        selection  (Applies only to words in the lexicon.)
             safe   -- Only add stress if it is unambiguous.
             freq   -- lemma+reading > lemma > reading
             random -- Randomly choose between specified stress positions.
@@ -711,28 +712,28 @@ class Text:
 
         experiment
             1) Remove stress from Token.orig
-            2) Save prediction in each Token.stress_predictions[prediction_key]
+            2) Save prediction in each Token.stress_predictions[stress_params]
         """
         if experiment is None:
             experiment = self.experiment
         out_text = []
         for tok in self.Toks:
             out_text.append(tok.stressify(disambiguated=self._disambiguated,
-                                          approach=approach, guess=guess,
+                                          selection=selection, guess=guess,
                                           experiment=experiment))
         return self.respace(out_text)
 
-    def stress_eval(self, prediction_key):
+    def stress_eval(self, stress_params):
         """Return dictionary of evaluation metrics for stress predictions."""
-        results = Counter(tok.stress_predictions[prediction_key][1]
+        results = Counter(tok.stress_predictions[stress_params][1]
                           for tok in self.Toks)
         return compute_metrics(results)
 
-    def phoneticize(self, approach='safe', guess=False, experiment=False,
+    def phoneticize(self, selection='safe', guess=False, experiment=False,
                     context=False):
         """Return str of running text of phonetic transcription.
 
-        approach  (Applies only to words in the lexicon.)
+        selection  (Applies only to words in the lexicon.)
             safe   -- Only add stress if it is unambiguous.
             freq   -- lemma+reading > lemma > reading
             random -- Randomly choose between specified stress positions.
@@ -743,7 +744,7 @@ class Text:
 
         experiment
             1) Remove stress from Token.orig
-            2) Save prediction in each Token.stress_predictions[prediction_key]
+            2) Save prediction in each Token.stress_predictions[stress_params]
 
         context
             Applies phonetic transcription based on context between words
@@ -753,7 +754,7 @@ class Text:
         out_text = []
         for tok in self.Toks:
             out_text.append(tok.phoneticize(disambiguated=self._disambiguated,
-                                            approach=approach, guess=guess,
+                                            selection=selection, guess=guess,
                                             experiment=experiment))
         return self.respace(out_text)
 
