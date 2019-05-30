@@ -1,7 +1,9 @@
 """Python wrapper of UDAR, a part-of-speech tagger for (accented) Russian"""
 
+from collections import Counter
 from collections import defaultdict
 from collections import namedtuple
+from enum import Enum
 import os
 from pathlib import Path
 from pkg_resources import resource_filename
@@ -25,8 +27,17 @@ ALIAS = {'analyser': 'analyzer',
 
 V = 'аэоуыяеёюи'
 
-PredictKey = namedtuple('PredictKey', ['disamb', 'approach', 'guess',
-                                       'experiment'])
+PredictKey = namedtuple('PredictKey', ['disamb', 'approach', 'guess'])
+
+
+class Result(Enum):
+    """Enum values for stress annotation evaluation."""
+    FP = 1  # error (attempted to add stress and failed)
+    FN = 2  # abstention (did not add stress to a word that should be stressed)
+    TP = 3  # positive success (correctly added stress)
+    TN = 4  # negative success (abstained on an unstressed word)
+    SKIP = 101  # skip (used for monosyllabics)
+    WTF = 404  # I've been turned into a cow; can I go home?
 
 
 def is_exe(fpath):
@@ -56,7 +67,7 @@ def hfst_tokenize(text):
                   universal_newlines=True)
         output, error = p.communicate(text)
         if error:
-            print('ERROR (tokenizer):', error)
+            print('ERROR (tokenizer):', error, file=sys.stderr)
         return output.rstrip().split('\n')
     except FileNotFoundError:
         print('Command-line hfst must be installed to use the tokenizer.',
@@ -367,7 +378,7 @@ class Token:
             1) Remove stress from Token.orig
             2) Save prediction in each Token.stress_predictions[prediction_key]
         """
-        prediction_key = PredictKey(disambiguated, approach, guess, experiment)
+        prediction_key = PredictKey(disambiguated, approach, guess)
         stresses = self.stresses()
         if stresses is None:
             if guess:
@@ -392,11 +403,42 @@ class Token:
                 raise NotImplementedError
             else:
                 raise NotImplementedError
-        self.stress_predictions[prediction_key] = pred
+        if experiment:
+            self.stress_predictions[prediction_key] = (pred,
+                                                       self.stress_eval(pred))
         return pred
 
+    def stress_eval(self, prediction, ignore_monosyll=True):
+        """Return a Result Enum value.
+
+        If ignore_monosyll is True, then monosyllabic original forms always
+        receive a score of None. This is because many corpora make the (bad)
+        assumption that all monosyllabic words are stressed.
+        """
+        if ignore_monosyll and len(re.findall(f'[{V}]', self.orig)) < 2:
+            return Result.SKIP
+        orig_prim = {m.start() for m in re.finditer('\u0301', self.orig)}
+        pred_prim = {m.start() for m in re.finditer('\u0301', prediction)}
+        both_prim = orig_prim.intersection(pred_prim)
+        # orig_sec = {m.start() for m in re.finditer('\u0300', self.orig)}
+        # pred_sec = {m.start() for m in re.finditer('\u0300', prediction)}
+        # both_sec = orig_sec.intersection(pred_sec)
+        if len(orig_prim) > 1 and len(pred_prim) > 1:
+            print(f'Too many stress counts: {self.orig}\t{prediction}',
+                  file=sys.stderr)
+        if both_prim:  # if both have a primary stress mark present
+            return Result.TP
+        elif pred_prim:
+            return Result.FP
+        elif not orig_prim:  # and not pred_prim
+            return Result.TN
+        elif orig_prim:  # and not pred_prim
+            return Result.FN
+        else:
+            return Result.WTF
+
     def phoneticize(self, disambiguated=None, approach='safe', guess=False,
-                    experiment=False, context=False):
+                    experiment=False):
         """Return str of running text of phonetic transcription.
 
         approach  (Applies only to words in the lexicon.)
@@ -407,11 +449,9 @@ class Token:
 
         guess
             Applies only to out-of-lexicon words. Makes an "intelligent" guess.
-
-        context
-            Applies phonetic transcription based on context between words
         """
-        prediction_key = PredictKey(disambiguated, approach, guess, experiment)
+        # TODO check if `all` approach is compatible with g2p.hfstol
+        prediction_key = PredictKey(disambiguated, approach, guess)
         g2p = get_g2p()
         out_token = self.stressify(disambiguated=disambiguated,
                                    approach=approach, guess=guess,
@@ -431,8 +471,14 @@ class Token:
         elif out_token.endswith("ясь") or out_token.endswith("ЯСЬ"):
             out_token += "S"
         pred = g2p.lookup(out_token)[0][0]
-        self.phon_predictions[prediction_key] = pred
+        if experiment:
+            self.phon_predictions[prediction_key] = (pred,
+                                                     self.phon_eval(pred))
         return pred
+
+    def phon_eval(self, pred):
+        # raise NotImplementedError
+        return None
 
     def guess(self, backoff=None):
         # if self.isInsane():
@@ -660,6 +706,30 @@ class Text:
                                           experiment=experiment))
         return self.respace(out_text)
 
+    def stress_eval(self, prediction_key):
+        """Return dictionary of evaluation metrics for stress predictions."""
+        results = Counter(tok.stress_predictions[prediction_key][1]
+                          for tok in self.Toks)
+        N = sum((results[Result.FP], results[Result.FN],
+                 results[Result.TP], results[Result.TN]))
+        assert N > 0
+        tot_T = results[Result.TP] + results[Result.TN]
+        tot_P = results[Result.TP] + results[Result.FP]
+        assert tot_P > 0
+        tot_relevant = results[Result.TP] + results[Result.FN]
+        out_dict = {'N': N,
+                    'tot_T': tot_T,
+                    'tot_P': tot_P,
+                    'tot_relevant': tot_relevant,
+                    'accuracy': tot_T / N,
+                    'error_rate': results[Result.FP] / N,
+                    'abstention_rate': results[Result.FN] / N,
+                    'attempt_rate': tot_P / N,
+                    'precision': results[Result.TP] / tot_P,
+                    'recall': results[Result.TP] / tot_relevant}
+        out_dict.update(results)
+        return out_dict
+
     def phoneticize(self, approach='safe', guess=False, experiment=False,
                     context=False):
         """Return str of running text of phonetic transcription.
@@ -722,7 +792,7 @@ class Udar:
             - 'accented-generator' (or 'acc-generator')
         """
         if flavor == 'g2p':
-            print('For g2p, use get_g2p().')
+            print('For g2p, use get_g2p().', file=sys.stderr)
             raise TypeError
         self.flavor = flavor
         fnames = {'analyzer': 'analyser-gt-desc.hfstol',
@@ -889,15 +959,14 @@ def crappy_tests():
     print(noun_distractors('слово'))
     print(noun_distractors('словам'))
 
-    text = Text('Ивано́вы нашли то, что искали без его нового цю́ба и т.д.',
+    text = Text('Ивано́вы нашли́ то́, что́ иска́ли без его́ но́вого цю́ба и т.д.',
                 disambiguate=True)
     print(text.Toks)
     print(text.stressify())
     print(text.stressify(experiment=True))
+    print(text.stress_eval((True, 'safe', False)))
     print(text.phoneticize())
 
 
 if __name__ == '__main__':
-    # import pdb
-    # pdb.run('crappy_tests()')
     crappy_tests()
