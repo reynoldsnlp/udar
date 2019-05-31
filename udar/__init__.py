@@ -409,7 +409,7 @@ class Token:
                 graves = [(w.replace(ACUTE, '').index(GRAVE), GRAVE)
                           for w in stresses if GRAVE in w]
                 yos = [(w.replace(GRAVE, '').replace(ACUTE, '').index('ё'), 'ё')  # noqa: E501
-                               for w in stresses if 'ё' in w]
+                       for w in stresses if 'ё' in w]
                 positions = acutes + graves + yos
                 word = list(destress(stresses.pop()))
                 for i, char in sorted(positions, key=lambda x: (-x[0], x[1]),
@@ -683,13 +683,17 @@ class Text:
                       stdin=PIPE,
                       stdout=PIPE,
                       universal_newlines=True)
-            output, error = p.communicate(input=self.CG_str())
-            self.Toks = self.parse_cg3(output)
-            self._disambiguated = True
         except FileNotFoundError:
             print('vislcg3 must be installed and be in your '
                   'PATH variable to disambiguate a text.', file=sys.stderr)
             raise FileNotFoundError
+        output, error = p.communicate(input=self.CG_str())
+        new_Toks = self.parse_cg3(output)
+        for old, new in zip(self.Toks, new_Toks):
+            assert old.orig == new.orig
+            old.readings = new.readings
+            old.lemmas = new.lemmas
+        self._disambiguated = True
 
     @staticmethod
     def parse_cg3(stream):
