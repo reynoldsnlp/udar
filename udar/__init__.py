@@ -404,7 +404,21 @@ class Token:
             elif selection == 'freq':
                 raise NotImplementedError
             elif selection == 'all':
-                raise NotImplementedError
+                acutes = [(w.replace(GRAVE, '').index(ACUTE), ACUTE)
+                          for w in stresses if ACUTE in w]
+                graves = [(w.replace(ACUTE, '').index(GRAVE), GRAVE)
+                          for w in stresses if GRAVE in w]
+                yos = [(w.replace(GRAVE, '').replace(ACUTE, '').index('ё'), 'ё')  # noqa: E501
+                               for w in stresses if 'ё' in w]
+                positions = acutes + graves + yos
+                word = list(destress(stresses.pop()))
+                for i, char in sorted(positions, key=lambda x: (-x[0], x[1]),
+                                      reverse=True):
+                    if char in (ACUTE, GRAVE):
+                        word.insert(i, char)
+                    else:  # 'ё'
+                        word[i] = char
+                pred = ''.join(word)
             else:
                 raise NotImplementedError
         if experiment:
@@ -725,9 +739,8 @@ class Text:
 
     def stress_eval(self, stress_params):
         """Return dictionary of evaluation metrics for stress predictions."""
-        results = Counter(tok.stress_predictions[stress_params][1]
-                          for tok in self.Toks)
-        return compute_metrics(results)
+        return Counter(tok.stress_predictions[stress_params][1]
+                       for tok in self.Toks)
 
     def phoneticize(self, selection='safe', guess=False, experiment=False,
                     context=False):
@@ -988,6 +1001,8 @@ def crappy_tests():
     print(text.stressify(experiment=True))
     print(text.stress_eval((True, 'safe', False)))
     print(text.phoneticize())
+    text1 = Text('Она узнает обо всем.')
+    print(text1.stressify(selection='all'))
 
 
 if __name__ == '__main__':
