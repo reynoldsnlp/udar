@@ -41,7 +41,6 @@ class Result(Enum):
     TP = 3  # positive success (correctly added stress)
     TN = 4  # negative success (abstained on an unstressed word)
     SKIP = 101  # skip (used for monosyllabics)
-    WTF = 404  # I've been turned into a cow; can I go home?
 
 
 def is_exe(fpath):
@@ -382,6 +381,7 @@ class Token:
             1) Remove stress from Token.orig
             2) Save prediction in each Token.stress_predictions[stress_params]
         """
+        # TODO sometimes returns None!!
         stress_params = StressParams(disambiguated, selection, guess)
         stresses = self.stresses()
         if stresses is None:
@@ -457,7 +457,7 @@ class Token:
         elif orig_prim:  # (implicitly) and not pred_prim
             return Result.FN
         else:
-            return Result.WTF
+            raise NotImplementedError  # did I miss something?
 
     def phoneticize(self, disambiguated=None, selection='safe', guess=False,
                     experiment=False):
@@ -734,11 +734,10 @@ class Text:
         """
         if experiment is None:
             experiment = self.experiment
-        out_text = []
-        for tok in self.Toks:
-            out_text.append(tok.stressify(disambiguated=self._disambiguated,
-                                          selection=selection, guess=guess,
-                                          experiment=experiment))
+        out_text = [tok.stressify(disambiguated=self._disambiguated,
+                                  selection=selection, guess=guess,
+                                  experiment=experiment)
+                    for tok in self.Toks]
         return self.respace(out_text)
 
     def stress_eval(self, stress_params):
@@ -776,11 +775,16 @@ class Text:
         return self.respace(out_text)
 
     def respace(self, toks):
+        # TODO re-evaluate this
         if self._from_str:
-            return unspace_punct(' '.join(toks))
-            if isinstance(toks, list):
-                for match in re.finditer(r'\s+', self.orig):
-                    pass
+            try:
+                return unspace_punct(' '.join(toks))
+            except TypeError:
+                print(toks, file=sys.stderr)
+                raise
+        elif isinstance(toks, list):
+            for match in re.finditer(r'\s+', self.orig):
+                pass
         else:
             return unspace_punct(' '.join(toks))
 
@@ -893,7 +897,15 @@ def compute_metrics(results):
                 'precision': results[Result.TP] / tot_P,
                 'recall': results[Result.TP] / tot_relevant}
     out_dict.update(results)
-    return out_dict
+    for old, new in [(Result.TP, 'TP'),
+                     (Result.TN, 'TN'),
+                     (Result.FP, 'FP'),
+                     (Result.FN, 'FN'),
+                     (Result.SKIP, 'skipped_1sylls')]:
+        out_dict[new] = out_dict[old]
+        del out_dict[old]
+    Metrics = namedtuple('Metrics', sorted(out_dict))
+    return Metrics(**out_dict)
 
 
 def unspace_punct(in_str):
@@ -1003,7 +1015,7 @@ def crappy_tests():
     print(text.Toks)
     print(text.stressify())
     print(text.stressify(experiment=True))
-    print(text.stress_eval((True, 'safe', False)))
+    print(text.stress_eval(StressParams(True, 'safe', False)))
     print(text.phoneticize())
     text1 = Text('Она узнает обо всем.')
     print(text1.stressify(selection='all'))
