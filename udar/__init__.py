@@ -634,7 +634,7 @@ class Token:
         output = '\n'.join(f'{r.CG_str(traces=traces)}'
                            for r in self.readings) \
                  or f'\t"{self.orig}" ? <W:{281474976710655.000000:.6f}>'
-        if traces:
+        if traces and self.removed_readings:
             more = '\n'.join(f';{r.CG_str(traces=traces)}'
                              for r in self.removed_readings)
             output = f'{output}\n{more}'
