@@ -49,6 +49,8 @@ setuptools.setup(
     package_dir={'udar': 'udar'},
     package_data={'udar': ['udar/resources/*']},
     install_requires=['hfst', 'nltk'],
+    setup_requires=['pytest-runner'],
+    tests_require=['pytest'],
     # dependency_links=['https://github.com/ljos/pyvislcg3'],
     classifiers=[
         'Programming Language :: Python :: 3',

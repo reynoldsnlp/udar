@@ -135,5 +135,6 @@
 +Use/Relig	Church
 +Use/Law	Law
 +Use/Mari	Maritime
++Symbol	Symbol (independent symbols in the text stream, like £, €, ©)
 +PUNCT	Punctuation
 +CLB	Clause boundary

@@ -20,8 +20,9 @@ class StressExperiment:
         corpus -- filename or Path (or list of filenames/Paths)
                   If no corpus is given, text is taken directly from stdin.
 
-        par_space -- list of StressParams
+        par_space -- list of StressParams or dict to pass to gen_param_space
         """
+        print('Preparing corpus...', file=sys.stderr)
         if corpus is None:
             if sys.stdin.isatty():
                 print('No corpus given. Please try again.', file=sys.stderr)
@@ -43,11 +44,8 @@ class StressExperiment:
             elif isinstance(corpus[0], Path):
                 self.texts = [udar.Text(p.read_text(), text_name=p.name)
                               for p in corpus]
-        if par_space is None:
-            self.par_space = [udar.StressParams(disambiguate, approach, guess)
-                              for disambiguate in (False, True)
-                              for approach in ('safe', 'random')
-                              for guess in (False, True)]
+        if par_space is None or isinstance(par_space, dict):
+            self.par_space = self.gen_param_space(par_space)
         else:
             self.par_space = par_space
         self.results = None
@@ -56,7 +54,7 @@ class StressExperiment:
         return 'StressExperiment(' + ', '.join(t.text_name
                                                for t in self.texts) + ')'
 
-    def run(self):
+    def run(self, tsvs=False):
         print('Annotating documents for each parameter set...',
               file=sys.stderr)
         for text in self.texts:
@@ -70,6 +68,10 @@ class StressExperiment:
                 kwargs = sp._asdict()
                 del kwargs['disambiguate']
                 text.stressify(experiment=True, **kwargs)
+            if tsvs:
+                text.stress_preds2tsv()
+        metrics = [self.param_eval(sp) for sp in self.par_space]
+        self.results = pd.DataFrame(data=metrics)
 
     def param_eval(self, stress_params):
         """Combine metrics from individual texts for a specific parameter set.
@@ -81,7 +83,7 @@ class StressExperiment:
         for text in self.texts:
             text_results = text.stress_eval(stress_params)
             corp_results.update(text_results)
-        corp_results['params'] = self.readable_name(stress_params)
+        corp_results['params'] = stress_params.readable_name()
         for k, v in stress_params._asdict().items():
             corp_results[k] = v
         return udar.compute_metrics(corp_results)
@@ -91,17 +93,27 @@ class StressExperiment:
             self.param_eval(stress_params)
 
     @staticmethod
-    def readable_name(stress_params):
-        cg, selection, guess = stress_params
-        cg = 'CG' if cg else 'noCG'
-        guess = 'guess' if guess else 'no_guess'
-        return '-'.join((cg, selection, guess))
+    def gen_param_space(in_dict=None):
+        """Generate a list of StressParams made up of every possible
+        combination of in_dict.values().
+
+        in_dict -- key=parameter names, value=list of parameter values to test.
+                   Keys of unimplemented parameters are ignored. If None is
+                   given, the maximum parameter space is returned.
+        """
+        if in_dict is None:
+            in_dict = {'disambiguate': [False, True],
+                       'approach': ['safe', 'random'],
+                       'guess': [False, True]}
+        return [udar.StressParams(disambiguate, approach, guess)
+                for disambiguate in sorted(in_dict['disambiguate'])
+                for approach in in_dict['approach']
+                for guess in in_dict['guess']]
 
 
 if __name__ == '__main__':
     corpus = Path('stress_corpus').glob('*')
+    # corpus = Path('RNC').glob('*')
     exp = StressExperiment(corpus=corpus)
-    exp.run()
-    metrics = [exp.param_eval(sp) for sp in exp.par_space]
-    df = pd.DataFrame(data=metrics)
-    print(df)
+    exp.run(tsvs=True)
+    print(exp.results.to_csv(sep='\t', float_format='%.3f'))

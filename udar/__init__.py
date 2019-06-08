@@ -13,6 +13,7 @@ import re
 from subprocess import PIPE
 from subprocess import Popen
 import sys
+from time import strftime
 
 import hfst
 
@@ -28,10 +29,18 @@ ALIAS = {'analyser': 'analyzer',
 V = 'аэоуыяеёюи'
 ACUTE = '\u0301'  # acute combining accent: x́
 GRAVE = '\u0300'  # grave combining accent: x̀
+TAB = '\t'  # for use in f-string expression
 
-StressParams = namedtuple('StressParams', ['disambiguate',
-                                           'selection',
-                                           'guess'])
+
+SP = namedtuple('StressParams', ['disambiguate', 'selection', 'guess'])
+
+
+class StressParams(SP):
+    def readable_name(self):
+        cg, selection, guess = self
+        cg = 'CG' if cg else 'noCG'
+        guess = 'guess' if guess else 'no_guess'
+        return '-'.join((cg, selection, guess))
 
 
 class Result(Enum):
@@ -41,6 +50,10 @@ class Result(Enum):
     TP = 3  # positive success (correctly added stress)
     TN = 4  # negative success (abstained on an unstressed word)
     SKIP = 101  # skip (used for monosyllabics)
+
+
+result_names = dict([(Result.TP, 'TP'), (Result.TN, 'TN'), (Result.FP, 'FP'),
+                     (Result.FN, 'FN'), (Result.SKIP, 'skipped_1sylls')])
 
 
 def is_exe(fpath):
@@ -97,8 +110,10 @@ def _readify(r):
         try:
             return MultiReading(r)
         except AssertionError:
-            print(f'Cannot parse reading {r}.', file=sys.stderr)
-            raise NotImplementedError
+            if r[0].endswith('+?'):
+                return None
+            else:
+                raise NotImplementedError(f'Cannot parse reading {r}.')
 
 
 def _get_lemmas(reading):
@@ -157,34 +172,49 @@ class Reading:
 
     A given Token can have many Readings.
     """
-    __slots__ = ['lemma', 'tags', 'weight', 'tagset', 'L2_tags']
+    __slots__ = ['lemma', 'tags', 'weight', 'tagset', 'L2_tags', 'cg_rule']
 
     def __init__(self, in_tup):
         """Convert HFST tuples to more user-friendly interface."""
-        r, self.weight = in_tup
+        try:
+            r, self.weight = in_tup
+            self.cg_rule = ''
+        except ValueError:
+            r, self.weight, self.cg_rule = in_tup
         self.lemma, *self.tags = r.split('+')  # TODO make `+` more robust?
         self.tags = [_tag_dict[t] for t in self.tags]
         self.tagset = set(self.tags)
         self.L2_tags = {tag for tag in self.tags if tag.is_L2}
 
     def __contains__(self, key):
-        """Fastest if `key` is a Tag, but works with str."""
+        """Enable `in` Reading.
+
+        Fastest if `key` is a Tag, but can also be a str.
+        """
         return key in self.tagset or _tag_dict[key] in self.tagset
 
     def __repr__(self):
+        """Reading readable repr."""
         return f'{self.lemma}_{"_".join(t.name for t in self.tags)}'
 
     def __str__(self):
+        """Reading HFST-/XFST-style stream."""
         return f'{self.lemma}+{"+".join(t.name for t in self.tags)}'
 
-    def CG_str(self):
-        """CG3-style __str__"""
-        return f'"{self.lemma}" {" ".join(t.name for t in self.tags)} <W:{self.weight}>'  # noqa: E501
+    def CG_str(self, traces=False):
+        """Reading CG3-style stream."""
+        if traces:
+            rule = self.cg_rule
+        else:
+            rule = ''
+        return f'\t"{self.lemma}" {" ".join(t.name for t in self.tags)} <W:{self.weight:.6f}>{rule}'  # noqa: E501
 
     def noL2_str(self):
+        """Reading HFST-/XFST-style stream, excluding L2 error tags."""
         return f'{self.lemma}+{"+".join(t.name for t in self.tags if not t.is_L2)}'  # noqa: E501
 
     def generate(self, fst=None):
+        """From Reading generate surface form."""
         if fst is None:
             fst = get_fst('generator')
         try:
@@ -195,7 +225,7 @@ class Reading:
                   file=sys.stderr)
 
     def replace_tag(self, orig_tag, new_tag):
-        """Replace a given tag with new tag."""
+        """Replace a given tag in Reading with new tag."""
         # if given tags are `str`s, convert them to `Tag`s.
         # (`Tag`s are mapped to themselves.)
         orig_tag = _tag_dict[orig_tag]
@@ -209,19 +239,26 @@ class Reading:
 
 class MultiReading(Reading):
     """Complex grammatical analysis of a Token.
-    (more than one underlying token)
+    (more than one underlying lemma)
     """
-    __slots__ = ['readings', 'weight']
+    __slots__ = ['readings', 'weight', 'cg_rule']
 
     def __init__(self, in_tup):
         """Convert HFST tuples to more user-friendly interface."""
-        readings, self.weight = in_tup
+        try:
+            readings, self.weight = in_tup
+            self.cg_rule = ''
+        except ValueError:
+            readings, self.weight, self.cg_rule = in_tup
         assert '#' in readings
-        self.readings = [_readify((r, self.weight))
+        self.readings = [_readify((r, self.weight, self.cg_rule))
                          for r in readings.split('#')]  # TODO make # robuster
 
     def __contains__(self, key):
-        """Fastest if `key` is a Tag, but works with str."""
+        """Enable `in` MultiReading.
+
+        Fastest if `key` is a Tag, but it can also be a str.
+        """
         if self.readings:
             return any(key in r.tagset or _tag_dict[key] in r.tagset
                        for r in self.readings)
@@ -229,20 +266,22 @@ class MultiReading(Reading):
             return False
 
     def __repr__(self):
-        return f'''{'#'.join(f"""{r.lemma}_{"_".join(t.name for t in r.tags)}""" for r in self.readings)}'''  # noqa: E501
+        """MultiReading readable repr."""
+        return f'''{'#'.join(f"""{r!r}""" for r in self.readings)}'''
 
     def __str__(self):
-        return f'''{'#'.join(f"""{r.lemma}+{"+".join(t.name for t in r.tags)}""" for r in self.readings)}'''  # noqa: E501
+        """MultiReading HFST-/XFST-style stream."""
+        return f'''{'#'.join(f"""{r!s}""" for r in self.readings)}'''
 
-    def CG_str(self):
-        """CG3-style __str__"""
-        *rest, last = self.readings
-        sep = '\n\t\t'
-        out_str = f'''"{last.lemma}" {" ".join(t.name for t in last.tags)} <W:{self.weight}>{sep}'''  # noqa: E501
-        return out_str + f'''{sep.join(f'"{r.lemma}" {" ".join(t.name for t in r.tags)} <W:{self.weight}>' for r in rest)}'''  # noqa: E501
+    def CG_str(self, traces=False):
+        """MultiReading CG3-style stream"""
+        lines = [f'{TAB * i}{r.CG_str(traces=traces)}'
+                 for i, r in enumerate(reversed(self.readings))]
+        return '\n'.join(lines)
 
     def noL2_str(self):
-        return f'''{'#'.join(f"""{r.lemma}+{"+".join(t.name for t in r.tags if not t.is_L2)}""" for r in self.readings)}'''  # noqa: E501
+        """MultiReading HFST-/XFST-style stream, excluding L2 error tags."""
+        return f'''{'#'.join(f"""{r.noL2_str()}""" for r in self.readings)}'''
 
     def generate(self, fst=None):
         if fst is None:
@@ -278,12 +317,16 @@ class MultiReading(Reading):
 
 class Token:
     """Custom token object"""
-    __slots__ = ['orig', 'readings', 'lemmas', 'upper_indices',
-                 'stress_predictions', 'phon_predictions']
+    __slots__ = ['orig', 'readings', 'removed_readings', 'lemmas',
+                 'upper_indices', 'stress_predictions', 'phon_predictions',
+                 'stress_ambig']
 
-    def __init__(self, orig=None, readings=[]):
+    def __init__(self, orig=None, readings=[], removed_readings=[]):
         self.orig = orig
         self.readings = [_readify(r) for r in readings]
+        if self.readings == [None]:
+            self.readings = []
+        self.removed_readings = [_readify(r) for r in removed_readings]
         self.lemmas = set()
         for r in self.readings:
             try:
@@ -295,44 +338,46 @@ class Token:
         self.upper_indices = self.cap_indices()
         self.stress_predictions = {}
         self.phon_predictions = {}
+        self.stress_ambig = len(self.stresses())
 
     def __contains__(self, key):
-        """Checks membership for lemmas and tags."""
+        """Enable `in` Token. Checks both lemmas and tags."""
         if self.readings:
             return key in self.lemmas or any(key in r for r in self.readings)
         else:
             return False
 
     def __repr__(self):
+        """Token readable repr."""
         return f'{self.orig} [{"  ".join(repr(r) for r in self.readings)}]'
 
     def is_L2(self):
-        """Return True if ALL readings contain an L2 error tag."""
+        """Token: test if ALL readings contain an L2 error tag."""
         if self.readings:
             return all(r.L2_tags for r in self.readings)
         else:
             return False
 
     def has_L2(self):
-        """Return True if ANY readings contain an L2 error tag."""
+        """Token has ANY readings contain an L2 error tag."""
         if self.readings:
             return any(r.L2_tags for r in self.readings)
         else:
             return False
 
     def has_lemma(self, lemma):
-        """Return True if ANY readings contain a given lemma."""
+        """Token has ANY readings that contain a given lemma."""
         return lemma in self.lemmas
 
     def has_tag(self, tag):
-        """Return True if ANY readings contain a given tag."""
+        """Token has ANY readings that contain a given tag."""
         if self.readings:
             return any(tag in r for r in self.readings)
         else:
             return False
 
     def cap_indices(self):
-        """Indices of capitalized characters in original token."""
+        """Token's indices of capitalized characters in the original."""
         return {i for i, char in enumerate(self.orig) if char.isupper()}
 
     def recase(self, in_str):
@@ -346,24 +391,29 @@ class Token:
         if acute_i == -1:
             acute_i = 255
         return ''.join([char.upper()
-                        if i + (i >= grave_i) + (i >= acute_i)  # True evaluates to 1  # noqa: E501
+                        if i + (i >= grave_i) + (i >= acute_i)  # True is 1
                         in self.upper_indices
                         else char
                         for i, char in enumerate(in_str)])
 
     def stresses(self, recase=True):
-        """Return set of all surface forms from a token's readings."""
+        """Return set of all surface forms from a Token's readings."""
         acc_gen = get_fst('acc-generator')
         if recase:
-            stresses = {self.recase(r.generate(acc_gen))
-                        for r in self.readings}
+            try:
+                stresses = {self.recase(r.generate(acc_gen))
+                            for r in self.readings}
+            except AttributeError:
+                print('Problem generating stresses from:', self, self.readings,
+                      file=sys.stderr)
+                raise
         else:
             stresses = {r.generate(acc_gen) for r in self.readings}
-        return stresses or None
+        return stresses
 
     def stressify(self, disambiguated=None, selection='safe', guess=False,
                   experiment=False):
-        """Return surface form with stress marked.
+        """Set of Token's surface forms with stress marked.
 
         disambiguated
             Boolean indicated whether the Text/Token has undergone CG3 disamb.
@@ -381,10 +431,9 @@ class Token:
             1) Remove stress from Token.orig
             2) Save prediction in each Token.stress_predictions[stress_params]
         """
-        # TODO sometimes returns None!!
         stress_params = StressParams(disambiguated, selection, guess)
         stresses = self.stresses()
-        if stresses is None:
+        if not stresses:
             if guess:
                 pred = self.guess_syllable()
             elif experiment:
@@ -427,7 +476,7 @@ class Token:
         return pred
 
     def stress_eval(self, pred, ignore_monosyll=True):
-        """Return a Result Enum value.
+        """Token's stress prediction Result Enum value.
 
         If ignore_monosyll is True, then monosyllabic original forms always
         receive a score of SKIP. This is because many corpora make the (bad)
@@ -435,10 +484,17 @@ class Token:
         """
         if ignore_monosyll and len(re.findall(f'[{V}]', self.orig)) < 2:
             return Result.SKIP
-        orig_prim = {m.start()
-                     for m in re.finditer(ACUTE, self.orig.replace(GRAVE, ''))}
-        pred_prim = {m.start()
-                     for m in re.finditer(ACUTE, pred.replace(GRAVE, ''))}
+        try:
+            orig_prim = {m.start()
+                         for m in re.finditer(ACUTE,
+                                              self.orig.replace(GRAVE, ''))}
+            pred_prim = {m.start()
+                         for m in re.finditer(ACUTE,
+                                              pred.replace(GRAVE, ''))}
+        except AttributeError:
+            print(f'WARN: unexpected pred type, orig:{self.orig} pred:{pred}',
+                  file=sys.stderr)
+            return None
         both_prim = orig_prim.intersection(pred_prim)
         # orig_sec = {m.start() for m
         #             in re.finditer(GRAVE, self.orig.replace(ACUTE, ''))}
@@ -461,7 +517,7 @@ class Token:
 
     def phoneticize(self, disambiguated=None, selection='safe', guess=False,
                     experiment=False):
-        """Return str of running text of phonetic transcription.
+        """Token's phonetic transcription.
 
         selection  (Applies only to words in the lexicon.)
             safe   -- Only add stress if it is unambiguous.
@@ -498,6 +554,7 @@ class Token:
         return pred
 
     def phon_eval(self, pred):
+        """Token Results of phonetic transcription predictions."""
         # raise NotImplementedError
         return None
 
@@ -553,7 +610,7 @@ class Token:
                 return self.guess_syllable()
 
     def guess_syllable(self):
-        """Place stress on the last vowel followed by a consonant.
+        """Token: Place stress on the last vowel followed by a consonant.
 
         This is a (bad) approximation of the last syllable of the stem. Not
         reliable at all, especially for forms with a consonant in the
@@ -567,14 +624,21 @@ class Token:
                           self.orig)
 
     def hfst_stream(self):
-        """An HFST stream repr for command-line pipelines."""
-        return '\n'.join(f'{self.orig}\t{r!s}\t{r.weight}'
-                         for r in self.readings)
+        """Token HFST-/XFST-style stream."""
+        return '\n'.join(f'{self.orig}\t{r!s}\t{r.weight:.6f}'
+                         for r in self.readings) \
+               or f'{self.orig}\t{self.orig}+?\tinf'
 
-    def cg3_stream(self):
-        """A vislcg3 stream repr for command-line pipelines."""
-        output = '\n\t'.join(f'{r.CG_str()}' for r in self.readings)
-        return f'"<{self.orig}>"\n\t{output}'
+    def cg3_stream(self, traces=False):
+        """Token CG3-style stream."""
+        output = '\n'.join(f'{r.CG_str(traces=traces)}'
+                           for r in self.readings) \
+                 or f'\t"{self.orig}" ? <W:{281474976710655.000000:.6f}>'
+        if traces:
+            more = '\n'.join(f';{r.CG_str(traces=traces)}'
+                             for r in self.removed_readings)
+            output = f'{output}\n{more}'
+        return f'"<{self.orig}>"\n{output}'
 
     @staticmethod
     def clean_surface(tok):
@@ -621,17 +685,18 @@ class Text:
             self.disambiguate(gram_path=gram_path)
 
     def __repr__(self):
+        """Text HFST-/XFST-style stream."""
         try:
-            return '\n\n'.join(tok.hfst_stream() for tok in self.Toks) + '\n'
+            return '\n\n'.join(tok.hfst_stream() for tok in self.Toks) + '\n\n'
         except TypeError:
             try:
                 return f'(Text (not analyzed) {self.toks[:10]})'
             except TypeError:
                 return f'(Text (not tokenized) {self.orig[:30]})'
 
-    def CG_str(self):
-        # TODO find a better way than <dummy> to flush the last token
-        return '\n'.join(tok.cg3_stream() for tok in self.Toks) + '\n"<dummy>"\n\t""\n'  # noqa: E501
+    def CG_str(self, traces=False):
+        """Text CG3-style stream."""
+        return '\n'.join(tok.cg3_stream(traces=traces) for tok in self.Toks) + '\n\n'  # noqa: E501
 
     def __getitem__(self, i):
         try:
@@ -653,10 +718,12 @@ class Text:
             raise
 
     def tokenize(self, tokenizer=DEFAULT_TOKENIZER):
+        """Tokenize Text using `tokenizer`."""
         self.toks = tokenizer(self.orig)
         self._tokenized = True
 
     def analyze(self, analyzer=None, experiment=None):
+        """Analyze Text's self.toks."""
         if analyzer is None:
             analyzer = get_fst('analyzer')
         if experiment is None:
@@ -667,8 +734,8 @@ class Text:
             self.Toks = [analyzer.lookup(tok) for tok in self.toks]
         self._analyzed = True
 
-    def disambiguate(self, gram_path=None):
-        """Remove readings based on CG3 disambiguation grammar at gram_path."""
+    def disambiguate(self, gram_path=None, traces=True):
+        """Remove Text's readings using CG3 grammar at gram_path."""
         if gram_path is None:
             gram_path = RSRC_PATH + 'disambiguator.cg3'
         elif isinstance(gram_path, str):
@@ -678,46 +745,120 @@ class Text:
         else:
             print('Unexpected grammar path. Use str.', file=sys.stderr)
             raise NotImplementedError
+        if traces:
+            cmd = ['vislcg3', '-t', '-g', gram_path]
+        else:
+            cmd = ['vislcg3', '-g', gram_path]
         try:
-            p = Popen(['vislcg3', '-g', gram_path],
-                      stdin=PIPE,
-                      stdout=PIPE,
-                      universal_newlines=True)
+            p = Popen(cmd, stdin=PIPE, stdout=PIPE, universal_newlines=True)
         except FileNotFoundError:
             print('vislcg3 must be installed and be in your '
                   'PATH variable to disambiguate a text.', file=sys.stderr)
             raise FileNotFoundError
         output, error = p.communicate(input=self.CG_str())
         new_Toks = self.parse_cg3(output)
+        if len(self.Toks) != len(new_Toks):
+            raise AssertionError('parse_cg3: output len does not match!\n'
+                                 f'old: {self.Toks}\n'
+                                 f'new: {new_Toks}')
         for old, new in zip(self.Toks, new_Toks):
-            assert old.orig == new.orig
             old.readings = new.readings
+            old.removed_readings = new.removed_readings
             old.lemmas = new.lemmas
         self._disambiguated = True
 
     @staticmethod
     def parse_cg3(stream):
+        """Convert cg3 stream into hfst tuples.
+
+        Convert...
+        "<полчаса>"
+            "час N Msc Inan Sg Gen Count" <W:0.0000000000>
+                "пол Num Acc" <W:0.0000000000>
+        ;   "час N Msc Inan Sg Gen Count" <W:0.0000000000>
+                "пол Num Nom" <W:0.0000000000>
+        ...into...
+        ('полчаса',
+         (('пол+Num+Acc#час+N+Msc+Inan+Sg+Gen+Count', 0.0)),
+         (('пол+Num+Nom#час+N+Msc+Inan+Sg+Gen+Count', 0.0)))
+        """
         output = []
         readings = []
-        orig = 'junk'  # will be thrown away
+        rm_readings = []
         for line in stream.split('\n'):
+            # print('LINE', line)
+            # parse and get state: 0-token, 1-reading, 2+-sub-reading
             try:
-                old_orig, orig = orig, re.match('"<(.*?)>"', line).group(1)
-                output.append(Token(old_orig, readings))
-                readings = []
-                continue
+                n_tok = re.match('"<(.*?)>"', line).group(1)
+                n_state = 0
+                # print('PARSE tok', n_tok)
             except AttributeError:
                 try:
-                    lemma, tags, weight = re.match(r'\t"(.*)" (.*?) <W:(.*)>$',
-                                                   line).groups()
-                    tags = tags.replace(' ', '+')
-                    readings.append((f'{lemma}+{tags}', weight))
+                    n_rm, n_tabs, n_lemma, n_tags, n_weight, n_rule = re.match(r'(;)?(\t+)"(.*)" (.*?) <W:(.*)> ?(.*)$', line).groups()  # noqa: E501
                 except AttributeError:
+                    if line:
+                        print('WARNING (parse_cg3) unrecognized line:', line,
+                              file=sys.stderr)
                     continue
-        return output[1:]  # throw away 'junk' token
+                n_tabs = len(n_tabs)  # used to track state as well
+                n_weight = float(n_weight)
+                if n_rule:
+                    n_rule = f' {n_rule}'
+                else:
+                    n_rule = ''
+                n_state = n_tabs
+                # print('PARSE read', n_lemma, n_tags)
+            # ================================================================
+            # do things based on state
+            if n_state == 0:
+                # add previous reading to readings
+                # append previous Token to output
+                try:
+                    if not o_rm:
+                        readings.append((o_read, o_weight, o_rule))
+                    else:
+                        rm_readings.append((o_read, o_weight, o_rule))
+                    t = Token(o_tok, readings, removed_readings=rm_readings)
+                    output.append(t)
+                    # print(' '*60, '0\tappend.READ', o_read)
+                    # print(' '*60, '0\tappend.TOK', t)
+                except NameError:
+                    pass
+                readings = []
+                rm_readings = []
+                o_tok, o_state = n_tok, n_state
+                del n_tok, n_state
+            elif n_state == 1:
+                if o_state >= 1:
+                    # append previous reading
+                    if not o_rm:
+                        readings.append((o_read, o_weight, o_rule))
+                    else:
+                        rm_readings.append((o_read, o_weight, o_rule))
+                    # print(' '*60, '1 (1+)\tappend.READ', o_read)
+                n_read = f"{n_lemma}+{n_tags.replace(' ', '+')}"
+                # print(' '*60, '1\tREAD', n_read)
+                # rotate values from new to old
+                o_rm, o_tabs, o_lemma, o_tags, o_weight, o_rule, o_read, o_state = n_rm, n_tabs, n_lemma, n_tags, n_weight, n_rule, n_read, n_state  # noqa: E501,F841
+                del n_rm, n_tabs, n_lemma, n_tags, n_weight, n_rule, n_read, n_state  # noqa: E501
+            else:  # if n_state > 1
+                # add subreading to reading
+                n_read = f"{n_lemma}+{n_tags.replace(' ', '+')}#{o_read}"
+                # print(' '*60, '2\tREAD', n_read)
+                # rotate values from new to old
+                o_tabs, o_lemma, o_tags, o_weight, o_rule, o_read, o_state = n_tabs, n_lemma, n_tags, n_weight, n_rule, n_read, n_state  # noqa: E501,F841
+                del n_rm, n_tabs, n_lemma, n_tags, n_weight, n_rule, n_read, n_state  # noqa: E501
+        # print(' '*60, 'FAT LADY', o_read)
+        if not o_rm:
+            readings.append((o_read, o_weight, o_rule))
+        else:
+            rm_readings.append((o_read, o_weight, o_rule))
+        t = Token(o_tok, readings, removed_readings=rm_readings)
+        output.append(t)
+        return output
 
     def stressify(self, selection='safe', guess=False, experiment=None):
-        """Return str of running text with stress marked.
+        """Text: Return str of running text with stress marked.
 
         selection  (Applies only to words in the lexicon.)
             safe   -- Only add stress if it is unambiguous.
@@ -741,13 +882,49 @@ class Text:
         return self.respace(out_text)
 
     def stress_eval(self, stress_params):
-        """Return dictionary of evaluation metrics for stress predictions."""
-        return Counter(tok.stress_predictions[stress_params][1]
-                       for tok in self.Toks)
+        """Text: get dictionary of evaluation metrics of stress predictions."""
+        counts = Counter(tok.stress_predictions[stress_params][1]
+                         for tok in self.Toks)
+        counts['N_ambig'] = len([1 for t in self.Toks if t.stress_ambig > 1])
+        return counts
+
+    def stress_preds2tsv(self, timestamp=True, filename=None):
+        """From Text, write a tab-separated file with aligned predictions
+        from experiment.
+
+        orig        <params>    <params>
+        Мы          Мы́          Мы́
+        говори́ли    го́ворили    гово́рили
+        с           с           с
+        ни́м         ни́м         ни́м
+        .           .           .
+        """
+        if timestamp:
+            prefix = strftime("%Y%m%d-%H%M%S")
+        else:
+            prefix = ''
+        if filename is None:
+            path = Path(prefix + f'_{self.text_name}.tsv')
+        else:
+            path = Path(prefix + filename)
+        SPs = sorted(self.Toks[0].stress_predictions.keys())
+        readable_SPs = [sp.readable_name() for sp in SPs]
+        with path.open('w') as f:
+            print('orig', *readable_SPs, 'perfect', 'all_bad', 'ambig',
+                  'CG_fixed_it', 'reads', sep='\t', file=f)
+            for t in self.Toks:
+                # '  '.join([result_names[t.stress_predictions[sp][1]],
+                preds = [t.stress_predictions[sp][0] for sp in SPs]
+                perfect = all(p == t.orig for p in preds)
+                all_bad = all(p != t.orig for p in preds)
+                print(t.orig, *preds, perfect, all_bad, t.stress_ambig,
+                      t.stress_ambig and len(t.stresses()) < 2,
+                      f'{t.readings} ||| {t.removed_readings}',
+                      sep='\t', file=f)
 
     def phoneticize(self, selection='safe', guess=False, experiment=False,
                     context=False):
-        """Return str of running text of phonetic transcription.
+        """Text: Return str of running text of phonetic transcription.
 
         selection  (Applies only to words in the lexicon.)
             safe   -- Only add stress if it is unambiguous.
@@ -775,16 +952,18 @@ class Text:
         return self.respace(out_text)
 
     def respace(self, toks):
+        """Attempt to restore/normalize spacing (esp. around punctuation)."""
         # TODO re-evaluate this
         if self._from_str:
             try:
                 return unspace_punct(' '.join(toks))
             except TypeError:
                 print(toks, file=sys.stderr)
-                raise
+                return unspace_punct(' '.join(t if t else 'UDAR.None'
+                                              for t in toks))
         elif isinstance(toks, list):
             for match in re.finditer(r'\s+', self.orig):
-                pass
+                raise NotImplementedError(f'Cannot respace {self}.')
         else:
             return unspace_punct(' '.join(toks))
 
@@ -897,11 +1076,7 @@ def compute_metrics(results):
                 'precision': results[Result.TP] / tot_P,
                 'recall': results[Result.TP] / tot_relevant}
     out_dict.update(results)
-    for old, new in [(Result.TP, 'TP'),
-                     (Result.TN, 'TN'),
-                     (Result.FP, 'FP'),
-                     (Result.FN, 'FN'),
-                     (Result.SKIP, 'skipped_1sylls')]:
+    for old, new in result_names.items():
         out_dict[new] = out_dict[old]
         del out_dict[old]
     Metrics = namedtuple('Metrics', sorted(out_dict))
@@ -1003,6 +1178,7 @@ def crappy_tests():
     print(stressify('Это - первая попытка.'))
     L2_sent = 'Я забыл дать девушекам денеги, которые упали на землу.'
     err_dict = diagnose_L2(L2_sent)
+    print(err_dict)
     for tag, exemplars in err_dict.items():
         print(tag, tag.detail)
         for e in exemplars:
@@ -1010,7 +1186,7 @@ def crappy_tests():
     print(noun_distractors('слово'))
     print(noun_distractors('словам'))
 
-    text = Text('Ивано́вы нашли́ то́, что́ иска́ли без его́ но́вого цю́ба и т.д.',  # noqa: E501
+    text = Text('Ивано́вы и Сырое́жкин нашли́ то́, что́ иска́ли без его́ но́вого цю́ба и т.д.',  # noqa: E501
                 disambiguate=True)
     print(text.Toks)
     print(text.stressify())
@@ -1019,6 +1195,26 @@ def crappy_tests():
     print(text.phoneticize())
     text1 = Text('Она узнает обо всем.')
     print(text1.stressify(selection='all'))
+    text2 = Text('Он говорил полчаса кое с кем но не говори им. Слухи и т.д.')
+    text3 = Text('Хо́чешь быть челове́ком - будь им.')
+
+    print('text2 BEFORE disamb:')
+    print(text2)
+    text2.disambiguate()
+    print('text2 AFTER disamb:')
+    print(text2)
+    print('text2 readings:')
+    for tok in text2.Toks:
+        print(tok.readings)
+        print(tok.removed_readings)
+    # print('text2 random:', text2.stressify(selection='random'))
+
+    print()
+    print()
+    print(text3)
+    text3.disambiguate()
+    print(text3)
+    print(text3.stressify(selection='random'))
 
 
 if __name__ == '__main__':
