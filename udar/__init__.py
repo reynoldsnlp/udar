@@ -102,15 +102,21 @@ else:
               file=sys.stderr)
 
 
-def _readify(r):
+def _readify(in_tup):
     """Try to make Reading. If that fails, try to make a MultiReading."""
     try:
-        return Reading(r)
+        r, weight = in_tup
+        cg_rule = ''
+    except ValueError:
+        r, weight, cg_rule = in_tup
+    # lemma, *tags = r.split('+')  # TODO make `+` more robust?
+    try:
+        return Reading(r, weight, cg_rule)
     except KeyError:
         try:
-            return MultiReading(r)
+            return MultiReading(r, weight, cg_rule)
         except AssertionError:
-            if r[0].endswith('+?'):
+            if r.endswith('+?'):
                 return None
             else:
                 raise NotImplementedError(f'Cannot parse reading {r}.')
@@ -174,17 +180,14 @@ class Reading:
     """
     __slots__ = ['lemma', 'tags', 'weight', 'tagset', 'L2_tags', 'cg_rule']
 
-    def __init__(self, in_tup):
+    def __init__(self, r, weight, cg_rule):
         """Convert HFST tuples to more user-friendly interface."""
-        try:
-            r, self.weight = in_tup
-            self.cg_rule = ''
-        except ValueError:
-            r, self.weight, self.cg_rule = in_tup
-        self.lemma, *self.tags = r.split('+')  # TODO make `+` more robust?
+        self.lemma, *self.tags = re.split(r'\+(?=[^+])', r)  # TODO timeit
         self.tags = [_tag_dict[t] for t in self.tags]
         self.tagset = set(self.tags)
         self.L2_tags = {tag for tag in self.tags if tag.is_L2}
+        self.weight = weight
+        self.cg_rule = cg_rule
 
     def __contains__(self, key):
         """Enable `in` Reading.
@@ -243,16 +246,13 @@ class MultiReading(Reading):
     """
     __slots__ = ['readings', 'weight', 'cg_rule']
 
-    def __init__(self, in_tup):
+    def __init__(self, readings, weight, cg_rule):
         """Convert HFST tuples to more user-friendly interface."""
-        try:
-            readings, self.weight = in_tup
-            self.cg_rule = ''
-        except ValueError:
-            readings, self.weight, self.cg_rule = in_tup
         assert '#' in readings
-        self.readings = [_readify((r, self.weight, self.cg_rule))
+        self.readings = [_readify((r, weight, cg_rule))
                          for r in readings.split('#')]  # TODO make # robuster
+        self.weight = weight
+        self.cg_rule = cg_rule
 
     def __contains__(self, key):
         """Enable `in` MultiReading.

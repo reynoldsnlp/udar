@@ -7,7 +7,7 @@ def test_hfst_tokenize():
 
 
 def test_parse_tags_with_plus():
-    tr = udar.get_fst('L2-analyzer')
+    tr = udar.get_fst('analyzer')
     tok = tr.lookup('+')
     assert tok.orig == '+' and 'PUNCT' in tok
 
