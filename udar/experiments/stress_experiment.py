@@ -69,7 +69,7 @@ class StressExperiment:
                 del kwargs['disambiguate']
                 text.stressify(experiment=True, **kwargs)
             if tsvs:
-                text.stress_preds2tsv()
+                text.stress_preds2tsv(path='tmp/')
         metrics = [self.param_eval(sp) for sp in self.par_space]
         self.results = pd.DataFrame(data=metrics)
 

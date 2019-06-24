@@ -50,10 +50,12 @@ class Result(Enum):
     TP = 3  # positive success (correctly added stress)
     TN = 4  # negative success (abstained on an unstressed word)
     SKIP = 101  # skip (used for monosyllabics)
+    UNK = 404  # No stress in original
 
 
 result_names = dict([(Result.TP, 'TP'), (Result.TN, 'TN'), (Result.FP, 'FP'),
-                     (Result.FN, 'FN'), (Result.SKIP, 'skipped_1sylls')])
+                     (Result.FN, 'FN'), (Result.SKIP, 'SKIP'),
+                     (Result.UNK, 'UNK')])
 
 
 def is_exe(fpath):
@@ -486,15 +488,15 @@ class Token:
             return Result.SKIP
         try:
             orig_prim = {m.start()
-                         for m in re.finditer(ACUTE,
+                         for m in re.finditer(f'{ACUTE}|ё',
                                               self.orig.replace(GRAVE, ''))}
             pred_prim = {m.start()
-                         for m in re.finditer(ACUTE,
+                         for m in re.finditer(f'{ACUTE}|ё',
                                               pred.replace(GRAVE, ''))}
         except AttributeError:
             print(f'WARN: unexpected pred type, orig:{self.orig} pred:{pred}',
-                  file=sys.stderr)
-            return None
+                  self, file=sys.stderr)
+            return Result.UNK
         both_prim = orig_prim.intersection(pred_prim)
         # orig_sec = {m.start() for m
         #             in re.finditer(GRAVE, self.orig.replace(ACUTE, ''))}
@@ -504,16 +506,18 @@ class Token:
         if len(orig_prim) > 1 and len(pred_prim) > 1:
             print(f'Too many stress counts: {self.orig}\t{pred}',
                   file=sys.stderr)
-        if both_prim:  # if both have a primary stress mark present
+        if both_prim:  # if both share a primary stress mark
             return Result.TP
-        elif pred_prim:
+        elif pred_prim and orig_prim:
             return Result.FP
-        elif not orig_prim:  # (implicitly) and not pred_prim
+        elif pred_prim and not orig_prim:
+            return Result.UNK
+        elif not pred_prim and not orig_prim:
             return Result.TN
-        elif orig_prim:  # (implicitly) and not pred_prim
+        elif not pred_prim and orig_prim:
             return Result.FN
         else:
-            raise NotImplementedError  # did I miss something?
+            raise NotImplementedError(f'Bad Result: {orig_prim} {pred_prim}')
 
     def phoneticize(self, disambiguated=None, selection='safe', guess=False,
                     experiment=False):
@@ -763,7 +767,7 @@ class Text:
                                  f'new: {new_Toks}')
         for old, new in zip(self.Toks, new_Toks):
             old.readings = new.readings
-            old.removed_readings = new.removed_readings
+            old.removed_readings = new.removed_readings  # TODO should be += ?
             old.lemmas = new.lemmas
         self._disambiguated = True
 
@@ -885,10 +889,12 @@ class Text:
         """Text: get dictionary of evaluation metrics of stress predictions."""
         counts = Counter(tok.stress_predictions[stress_params][1]
                          for tok in self.Toks)
-        counts['N_ambig'] = len([1 for t in self.Toks if t.stress_ambig > 1])
+        counts['N_ambig'] = len([1 for t in self.Toks
+                                 if (t.stress_ambig > 1
+                                     and len(re.findall(f'[{V}]', t.orig))) > 1])  # noqa: E501
         return counts
 
-    def stress_preds2tsv(self, timestamp=True, filename=None):
+    def stress_preds2tsv(self, path=None, timestamp=True, filename=None):
         """From Text, write a tab-separated file with aligned predictions
         from experiment.
 
@@ -899,14 +905,19 @@ class Text:
         ни́м         ни́м         ни́м
         .           .           .
         """
+        if path is None:
+            path = Path('')
+        else:
+            path = Path(path)
+            path.mkdir(parents=True, exist_ok=True)
         if timestamp:
             prefix = strftime("%Y%m%d-%H%M%S")
         else:
             prefix = ''
         if filename is None:
-            path = Path(prefix + f'_{self.text_name}.tsv')
+            path = path / Path(f'{prefix}_{self.text_name}.tsv')
         else:
-            path = Path(prefix + filename)
+            path = path / Path(f'{prefix}{filename}')
         SPs = sorted(self.Toks[0].stress_predictions.keys())
         readable_SPs = [sp.readable_name() for sp in SPs]
         with path.open('w') as f:
@@ -914,7 +925,8 @@ class Text:
                   'CG_fixed_it', 'reads', sep='\t', file=f)
             for t in self.Toks:
                 # '  '.join([result_names[t.stress_predictions[sp][1]],
-                preds = [t.stress_predictions[sp][0] for sp in SPs]
+                preds = [f'{t.stress_predictions[sp][0]} {result_names[t.stress_predictions[sp][1]]}'  # noqa: E501
+                         for sp in SPs]
                 perfect = all(p == t.orig for p in preds)
                 all_bad = all(p != t.orig for p in preds)
                 print(t.orig, *preds, perfect, all_bad, t.stress_ambig,
@@ -1077,8 +1089,11 @@ def compute_metrics(results):
                 'recall': results[Result.TP] / tot_relevant}
     out_dict.update(results)
     for old, new in result_names.items():
-        out_dict[new] = out_dict[old]
-        del out_dict[old]
+        try:
+            out_dict[new] = out_dict[old]
+            del out_dict[old]
+        except KeyError:
+            out_dict[new] = 0
     Metrics = namedtuple('Metrics', sorted(out_dict))
     return Metrics(**out_dict)
 

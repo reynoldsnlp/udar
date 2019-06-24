@@ -3,8 +3,9 @@
 **U**DAR **D**oes **A**ccented **R**ussian: A finite-state morphological
 analyzer of Russian that handles stressed wordforms.
 
-A python wrapper for the Russian finite-state transducer described originally
-in chapter 2 of [my dissertation](http://hdl.handle.net/10037/9685).
+A python wrapper for the [Russian finite-state
+transducer](https://victorio.uit.no/langtech/trunk/langs/rus/) described
+originally in chapter 2 of [my dissertation](http://hdl.handle.net/10037/9685).
 
 ## Dependencies
 
@@ -57,8 +58,8 @@ token2
 # слова [слово_N_Neu_Inan_Pl_Acc  слово_N_Neu_Inan_Pl_Nom  слово_N_Neu_Inan_Sg_Gen]
 ```
 
-The `Text` constructor automatically tokenizes and analyzes a text. The `repr`
-is an `xfst`/`hfst` stream:
+The most common use-case is to use the `Text` constructor to automatically
+tokenize and analyze a text. The `repr` is an `xfst`/`hfst` stream:
 
 ```python
 text1 = udar.Text('Мы удивились простотой системы.')
