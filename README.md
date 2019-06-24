@@ -91,3 +91,7 @@ text1.stressify()
 udar.tag_info('Err/L2_NoFV')
 # Err/L2_NoFV	L2 error: Lack of fleeting vowel where it should be inserted, e.g. окн (compare окон)
 ```
+
+### Related projects
+
+https://github.com/mikahama/uralicNLP
