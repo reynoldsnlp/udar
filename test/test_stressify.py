@@ -13,3 +13,14 @@ def test_selection_safe():
 def test_selection_all():
     text1 = udar.Text('Она узнает обо всем.')
     assert text1.stressify(selection='all') == 'Она́ узна́ёт обо всё́м.'
+
+
+def test_stress_distractors():
+    assert udar.stress_distractors('переработанный') == ['пёреработанный',
+                                                         'пе́реработанный',
+                                                         'перёработанный',
+                                                         'пере́работанный',
+                                                         'перера́ботанный',
+                                                         'перерабо́танный',
+                                                         'переработа́нный',
+                                                         'переработанны́й']

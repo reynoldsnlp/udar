@@ -1,4 +1,9 @@
+from pkg_resources import resource_filename
+
 import udar
+
+
+RSRC_PATH = resource_filename('udar', 'resources/')
 
 
 def test_hfst_tokenize():
@@ -25,7 +30,7 @@ def test_L2_analyzer():
 
 
 def test_tag_dict():
-    assert 'Gen' in udar._tag_dict
+    assert 'Gen' in udar.tag_dict
 
 
 def test_recase():
@@ -42,8 +47,8 @@ def test_stressify():
 def test_diagnose_L2():
     L2_sent = 'Я забыл дать девушекам денеги, которые упали на землу.'
     err_dict = udar.diagnose_L2(L2_sent)
-    assert err_dict == {udar._tag_dict['Err/L2_FV']: {'денеги', 'девушекам'},
-                        udar._tag_dict['Err/L2_Pal']: {'землу'}}
+    assert err_dict == {udar.tag_dict['Err/L2_FV']: {'денеги', 'девушекам'},
+                        udar.tag_dict['Err/L2_Pal']: {'землу'}}
 
 
 def test_noun_distractors_sg():
@@ -67,7 +72,7 @@ def test_hfst_stream_equivalence():
     sent = 'Иванов и Сыроежкин говорили полчаса кое с кем о лицах, ртах и т.д.'
     toks = '\n'.join(udar.hfst_tokenize(sent))
     text = udar.Text(sent)
-    p = Popen(['hfst-lookup', udar.RSRC_PATH + 'analyser-gt-desc.hfstol'],
+    p = Popen(['hfst-lookup', RSRC_PATH + 'analyser-gt-desc.hfstol'],
               stdin=PIPE, stdout=PIPE, universal_newlines=True)
     output, error = p.communicate(toks)
     assert output == str(text)
@@ -79,7 +84,7 @@ def test_cg_conv_equivalence():
     sent = 'Иванов и Сыроежкин говорили полчаса кое с кем о лицах, ртах и т.д.'
     toks = '\n'.join(udar.hfst_tokenize(sent))
     text = udar.Text(sent)
-    p1 = Popen(f'hfst-lookup {udar.RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC',  # noqa: E501
+    p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC',  # noqa: E501
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
     assert output == text.CG_str()
@@ -92,7 +97,7 @@ def test_cg3_parse():
     toks = '\n'.join(udar.hfst_tokenize(sent))
     text = udar.Text(sent)
     text.disambiguate()
-    p1 = Popen(f'hfst-lookup {udar.RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC | vislcg3 -g {udar.RSRC_PATH}disambiguator.cg3',  # noqa: E501
+    p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC | vislcg3 -g {RSRC_PATH}disambiguator.cg3',  # noqa: E501
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
     assert output == text.CG_str()
@@ -105,7 +110,7 @@ def test_cg3_parse_w_traces():
     toks = '\n'.join(udar.hfst_tokenize(sent))
     text = udar.Text(sent)
     text.disambiguate(traces=True)
-    p1 = Popen(f'hfst-lookup {udar.RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC | vislcg3 -t -g {udar.RSRC_PATH}disambiguator.cg3',  # noqa: E501
+    p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC | vislcg3 -t -g {RSRC_PATH}disambiguator.cg3',  # noqa: E501
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
     assert output == text.CG_str(traces=True)
