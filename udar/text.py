@@ -142,6 +142,9 @@ class Text:
     def __hash__(self):
         return hash(self.Toks)
 
+    def __len__(self):
+        return len(self.Toks)
+
     def __getitem__(self, i):
         try:
             return self.Toks[i]

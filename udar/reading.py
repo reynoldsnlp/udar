@@ -104,6 +104,9 @@ class Reading:
     def __hash__(self):
         return hash((self.lemma, self.tags, self.weight, self.cg_rule))
 
+    def __len__(self):
+        return bool(self.lemma) + len(self.tags)
+
     def generate(self, fst=None):
         """From Reading generate surface form."""
         if fst is None:

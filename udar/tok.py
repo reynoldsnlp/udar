@@ -86,6 +86,9 @@ class Token:
     def __hash__(self):
         return hash((self.orig, self.readings))
 
+    def __len__(self):
+        return len(self.readings)
+
     def is_L2(self):
         """Token: test if ALL readings contain an L2 error tag."""
         if self.readings:
