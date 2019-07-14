@@ -4,6 +4,7 @@ import udar
 
 
 RSRC_PATH = resource_filename('udar', 'resources/')
+sent = 'Иванов и Сыроежкин говорили полчаса кое с кем о лицах, "ртах" и т.д.'
 
 
 def test_hfst_tokenize():
@@ -69,7 +70,6 @@ def test_text_init():
 def test_hfst_stream_equivalence():
     from subprocess import Popen
     from subprocess import PIPE
-    sent = 'Иванов и Сыроежкин говорили полчаса кое с кем о лицах, ртах и т.д.'
     toks = '\n'.join(udar.hfst_tokenize(sent))
     text = udar.Text(sent)
     p = Popen(['hfst-lookup', RSRC_PATH + 'analyser-gt-desc.hfstol'],
@@ -81,7 +81,6 @@ def test_hfst_stream_equivalence():
 def test_cg_conv_equivalence():
     from subprocess import Popen
     from subprocess import PIPE
-    sent = 'Иванов и Сыроежкин говорили полчаса кое с кем о лицах, ртах и т.д.'
     toks = '\n'.join(udar.hfst_tokenize(sent))
     text = udar.Text(sent)
     p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC',  # noqa: E501
@@ -93,7 +92,6 @@ def test_cg_conv_equivalence():
 def test_cg3_parse():
     from subprocess import Popen
     from subprocess import PIPE
-    sent = 'Иванов и Сыроежкин говорили полчаса кое с кем о лицах, ртах и т.д.'
     toks = '\n'.join(udar.hfst_tokenize(sent))
     text = udar.Text(sent)
     text.disambiguate()
@@ -106,7 +104,6 @@ def test_cg3_parse():
 def test_cg3_parse_w_traces():
     from subprocess import Popen
     from subprocess import PIPE
-    sent = 'Иванов и Сыроежкин говорили полчаса кое с кем о лицах, ртах и т.д.'
     toks = '\n'.join(udar.hfst_tokenize(sent))
     text = udar.Text(sent)
     text.disambiguate(traces=True)
