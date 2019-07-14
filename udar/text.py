@@ -221,12 +221,12 @@ class Text:
             # print('LINE', line)
             # parse and get state: 0-token, 1-reading, 2+-sub-reading
             try:
-                n_tok = re.match('"<(.*?)>"', line).group(1)
+                n_tok = re.match('"<((?:.|\")*)>"', line).group(1)
                 n_state = 0
                 # print('PARSE tok', n_tok)
             except AttributeError:
                 try:
-                    n_rm, n_tabs, n_lemma, n_tags, n_weight, n_rule = re.match(r'(;)?(\t+)"(.*)" (.*?) <W:(.*)> ?(.*)$', line).groups()  # noqa: E501
+                    n_rm, n_tabs, n_lemma, n_tags, n_weight, n_rule = re.match(r'(;)?(\t+)"((?:.|\")*)" (.*?) <W:(.*)> ?(.*)$', line).groups()  # noqa: E501
                 except AttributeError:
                     if line:
                         print('WARNING (parse_cg3) unrecognized line:', line,
@@ -250,7 +250,7 @@ class Text:
                         readings.append((o_read, o_weight, o_rule))
                     else:
                         rm_readings.append((o_read, o_weight, o_rule))
-                    t = Token(o_tok, readings, removed_readings=rm_readings)  # noqa: E501
+                    t = Token(o_tok, readings, removed_readings=rm_readings)
                     output.append(t)
                     # print(' '*60, '0\tappend.READ', o_read)
                     # print(' '*60, '0\tappend.TOK', t)
@@ -278,7 +278,7 @@ class Text:
                 n_read = f"{n_lemma}+{n_tags.replace(' ', '+')}#{o_read}"
                 # print(' '*60, '2\tREAD', n_read)
                 # rotate values from new to old
-                o_tabs, o_lemma, o_tags, o_weight, o_rule, o_read, o_state = n_tabs, n_lemma, n_tags, n_weight, n_rule, n_read, n_state  # noqa: E501,F841
+                o_tabs, o_lemma, o_tags, o_weight, o_rule, o_read, o_state = n_tabs, n_lemma, n_tags, n_weight, n_rule, n_read, n_state  # noqa: E501, F841
                 del n_rm, n_tabs, n_lemma, n_tags, n_weight, n_rule, n_read, n_state  # noqa: E501
         # print(' '*60, 'FAT LADY', o_read)
         if not o_rm:
