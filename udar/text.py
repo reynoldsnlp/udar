@@ -133,6 +133,15 @@ class Text:
         """Text CG3-style stream."""
         return '\n'.join(t.cg3_str(traces=traces) for t in self.Toks) + '\n\n'
 
+    def __lt__(self, other):
+        return self.Toks < other.Toks
+
+    def __eq__(self, other):
+        return self.Toks == other.Toks
+
+    def __hash__(self):
+        return hash(self.Toks)
+
     def __getitem__(self, i):
         try:
             return self.Toks[i]

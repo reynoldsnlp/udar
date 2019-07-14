@@ -72,6 +72,20 @@ class Token:
             output = f'{output}\n{more}'
         return f'"<{self.orig}>"\n{output}'
 
+    def __lt__(self, other):
+        return ((self.orig, self.readings, self.removed_readings)
+                < (other.orig, other.readings, other.removed_readings))
+
+    def __eq__(self, other):
+        # Do not include removed_readings in the comparison
+        return (self.orig == other.orig
+                and len(self.readings) == len(other.readings)
+                and all(s == o for s, o in zip(sorted(self.readings),
+                                               sorted(other.readings))))
+
+    def __hash__(self):
+        return hash((self.orig, self.readings))
+
     def is_L2(self):
         """Token: test if ALL readings contain an L2 error tag."""
         if self.readings:

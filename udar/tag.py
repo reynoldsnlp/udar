@@ -21,14 +21,24 @@ class Tag:
         self.is_L2 = name.startswith('Err/L2')
         self.is_Err = name.startswith('Err')
 
-    def __hash__(self):
-        return hash(self.name)
-
     def __repr__(self):
         return f'Tag(name={self.name}, detail={self.detail})'
 
     def __str__(self):
         return f'{self.name}'
+
+    def __lt__(self, other):
+        return self.name < other.name
+
+    def __eq__(self, other):  # TODO make AnIn == Anim, etc.?
+        """Equivalent to Tag or str."""
+        try:
+            return self.name == other.name
+        except AttributeError:
+            return self.name == other
+
+    def __hash__(self):
+        return hash(self.name)
 
     def info(self):
         return f'{self.name}:\t{self.detail}'
@@ -45,6 +55,5 @@ with Path(TAG_FNAME).open() as f:
             raise NameError
         tag = Tag(tag_name, detail)
         tag_dict[tag_name] = tag
-        tag_dict[tag] = tag  # identity added for versatile lookup
 CASES = [tag_dict[c] for c in
          ['Nom', 'Acc', 'Gen', 'Gen2', 'Loc', 'Loc2', 'Dat', 'Ins', 'Voc']]

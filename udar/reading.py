@@ -87,6 +87,23 @@ class Reading:
         """Reading HFST-/XFST-style stream, excluding L2 error tags."""
         return f'{self.lemma}+{"+".join(t.name for t in self.tags if not t.is_L2)}'  # noqa: E501
 
+    def __lt__(self, other):
+        return ((self.lemma, self.tags, self.weight, self.cg_rule)
+                < (other.lemma, other.tags, other.weight, other.cg_rule))
+
+    def __eq__(self, other):
+        """Matches lemma and all tags."""  # TODO decide about L2, Sem, etc.
+        try:
+            return (self.lemma == other.lemma
+                    and self.tags == other.tags
+                    and self.weight == other.weight
+                    and self.cg_rule == other.cg_rule)
+        except AttributeError:
+            return False
+
+    def __hash__(self):
+        return hash((self.lemma, self.tags, self.weight, self.cg_rule))
+
     def generate(self, fst=None):
         """From Reading generate surface form."""
         if fst is None:
@@ -155,6 +172,21 @@ class MultiReading(Reading):
         lines = [f'{TAB * i}{r.cg3_str(traces=traces)}'
                  for i, r in enumerate(reversed(self.readings))]
         return '\n'.join(lines)
+
+    def __lt__(self, other):
+        return ((self.readings, self.removed_readings)
+                < (other.readings, other.removed_readings))
+
+    def __eq__(self, other):
+        try:
+            return (all(s == o for s, o in zip(self.readings, other.readings))
+                    and len(self.readings) == len(other.readings))
+        except AttributeError:
+            return False
+
+    def __hash__(self):
+        return hash([(r.lemma, r.tags, r.weight, r.cg_rule)
+                     for r in self.readings])
 
     def generate(self, fst=None):
         if fst is None:
