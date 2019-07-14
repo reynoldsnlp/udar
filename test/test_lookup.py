@@ -27,7 +27,7 @@ def test_accented_generator():
 def test_L2_analyzer():
     tr = udar.get_fst('L2-analyzer')
     tok = tr.lookup('земла')
-    assert str(tok.readings[0]) == 'земля+N+Fem+Inan+Sg+Nom+Err/L2_Pal'
+    assert tok.readings[0].hfst_str() == 'земля+N+Fem+Inan+Sg+Nom+Err/L2_Pal'
 
 
 def test_tag_dict():
@@ -75,7 +75,7 @@ def test_hfst_stream_equivalence():
     p = Popen(['hfst-lookup', RSRC_PATH + 'analyser-gt-desc.hfstol'],
               stdin=PIPE, stdout=PIPE, universal_newlines=True)
     output, error = p.communicate(toks)
-    assert output == str(text)
+    assert output == text.hfst_str()
 
 
 def test_cg_conv_equivalence():
@@ -86,7 +86,7 @@ def test_cg_conv_equivalence():
     p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC',  # noqa: E501
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
-    assert output == text.CG_str()
+    assert output == text.cg3_str()
 
 
 def test_cg3_parse():
@@ -98,7 +98,7 @@ def test_cg3_parse():
     p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC | vislcg3 -g {RSRC_PATH}disambiguator.cg3',  # noqa: E501
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
-    assert output == text.CG_str()
+    assert output == text.cg3_str()
 
 
 def test_cg3_parse_w_traces():
@@ -110,4 +110,4 @@ def test_cg3_parse_w_traces():
     p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC | vislcg3 -t -g {RSRC_PATH}disambiguator.cg3',  # noqa: E501
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
-    assert output == text.CG_str(traces=True)
+    assert output == text.cg3_str(traces=True)

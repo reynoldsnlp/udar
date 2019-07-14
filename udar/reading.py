@@ -66,14 +66,16 @@ class Reading:
         return key in self.tagset or tag_dict[key] in self.tagset
 
     def __repr__(self):
-        """Reading readable repr."""
-        return f'{self.lemma}_{"_".join(t.name for t in self.tags)}'
+        return f'Reading({self.hfst_str()}, {self.weight}, {self.cg_rule})'
 
     def __str__(self):
+        return f'{self.lemma}_{"_".join(t.name for t in self.tags)}'
+
+    def hfst_str(self):
         """Reading HFST-/XFST-style stream."""
         return f'{self.lemma}+{"+".join(t.name for t in self.tags)}'
 
-    def CG_str(self, traces=False):
+    def cg3_str(self, traces=False):
         """Reading CG3-style stream."""
         if traces:
             rule = self.cg_rule
@@ -81,7 +83,7 @@ class Reading:
             rule = ''
         return f'\t"{self.lemma}" {" ".join(t.name for t in self.tags)} <W:{self.weight:.6f}>{rule}'  # noqa: E501
 
-    def noL2_str(self):
+    def hfst_noL2_str(self):
         """Reading HFST-/XFST-style stream, excluding L2 error tags."""
         return f'{self.lemma}+{"+".join(t.name for t in self.tags if not t.is_L2)}'  # noqa: E501
 
@@ -90,10 +92,10 @@ class Reading:
         if fst is None:
             fst = get_fst('generator')
         try:
-            return fst.generate(self.noL2_str())
+            return fst.generate(self.hfst_noL2_str())
         except IndexError:
             print('ERROR Failed to generate: '
-                  f'{self} {self.noL2_str()} {fst.generate(self.noL2_str())}',
+                  f'{self} {self.hfst_noL2_str()} {fst.generate(self.noL2_str())}',  # noqa: E501
                   file=sys.stderr)
 
     def replace_tag(self, orig_tag, new_tag):
@@ -135,31 +137,33 @@ class MultiReading(Reading):
             return False
 
     def __repr__(self):
-        """MultiReading readable repr."""
-        return f'''{'#'.join(f"""{r!r}""" for r in self.readings)}'''
+        return f'MultiReading({self.hfst_str()}, {self.weight}, {self.cg_rule})'  # noqa: E501
 
     def __str__(self):
-        """MultiReading HFST-/XFST-style stream."""
-        return f'''{'#'.join(f"""{r!s}""" for r in self.readings)}'''
+        return f'''{'#'.join(f"""{r}""" for r in self.readings)}'''
 
-    def CG_str(self, traces=False):
+    def hfst_str(self):
+        """MultiReading HFST-/XFST-style stream."""
+        return f'''{'#'.join(f"""{r.hfst_str()}""" for r in self.readings)}'''
+
+    def hfst_noL2_str(self):
+        """MultiReading HFST-/XFST-style stream, excluding L2 error tags."""
+        return f'''{'#'.join(f"""{r.hfst_noL2_str()}""" for r in self.readings)}'''  # noqa: E501
+
+    def cg3_str(self, traces=False):
         """MultiReading CG3-style stream"""
-        lines = [f'{TAB * i}{r.CG_str(traces=traces)}'
+        lines = [f'{TAB * i}{r.cg3_str(traces=traces)}'
                  for i, r in enumerate(reversed(self.readings))]
         return '\n'.join(lines)
-
-    def noL2_str(self):
-        """MultiReading HFST-/XFST-style stream, excluding L2 error tags."""
-        return f'''{'#'.join(f"""{r.noL2_str()}""" for r in self.readings)}'''
 
     def generate(self, fst=None):
         if fst is None:
             fst = get_fst('generator')
         try:
-            return fst.generate(self.noL2_str())
+            return fst.generate(self.hfst_noL2_str())
         except IndexError:
             print('ERROR Failed to generate: '
-                  f'{self} {self.noL2_str()} {fst.generate(self.noL2_str())}',
+                  f'{self} {self.hfst_noL2_str()} {fst.generate(self.noL2_str())}',  # noqa: E501
                   file=sys.stderr)
 
     def replace_tag(self, orig_tag, new_tag, which_reading=None):

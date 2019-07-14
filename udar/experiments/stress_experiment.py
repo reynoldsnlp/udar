@@ -23,6 +23,7 @@ class StressExperiment:
         par_space -- list of StressParams or dict to pass to gen_param_space
         """
         print('Preparing corpus...', file=sys.stderr)
+        self.corpus = corpus
         if corpus is None:
             if sys.stdin.isatty():
                 print('No corpus given. Please try again.', file=sys.stderr)
@@ -51,8 +52,7 @@ class StressExperiment:
         self.results = None
 
     def __repr__(self):
-        return 'StressExperiment(' + ', '.join(t.text_name
-                                               for t in self.texts) + ')'
+        return f'StressExperiment(corpus={self.corpus}, par_space={self.par_space})' # noqa: E501
 
     def run(self, tsvs=False):
         print('Annotating documents for each parameter set...',

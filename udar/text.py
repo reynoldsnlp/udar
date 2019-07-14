@@ -112,18 +112,26 @@ class Text:
             self.disambiguate(gram_path=gram_path)
 
     def __repr__(self):
+        # TODO make a real __repr__?
+        # https://docs.python.org/3/reference/datamodel.html#object.__repr__
+        return self.__str__()
+
+    def __str__(self):
+        return self.hfst_str()
+
+    def hfst_str(self):
         """Text HFST-/XFST-style stream."""
         try:
-            return '\n\n'.join(t.hfst_stream() for t in self.Toks) + '\n\n'
+            return '\n\n'.join(t.hfst_str() for t in self.Toks) + '\n\n'
         except TypeError:
             try:
                 return f'(Text (not analyzed) {self.toks[:10]})'
             except TypeError:
                 return f'(Text (not tokenized) {self.orig[:30]})'
 
-    def CG_str(self, traces=False):
+    def cg3_str(self, traces=False):
         """Text CG3-style stream."""
-        return '\n'.join(t.cg3_stream(traces=traces) for t in self.Toks) + '\n\n'  # noqa: E501
+        return '\n'.join(t.cg3_str(traces=traces) for t in self.Toks) + '\n\n'
 
     def __getitem__(self, i):
         try:
@@ -184,7 +192,7 @@ class Text:
             print('vislcg3 must be installed and be in your '
                   'PATH variable to disambiguate a text.', file=sys.stderr)
             raise FileNotFoundError
-        output, error = p.communicate(input=self.CG_str())
+        output, error = p.communicate(input=self.cg3_str())
         new_Toks = self.parse_cg3(output)
         if len(self.Toks) != len(new_Toks):
             triangle = '\u25B6'

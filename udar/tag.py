@@ -25,10 +25,13 @@ class Tag:
         return hash(self.name)
 
     def __repr__(self):
+        return f'Tag(name={self.name}, detail={self.detail})'
+
+    def __str__(self):
         return f'{self.name}'
 
     def info(self):
-        return f'{self.name}\t{self.detail}'
+        return f'{self.name}:\t{self.detail}'
 
 
 tag_dict = {}

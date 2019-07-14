@@ -50,8 +50,27 @@ class Token:
             return False
 
     def __repr__(self):
-        """Token readable repr."""
+        return f'Token(orig={self.orig}, readings={self.readings!r}, removed_readings={self.removed_readings!r})'  # noqa: E501
+
+    def __str__(self):
         return f'{self.orig} [{"  ".join(repr(r) for r in self.readings)}]'
+
+    def hfst_str(self):
+        """Token HFST-/XFST-style stream."""
+        return '\n'.join(f'{self.orig}\t{r.hfst_str()}\t{r.weight:.6f}'
+                         for r in self.readings) \
+               or f'{self.orig}\t{self.orig}+?\tinf'
+
+    def cg3_str(self, traces=False):
+        """Token CG3-style stream."""
+        output = '\n'.join(f'{r.cg3_str(traces=traces)}'
+                           for r in self.readings) \
+                 or f'\t"{self.orig}" ? <W:{281474976710655.000000:.6f}>'
+        if traces and self.removed_readings:
+            more = '\n'.join(f';{r.cg3_str(traces=traces)}'
+                             for r in self.removed_readings)
+            output = f'{output}\n{more}'
+        return f'"<{self.orig}>"\n{output}'
 
     def is_L2(self):
         """Token: test if ALL readings contain an L2 error tag."""
@@ -330,20 +349,3 @@ class Token:
             return re.sub(f'([{V}])([^{V}]+[{V}]+(?:[^{V}]+)?)$',
                           f'\\1{ACUTE}\\2',
                           self.orig)
-
-    def hfst_stream(self):
-        """Token HFST-/XFST-style stream."""
-        return '\n'.join(f'{self.orig}\t{r!s}\t{r.weight:.6f}'
-                         for r in self.readings) \
-               or f'{self.orig}\t{self.orig}+?\tinf'
-
-    def cg3_stream(self, traces=False):
-        """Token CG3-style stream."""
-        output = '\n'.join(f'{r.CG_str(traces=traces)}'
-                           for r in self.readings) \
-                 or f'\t"{self.orig}" ? <W:{281474976710655.000000:.6f}>'
-        if traces and self.removed_readings:
-            more = '\n'.join(f';{r.CG_str(traces=traces)}'
-                             for r in self.removed_readings)
-            output = f'{output}\n{more}'
-        return f'"<{self.orig}>"\n{output}'
