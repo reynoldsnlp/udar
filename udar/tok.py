@@ -11,6 +11,7 @@ from .misc import StressParams
 
 __all__ = ['Token']
 
+# declare combining stress characters for use in f-strings
 ACUTE = '\u0301'
 GRAVE = '\u0300'
 
@@ -19,7 +20,7 @@ class Token:
     """Custom token object"""
     __slots__ = ['orig', 'readings', 'removed_readings', 'lemmas',
                  'upper_indices', 'stress_predictions', 'phon_predictions',
-                 'stress_ambig']
+                 'stress_ambig', 'features']
 
     def __init__(self, orig=None, readings=[], removed_readings=[]):
         from .reading import _readify
@@ -41,6 +42,7 @@ class Token:
         self.stress_predictions = {}
         self.phon_predictions = {}
         self.stress_ambig = len(self.stresses())
+        self.features = {}
 
     def __contains__(self, key):
         """Enable `in` Token. Checks both lemmas and tags."""
