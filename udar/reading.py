@@ -65,6 +65,9 @@ class Reading:
         """
         return key in self.tagset or tag_dict[key] in self.tagset
 
+    def __iter__(self):
+        return (t for t in self.tags)
+
     def __repr__(self):
         return f'Reading({self.hfst_str()}, {self.weight}, {self.cg_rule})'
 
@@ -155,6 +158,10 @@ class MultiReading(Reading):
                        for r in self.readings)
         else:
             return False
+
+    def __iter__(self):
+        """Iterator over *tags* in all readings."""
+        return (t for reading in self.readings for t in reading)
 
     def __repr__(self):
         return f'MultiReading({self.hfst_str()}, {self.weight}, {self.cg_rule})'  # noqa: E501

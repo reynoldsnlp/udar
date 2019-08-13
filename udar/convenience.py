@@ -6,12 +6,13 @@ from .fsts import get_fst
 from .misc import destress
 from .reading import Reading
 from .tag import tag_dict
-from .tag import CASES
 from .text import Text
+from .text import get_tokenizer
 
 
 __all__ = ['tag_info', 'stressify', 'noun_distractors', 'stress_distractors',
            'diagnose_L2']
+CASES = [tag for name, tag in tag_dict.items() if tag.ms_feat == 'CASE']
 
 
 def tag_info(in_tag):
@@ -49,7 +50,7 @@ def noun_distractors(noun, stressed=True):
         print('Argument must be str or Reading.', file=sys.stderr)
         raise NotImplementedError
     out_set = set()
-    current_case = [t for t in this_reading.tags if t in CASES][0]
+    current_case = [t for t in this_reading.tags if t.ms_feat == 'CASE'][0]
     for new_case in CASES:
         this_reading.replace_tag(current_case, new_case)
         out_set.add(this_reading.generate(fst=gen))
@@ -63,7 +64,6 @@ def diagnose_L2(in_text, tokenizer=None):
     Return dict of errors: {<Tag>: {set, of, exemplars, in, text}, ...}
     """
     if tokenizer is None:
-        from .text import get_tokenizer
         tokenizer = get_tokenizer()
     out_dict = defaultdict(set)
     L2an = get_fst('L2-analyzer')

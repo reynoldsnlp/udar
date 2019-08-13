@@ -189,3 +189,18 @@ for tag_name, ms_feat, detail in _tags:
         raise NameError
     tag = Tag(tag_name, ms_feat, detail)
     tag_dict[tag_name] = tag
+
+ANIMACIES = [tag.name for name, tag in tag_dict.items() if tag.ms_feat == 'ANIMACY']  # noqa: E501
+ASPECTS = [tag.name for name, tag in tag_dict.items() if tag.ms_feat == 'ASPECT']  # noqa: E501
+CASES = [tag.name for name, tag in tag_dict.items() if tag.ms_feat == 'CASE']
+ERRORS = [tag.name for name, tag in tag_dict.items() if tag.ms_feat in {'ERROR', 'L2ERROR'}]  # noqa: E501
+GENDERS = [tag.name for name, tag in tag_dict.items() if tag.ms_feat == 'GENDER']  # noqa: E501
+L2ERRORS = [tag.name for name, tag in tag_dict.items() if tag.ms_feat == 'L2ERROR']  # noqa: E501
+MOODS = [tag.name for name, tag in tag_dict.items() if tag.ms_feat == 'MOOD']
+NUMBERS = [tag.name for name, tag in tag_dict.items() if tag.ms_feat == 'NUMBER']  # noqa: E501
+PARTICIPLES = [tag.name for name, tag in tag_dict.items() if tag.ms_feat == 'PARTICIPLE']  # noqa: E501
+PERSONS = [tag.name for name, tag in tag_dict.items() if tag.ms_feat == 'NUMBERPERSON']  # noqa: E501
+PUNCTUATIONS = [tag.name for name, tag in tag_dict.items() if tag.ms_feat == 'PUNCT']  # noqa: E501
+TENSES = [tag.name for name, tag in tag_dict.items() if tag.ms_feat == 'TENSE']
+TRANSITIVITIES = [tag.name for name, tag in tag_dict.items() if tag.ms_feat == 'TRANSITIVITY']  # noqa: E501
+USES = [tag.name for name, tag in tag_dict.items() if tag.ms_feat == 'USE']
