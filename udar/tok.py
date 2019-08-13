@@ -153,7 +153,7 @@ class Token:
         return stresses
 
     def stressify(self, disambiguated=None, selection='safe', guess=False,
-                  experiment=False):
+                  experiment=False, lemma=None):
         """Set of Token's surface forms with stress marked.
 
         disambiguated
@@ -171,7 +171,14 @@ class Token:
         experiment
             1) Remove stress from Token.orig
             2) Save prediction in each Token.stress_predictions[stress_params]
+
+        lemma
+            Limit readings to those with the given lemma.
         """
+        if lemma:
+            self.removed_readings.extend([r for r in self.readings
+                                          if r.lemma != lemma])
+            self.readings = [r for r in self.readings if r.lemma == lemma]
         stress_params = StressParams(disambiguated, selection, guess)
         stresses = self.stresses()
         if not stresses:

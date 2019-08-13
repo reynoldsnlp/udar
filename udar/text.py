@@ -309,7 +309,8 @@ class Text:
         output.append(t)
         return output
 
-    def stressify(self, selection='safe', guess=False, experiment=None):
+    def stressify(self, selection='safe', guess=False, experiment=None,
+                  lemmas={}):
         """Text: Return str of running text with stress marked.
 
         selection  (Applies only to words in the lexicon.)
@@ -324,12 +325,20 @@ class Text:
         experiment
             1) Remove stress from Token.orig
             2) Save prediction in each Token.stress_predictions[stress_params]
+
+        lemmas -- dict of {token: lemma} pairs.
+            Limit readings of given tokens to the lemma value.
+            For example, lemmas={'моя': 'мой'} would limit readings for every
+            instance of the token `моя` to those with the lemma `мой`, thereby
+            ignoring readings with the lemma `мыть`. Currently, the token is
+            case-sensitive!
         """
         if experiment is None:
             experiment = self.experiment
         out_text = [t.stressify(disambiguated=self._disambiguated,
                                 selection=selection, guess=guess,
-                                experiment=experiment)
+                                experiment=experiment,
+                                lemma=lemmas.get(t.orig, None))
                     for t in self.Toks]
         return self.respace(out_text)
 

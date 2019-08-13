@@ -20,7 +20,10 @@ def tag_info(in_tag):
 
 
 def stressify(in_text, disambiguate=False, **kwargs):
-    """Automatically add stress to running text."""
+    """Automatically add stress to running text.
+    
+    disambiguate -- whether to use the constraint grammar
+    """
     in_text = Text(in_text, disambiguate=disambiguate)
     return in_text.stressify(**kwargs)
 
