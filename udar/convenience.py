@@ -21,8 +21,11 @@ def tag_info(in_tag):
 
 def stressify(in_text, disambiguate=False, **kwargs):
     """Automatically add stress to running text.
-    
+
     disambiguate -- whether to use the constraint grammar
+
+    >>> stressify('слову')
+    'сло́ву'
     """
     in_text = Text(in_text, disambiguate=disambiguate)
     return in_text.stressify(**kwargs)
@@ -34,6 +37,13 @@ def noun_distractors(noun, stressed=True):
     The input noun can be in any case. Output paradigm is limited to the same
     NUMBER value of the input (i.e. SG or PL). In other words, if a singular
     noun is given, the singular paradigm is returned.
+
+    >>> sg_paradigm = noun_distractors('словом')
+    >>> sg_paradigm == {'сло́ву', 'сло́ве', 'сло́вом', 'сло́ва', 'сло́во'}
+    True
+    >>> pl_paradigm = noun_distractors('словах')
+    >>> pl_paradigm == {'слова́м', 'слова́', 'слова́х', 'слова́ми', 'сло́в'}
+    True
     """
     analyzer = get_fst('analyzer')
     if stressed:
@@ -65,6 +75,12 @@ def diagnose_L2(in_text, tokenizer=None):
     """Analyze running text for L2 errors.
 
     Return dict of errors: {<Tag>: {set, of, exemplars, in, text}, ...}
+
+    >>> diag = diagnose_L2('Мы разговаривали в кафетерие с Таной')
+    >>> diag == {'Err/L2_ii': {'кафетерие'}, 'Err/L2_Pal': {'Таной'}}
+    True
+    >>> tag_info('Err/L2_ii')
+    'L2 error: Failure to change ending ие to ии in +Sg+Loc or +Sg+Dat, e.g. к Марие, о кафетерие, о знание'
     """
     if tokenizer is None:
         tokenizer = get_tokenizer()
@@ -83,6 +99,9 @@ def diagnose_L2(in_text, tokenizer=None):
 def stress_distractors(word):
     """Given a word, return a list of all possible stress positions,
     including ё-ification.
+
+    >>> stress_distractors('тела')
+    ['тёла', 'те́ла', 'тела́']
     """
     V = 'аэоуыяеёюи'
     word = destress(word)

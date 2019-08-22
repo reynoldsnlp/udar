@@ -18,7 +18,7 @@ class Tag:
         self.is_Err = name.startswith('Err')
 
     def __repr__(self):
-        return f'Tag(name={self.name}, detail={self.detail})'
+        return f'Tag({self.name})'
 
     def __str__(self):
         return f'{self.name}'
@@ -37,7 +37,7 @@ class Tag:
         return hash(self.name)
 
     def info(self):
-        return f'{self.name}:\t{self.detail}'
+        return f'{self.detail}'
 
 
 _tags = [('A', 'POS', 'Adjective'),

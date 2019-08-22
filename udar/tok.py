@@ -55,7 +55,7 @@ class Token:
         return f'Token(orig={self.orig}, readings={self.readings!r}, removed_readings={self.removed_readings!r})'  # noqa: E501
 
     def __str__(self):
-        return f'{self.orig} [{"  ".join(repr(r) for r in self.readings)}]'
+        return f'{self.orig} [{"  ".join(str(r) for r in self.readings)}]'
 
     def hfst_str(self):
         """Token HFST-/XFST-style stream."""

@@ -29,11 +29,14 @@ class Udar:
     Example:
 
     >>> ana = Udar('analyzer')
-    >>> ana.analyze('сло́ва')
-    слово+N+Neu+Inan+Sg+Gen
+    >>> tok = ana.lookup('сло́ва')
+    >>> tok
+    Token(orig=сло́ва, readings=[Reading(слово+N+Neu+Inan+Sg+Gen, 5.9755859375, )], removed_readings=[])
+    >>> print(tok)
+    сло́ва [слово_N_Neu_Inan_Sg_Gen]
     >>> gen = Udar('accented-generator')
     >>> gen.generate('слово+N+Neu+Inan+Sg+Gen')
-    сло́ва
+    'сло́ва'
     """
     __slots__ = ['flavor', 'path2fst', 'fst']
 
