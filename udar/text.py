@@ -62,9 +62,10 @@ def get_tokenizer():
         return hfst_tokenize
     else:
         try:
-            from nltk import word_tokenize as nltk_tokenize
-            return nltk_tokenize
-        except ModuleNotFoundError:
+            import nltk
+            assert nltk.download('punkt')
+            return nltk.word_tokenize
+        except (AssertionError, ModuleNotFoundError):
             print('hfst-tokenize and nltk.word_tokenize not found. '
                   'One of them must be installed for tokenization.',
                   file=sys.stderr)
