@@ -52,7 +52,7 @@ class StressExperiment:
         self.results = None
 
     def __repr__(self):
-        return f'StressExperiment(corpus={self.corpus}, par_space={self.par_space})' # noqa: E501
+        return f'StressExperiment(corpus={self.corpus}, par_space={self.par_space})'  # noqa: E501
 
     def run(self, tsvs=False):
         print('Annotating documents for each parameter set...',
