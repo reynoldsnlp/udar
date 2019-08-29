@@ -1,0 +1,3 @@
+hfst
+nltk
+pandas
