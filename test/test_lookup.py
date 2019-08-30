@@ -30,10 +30,6 @@ def test_L2_analyzer():
     assert tok.readings[0].hfst_str() == 'земля+N+Fem+Inan+Sg+Nom+Err/L2_Pal'
 
 
-def test_tag_dict():
-    assert 'Gen' in udar.tag_dict
-
-
 def test_recase():
     tr = udar.get_fst('L2-analyzer')
     tok = tr.lookup('Работа')

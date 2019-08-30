@@ -185,8 +185,9 @@ _tags = [('A', 'POS', 'Adjective'),
 tag_dict = {}
 for tag_name, ms_feat, detail in _tags:
     if tag_name in tag_dict:
-        print(f'{tag_name} is listed twice in _tags.', file=sys.stderr)
-        raise NameError
+        print(f'{tag_name} is listed twice in _tags.',  # pragma: no cover
+              file=sys.stderr)  # pragma: no cover
+        raise NameError  # pragma: no cover
     tag = Tag(tag_name, ms_feat, detail)
     tag_dict[tag_name] = tag
 
