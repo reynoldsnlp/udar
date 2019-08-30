@@ -2,3 +2,5 @@ __pycache__
 .eggs
 .tox
 udar.egg-info
+coverage.xml
+.coverage

@@ -33,4 +33,7 @@ jobs:
     - name: Test with pytest
       run: |
         pip install pytest
-        python3 -m pytest
+        pip install codecov
+        python3 -m pytest --cov --cov-append --cov-report xml test/
+        # pytest --doctest-modules {envsitepackagesdir}/udar
+        codecov --token=c0724429-fff4-4851-97d6-052d1c1d1794
