@@ -58,6 +58,11 @@ def test_noun_distractors_pl():
     assert distractors == {'слова́м', 'сло́в', 'слова́х', 'слова́', 'слова́ми'}
 
 
+def test_noun_distractors_unstressed():
+    distractors = udar.noun_distractors('слово', stressed=False)
+    assert distractors == {'слова', 'слове', 'словом', 'слово', 'слову'}
+
+
 def test_text_init():
     text = udar.Text('Мы нашли то, что искали.')
     assert text
