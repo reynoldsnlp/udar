@@ -25,6 +25,7 @@ def test_stress_distractors():
                                                          'переработа́нный',
                                                          'переработанны́й']
 
+
 def test_text_stressify_lemma_limitation():
     test = udar.Text('Моя первая попытка.').stressify(lemmas={'Моя': 'мой'})
     assert test == 'Моя́ пе́рвая попы́тка.'
