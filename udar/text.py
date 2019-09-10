@@ -96,15 +96,17 @@ class Text:
             self.orig = input_text
             self._tokenized = False
             self.toks = None
-        elif isinstance(input_text, list):
+        # if input_text is a sequence of `str`s...
+        elif ((hasattr(input_text, '__iter__')
+               or hasattr(input_text, '__getitem__'))
+              and isinstance(input_text[0], str)):
             self._from_str = False
             self.orig = ' '.join(input_text)
             self._tokenized = True
             self.toks = input_text
         else:
-            t = type(input_text)
-            print(f'Expected `str` or `list`, got {t}.', file=sys.stderr)
-            raise NotImplementedError
+            raise NotImplementedError(f'Expected `str` or sequence of `str`s; '
+                                      'got {type(input_text)}.')
         if tokenize and not self.toks:
             self.tokenize(tokenizer=tokenizer)
         if analyze:
