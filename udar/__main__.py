@@ -30,7 +30,7 @@ from .text import Text
 #             print('\t', e)
 #     print(noun_distractors('слово'))
 #     print(noun_distractors('словам'))
-# 
+#
 #     text0 = Text('Ивано́вы и Сырое́жкин нашли́ то́, что́ иска́ли без его́ но́вого цю́ба и т.д.',  # noqa: E501
 #                 disambiguate=True)
 #     print(text0.Toks)
@@ -42,7 +42,7 @@ from .text import Text
 #     print(text1.stressify(selection='all'))
 #     text2 = Text('Он говорил полчаса кое с кем но не говори им. Слухи и т.д.')  # noqa: E501
 #     text3 = Text('Хо́чешь быть челове́ком - будь им.')
-# 
+#
 #     print('text2 BEFORE disamb:')
 #     print(text2)
 #     text2.disambiguate()
@@ -53,13 +53,13 @@ from .text import Text
 #         print(tok.readings)
 #         print(tok.removed_readings)
 #     # print('text2 random:', text2.stressify(selection='random'))
-# 
+#
 #     print()
 #     print()
 #     print(text3)
 #     text3.disambiguate()
 #     print(text3)
 #     print(text3.stressify(selection='random'))
-# 
-# 
+#
+#
 # crappy_tests()

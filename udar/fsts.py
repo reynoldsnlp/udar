@@ -2,7 +2,6 @@
 
 from pkg_resources import resource_filename
 from random import shuffle
-import sys
 
 import hfst
 
@@ -48,8 +47,7 @@ class Udar:
             - 'accented-generator' (or 'acc-generator')
         """
         if flavor == 'g2p':
-            print('For g2p, use get_g2p().', file=sys.stderr)
-            raise TypeError
+            raise TypeError('For g2p, use get_g2p().')
         self.flavor = flavor
         fnames = {'analyzer': 'analyser-gt-desc.hfstol',
                   'L2-analyzer': 'analyser-gt-desc-L2.hfstol',
@@ -59,9 +57,8 @@ class Udar:
             fnames[alias] = fnames[orig]
         try:
             self.path2fst = f'{RSRC_PATH}{fnames[flavor]}'
-        except KeyError:
-            print(f'flavor must be in {set(fnames.keys())}', file=sys.stderr)
-            raise
+        except KeyError as e:
+            raise KeyError(f'flavor must be in {set(fnames.keys())}') from e
         fst_stream = hfst.HfstInputStream(self.path2fst)
         self.fst = fst_stream.read()
         assert fst_stream.is_eof()  # be sure the hfstol file only had one fst

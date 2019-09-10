@@ -39,7 +39,7 @@ def _get_lemmas(reading):
         for r in reading.readings:
             out.extend(_get_lemmas(r))
         return out
-    raise NotImplementedError
+    raise NotImplementedError("I don't know either... ;-)")
 
 
 class Reading:

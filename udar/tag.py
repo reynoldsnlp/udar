@@ -1,8 +1,5 @@
 """Part-of-speech tag"""
 
-import sys
-
-
 __all__ = ['Tag', 'tag_dict']
 
 
@@ -185,9 +182,7 @@ _tags = [('A', 'POS', 'Adjective'),
 tag_dict = {}
 for tag_name, ms_feat, detail in _tags:
     if tag_name in tag_dict:
-        print(f'{tag_name} is listed twice in _tags.',  # pragma: no cover
-              file=sys.stderr)  # pragma: no cover
-        raise NameError  # pragma: no cover
+        raise NameError(f'{tag_name} is listed twice in _tags.')  # pragma: no cover  # noqa: E501
     tag = Tag(tag_name, ms_feat, detail)
     tag_dict[tag_name] = tag
 

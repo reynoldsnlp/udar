@@ -9,6 +9,7 @@ from subprocess import PIPE
 from subprocess import Popen
 import sys
 from time import strftime
+from warnings import warn
 
 from .fsts import get_fst
 from .misc import destress
@@ -51,10 +52,9 @@ def hfst_tokenize(text):
         if error:
             print('ERROR (tokenizer):', error, file=sys.stderr)
         return output.rstrip().split('\n')
-    except FileNotFoundError:
-        print('Command-line hfst must be installed to use the tokenizer.',
-              file=sys.stderr)
-        raise
+    except FileNotFoundError as e:
+        raise FileNotFoundError('Command-line hfst must be installed to use '
+                                'the tokenizer.') from e
 
 
 def get_tokenizer():
@@ -64,12 +64,17 @@ def get_tokenizer():
         try:
             import nltk
             assert nltk.download('punkt')
+        except ModuleNotFoundError as e:
+            raise ModuleNotFoundError('Neither hfst or nltk are installed. '
+                                      'One of them must be installed for '
+                                      'tokenization.') from e
+        except AssertionError as e:
+            raise AssertionError("Cannot download nltk's `punkt` model. "
+                                 'Connect to the internet & try again.') from e
+        else:
+            warn('hfst-tokenize not found. Using nltk.word_tokenize....',
+                 ImportWarning)
             return nltk.word_tokenize
-        except (AssertionError, ModuleNotFoundError):
-            print('hfst-tokenize and nltk.word_tokenize not found. '
-                  'One of them must be installed for tokenization.',
-                  file=sys.stderr)
-            raise
 
 
 class Text:
@@ -154,18 +159,16 @@ class Text:
         except TypeError:
             try:
                 return self.toks[i]
-            except TypeError:
-                print('Text object not yet tokenized. Try Text.tokenize() '
-                      'or Text.analyze() first.', file=sys.stderr)
-                raise
+            except TypeError as e:
+                raise TypeError('Text not yet tokenized. Try Text.tokenize() '
+                                'or Text.analyze() first.') from e
 
     def __iter__(self):
         try:
             return (t for t in self.Toks)
-        except TypeError:
-            print('Text object only iterable after morphological analysis. '
-                  'Try Text.analyze() first.', file=sys.stderr)
-            raise
+        except TypeError as e:
+            raise TypeError('Text object only iterable after morphological '
+                            'analysis. Try Text.analyze() first.') from e
 
     def tokenize(self, tokenizer=None):
         """Tokenize Text using `tokenizer`."""
@@ -195,18 +198,16 @@ class Text:
         elif isinstance(gram_path, Path):
             gram_path = repr(gram_path)
         else:
-            print('Unexpected grammar path. Use str.', file=sys.stderr)
-            raise NotImplementedError
+            raise NotImplementedError('Unexpected grammar path. Use str.')
         if traces:
             cmd = ['vislcg3', '-t', '-g', gram_path]
         else:
             cmd = ['vislcg3', '-g', gram_path]
         try:
             p = Popen(cmd, stdin=PIPE, stdout=PIPE, universal_newlines=True)
-        except FileNotFoundError:
-            print('vislcg3 must be installed and be in your '
-                  'PATH variable to disambiguate a text.', file=sys.stderr)
-            raise FileNotFoundError
+        except FileNotFoundError as e:
+            raise FileNotFoundError('vislcg3 must be installed and be in your '
+                                    'PATH variable to disambiguate a text.') from e  # noqa: E501
         output, error = p.communicate(input=self.cg3_str())
         new_Toks = self.parse_cg3(output)
         if len(self.Toks) != len(new_Toks):
@@ -417,7 +418,8 @@ class Text:
             Applies phonetic transcription based on context between words
         """
         if context:
-            raise NotImplementedError
+            raise NotImplementedError('The context keyword argument is not '
+                                      'implemented yet.')
         out_text = []
         for t in self.Toks:
             out_text.append(t.phoneticize(disambiguated=self._disambiguated,

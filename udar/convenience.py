@@ -60,8 +60,7 @@ def noun_distractors(noun, stressed=True):
     elif isinstance(noun, Reading):  # TODO works for MultiReading?
         this_reading = noun
     else:
-        print('Argument must be str or Reading.', file=sys.stderr)
-        raise NotImplementedError
+        raise NotImplementedError('Argument must be str or Reading.')
     out_set = set()
     current_case = [t for t in this_reading.tags if t.ms_feat == 'CASE'][0]
     for new_case in CASES:

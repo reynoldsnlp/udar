@@ -144,10 +144,9 @@ class Token:
             try:
                 stresses = {self.recase(r.generate(acc_gen))
                             for r in self.readings}
-            except AttributeError:
-                print('Problem generating stresses from:', self, self.readings,
-                      file=sys.stderr)
-                raise
+            except AttributeError as e:
+                raise AttributeError('Problem generating stresses from: '
+                                     f'{self} {self.readings}.') from e
         else:
             stresses = {r.generate(acc_gen) for r in self.readings}
         return stresses
@@ -199,7 +198,8 @@ class Token:
             elif selection == 'random':
                 pred = choice(list(stresses))
             elif selection == 'freq':
-                raise NotImplementedError
+                raise NotImplementedError("The 'freq' selection method is not "
+                                          'implemented yet.')
             elif selection == 'all':
                 acutes = [(w.replace(GRAVE, '').index(ACUTE), ACUTE)
                           for w in stresses if ACUTE in w]
@@ -217,7 +217,8 @@ class Token:
                         word[i] = char
                 pred = ''.join(word)
             else:
-                raise NotImplementedError
+                raise NotImplementedError(f"The '{selection}' selection "
+                                          'method does not exist.')
         if experiment:
             self.stress_predictions[stress_params] = (pred,
                                                       self.stress_eval(pred))
