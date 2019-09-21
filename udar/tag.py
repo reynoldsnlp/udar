@@ -1,6 +1,16 @@
 """Part-of-speech tag"""
 
+from collections import defaultdict
+
 __all__ = ['Tag', 'tag_dict']
+
+ambiguous_tag_dict = {'AnIn': {'Anim', 'Inan'},
+                      # 'IT': {'IV', 'TV'},
+                     }
+for ambig in list(ambiguous_tag_dict):
+    for unambig in ambiguous_tag_dict[ambig]:
+        ambiguous_tag_dict[unambig] = {ambig}
+ambiguous_tag_dict = defaultdict(set, ambiguous_tag_dict)
 
 
 class Tag:
@@ -23,12 +33,16 @@ class Tag:
     def __lt__(self, other):
         return self.name < other.name
 
-    def __eq__(self, other):  # TODO make AnIn == Anim, etc.?
-        """Equivalent to Tag or str."""
+    def __eq__(self, other):
+        """Exactly equivalent to Tag or str."""
         try:
             return self.name == other.name
         except AttributeError:
             return self.name == other
+
+    def is_congruent_with(self, other):
+        """Like __eq__, but allow loose matches, e.g. AnIn == Anim."""
+        return self == other or self.name in ambiguous_tag_dict[other]
 
     def __hash__(self):
         return hash(self.name)
@@ -85,7 +99,7 @@ _tags = [('A', 'POS', 'Adjective'),
          ('PrsPss', 'PARTICIPLE', 'Present passive participle (+PstAct+Adv for the verbal adverbs)'),  # noqa: E501
          ('PstAct', 'PARTICIPLE', 'Past active participle'),
          ('PstPss', 'PARTICIPLE', 'Past passive participle'),
-         ('Pass', 'PASSIVITY', 'Passive'),
+         ('Pass', 'VOICE', 'Passive'),
          ('Imprs', '???', 'Impersonal (cannot have explicit subject)'),
          ('Lxc', '???', 'Lexicalized (for participial forms)'),
          ('Der', 'DERIVATION', 'Derived (for participial forms)'),

@@ -21,3 +21,10 @@ def test_tag_lt():
 
 def test_tag_dict():
     assert 'Gen' in udar.tag_dict
+
+
+def test_tag_is_congruent_with():
+    assert udar.tag_dict['A'].is_congruent_with('A')
+    assert not udar.tag_dict['A'].is_congruent_with('N')
+    assert udar.tag_dict['AnIn'].is_congruent_with('Inan')
+    assert udar.tag_dict['Inan'].is_congruent_with('AnIn')
