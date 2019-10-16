@@ -1,5 +1,6 @@
 """Python wrapper of UDAR, a part-of-speech tagger for (accented) Russian"""
 
+import pexpect
 from pkg_resources import resource_filename
 from random import shuffle
 
@@ -99,6 +100,26 @@ class Udar:
         in_tok.readings = [max(in_tok.readings, default=Token(),
                                key=lambda r: r.weight)]
         return in_tok
+
+
+class HFSTTokenizer:
+    """An HFST tokenizer implemented using pexpect. The subprocess is opened
+    once, and then each call to the tokenizer sends input and returns the
+    output.
+    """
+    def __init__(self):
+        self.tokenizer = pexpect.spawn(f'hfst-tokenize {RSRC_PATH}/tokeniser-disamb-gt-desc.pmhfst',  # noqa: E501
+                                       echo=False, encoding='utf8')
+        self.tokenizer.delaybeforesend = None
+        self.tokenizer.expect('')
+
+    def __call__(self, input_str):
+        self.tokenizer.sendline(f'{input_str} >>>\n')
+        try:
+            self.tokenizer.expect('\r\n>\r\n>\r\n>\r\n')
+        except pexpect.exceptions.TIMEOUT as e:
+            return e
+        return self.tokenizer.before.split('\r\n')
 
 
 def get_fst(flavor):

@@ -20,7 +20,7 @@ class Token:
     """Custom token object"""
     __slots__ = ['orig', 'readings', 'removed_readings', 'lemmas',
                  'upper_indices', 'stress_predictions', 'phon_predictions',
-                 'stress_ambig', 'features']
+                 'stress_ambig', 'features', 'annotation']
 
     def __init__(self, orig=None, readings=[], removed_readings=[]):
         from .reading import _readify
@@ -43,6 +43,7 @@ class Token:
         self.phon_predictions = {}
         self.stress_ambig = len(self.stresses())
         self.features = {}
+        self.annotation = None
 
     def __contains__(self, key):
         """Enable `in` Token. Checks both lemmas and tags."""
@@ -63,7 +64,7 @@ class Token:
                          for r in self.readings) \
                or f'{self.orig}\t{self.orig}+?\tinf'
 
-    def cg3_str(self, traces=False):
+    def cg3_str(self, traces=False, annotated=False):
         """Token CG3-style stream."""
         output = '\n'.join(f'{r.cg3_str(traces=traces)}'
                            for r in self.readings) \
@@ -72,7 +73,11 @@ class Token:
             more = '\n'.join(f';{r.cg3_str(traces=traces)}'
                              for r in self.removed_readings)
             output = f'{output}\n{more}'
-        return f'"<{self.orig}>"\n{output}'
+        if annotated and self.annotation:
+            ann = f'NB: ↓↓  {self.annotation}  ↓↓\n'
+        else:
+            ann = ''
+        return f'{ann}"<{self.orig}>"\n{output}'
 
     def __lt__(self, other):
         return ((self.orig, self.readings, self.removed_readings)

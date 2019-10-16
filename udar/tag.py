@@ -2,11 +2,12 @@
 
 from collections import defaultdict
 
+
 __all__ = ['Tag', 'tag_dict']
 
 ambiguous_tag_dict = {'AnIn': {'Anim', 'Inan'},
-                      # 'IT': {'IV', 'TV'},
-                     }
+                      'IT': {'IV', 'TV'},
+                      }
 for ambig in list(ambiguous_tag_dict):
     for unambig in ambiguous_tag_dict[ambig]:
         ambiguous_tag_dict[unambig] = {ambig}

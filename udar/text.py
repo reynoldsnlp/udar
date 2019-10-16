@@ -12,6 +12,7 @@ from time import strftime
 from warnings import warn
 
 from .fsts import get_fst
+from .fsts import HFSTTokenizer
 from .misc import destress
 from .misc import result_names
 from .misc import unspace_punct
@@ -21,6 +22,7 @@ from .tok import Token
 __all__ = ['Text', 'hfst_tokenize']
 
 RSRC_PATH = resource_filename('udar', 'resources/')
+NEWLINE = '\n'
 
 
 def is_exe(fpath):
@@ -57,9 +59,12 @@ def hfst_tokenize(text):
                                 'the tokenizer.') from e
 
 
-def get_tokenizer():
+def get_tokenizer(use_pexpect=True):
     if which('hfst-tokenize'):
-        return hfst_tokenize
+        if use_pexpect:
+            return HFSTTokenizer()
+        else:
+            return hfst_tokenize
     else:
         try:
             import nltk
@@ -80,12 +85,13 @@ def get_tokenizer():
 class Text:
     """Sequence of `Token`s."""
     __slots__ = ['_tokenized', '_analyzed', '_disambiguated', '_from_str',
-                 'orig', 'toks', 'Toks', 'text_name', 'experiment']
+                 'orig', 'toks', 'Toks', 'text_name', 'experiment',
+                 'annotation']
 
     def __init__(self, input_text, tokenize=True, analyze=True,
                  disambiguate=False, tokenizer=None,
                  analyzer=None, gram_path=None, text_name=None,
-                 experiment=False):
+                 experiment=False, annotation=''):
         """Note the difference between self.toks and self.Toks, where the
         latter is a list of Token objects, the former a list of strings.
         """
@@ -94,6 +100,7 @@ class Text:
         self.Toks = None
         self.text_name = text_name
         self.experiment = experiment
+        self.annotation = annotation
         if tokenizer is None:
             tokenizer = get_tokenizer()
         if isinstance(input_text, str):
@@ -137,9 +144,13 @@ class Text:
             except TypeError:
                 return f'(Text (not tokenized) {self.orig[:30]})'
 
-    def cg3_str(self, traces=False):
+    def cg3_str(self, traces=False, annotated=False):
         """Text CG3-style stream."""
-        return '\n'.join(t.cg3_str(traces=traces) for t in self.Toks) + '\n\n'
+        if annotated and self.annotation:
+            ann = f'TEXT: {self.annotation}\n'
+        else:
+            ann = ''
+        return f"{ann}{NEWLINE.join(t.cg3_str(traces=traces, annotated=annotated) for t in self.Toks)}\n\n"  # noqa: E501
 
     def __lt__(self, other):
         return self.Toks < other.Toks
