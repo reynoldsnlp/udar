@@ -1,3 +1,4 @@
 hfst
 nltk
 pandas
+pexpect
