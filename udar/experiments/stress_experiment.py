@@ -13,7 +13,7 @@ import udar
 
 class StressExperiment:
     """Experiment to test accuracy of udar's automatic stress annotation."""
-    # TODO __slots__ = ['corpus', 'par_space', 'results']
+    __slots__ = ['corpus', 'par_space', 'results', 'texts']
 
     def __init__(self, corpus=None, par_space=None):
         """

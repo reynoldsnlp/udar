@@ -82,16 +82,25 @@ def get_tokenizer(use_pexpect=True):
             return nltk.word_tokenize
 
 
-class Text:
-    """Sequence of `Token`s."""
+class Text:  # TODO inherit from `list`, put Toks in self
+    """Sequence of `Token`s.
+
+    An abbreviated `repr` can be achieved using string formatting:
+
+    >>> t = Text('Мы хотим сократить repr этого объекта.')
+    >>> repr(t)
+    "Text('Мы хотим сократить repr этого объекта.')"
+    >>> f'{t:8}'
+    "Text('Мы хотим', 7 tokens)"
+    """
     __slots__ = ['_tokenized', '_analyzed', '_disambiguated', '_from_str',
                  'orig', 'toks', 'Toks', 'text_name', 'experiment',
                  'annotation']
 
     def __init__(self, input_text, tokenize=True, analyze=True,
-                 disambiguate=False, tokenizer=None,
-                 analyzer=None, gram_path=None, text_name=None,
-                 experiment=False, annotation=''):
+                 disambiguate=False, tokenizer=None, analyzer=None,
+                 gram_path=None, text_name=None, experiment=False,
+                 annotation=''):
         """Note the difference between self.toks and self.Toks, where the
         latter is a list of Token objects, the former a list of strings.
         """
@@ -108,7 +117,7 @@ class Text:
             self.orig = input_text
             self._tokenized = False
             self.toks = None
-        # if input_text is a sequence of `str`s...
+        # elif input_text is a sequence of `str`s...
         elif ((hasattr(input_text, '__iter__')
                or hasattr(input_text, '__getitem__'))
               and isinstance(input_text[0], str)):
@@ -126,10 +135,15 @@ class Text:
         if disambiguate:
             self.disambiguate(gram_path=gram_path)
 
+    def __format__(self, format_spec):
+        tok_count = len(self.toks)
+        tok_count_str = f', {tok_count} tokens'
+        if not format_spec:
+            return f'Text({self.orig!r}{tok_count_str})'
+        return f'Text({self.orig[:int(format_spec)]!r}{tok_count_str})'
+
     def __repr__(self):
-        # TODO make a real __repr__?
-        # https://docs.python.org/3/reference/datamodel.html#object.__repr__
-        return self.__str__()
+        return f'Text({self.orig!r})'
 
     def __str__(self):
         return self.hfst_str()

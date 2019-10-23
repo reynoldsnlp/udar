@@ -47,4 +47,3 @@ def test_replace_tag_multi():
     assert mr.readings[0].tags == ['A'] and mr.readings[1].tags == ['A']
     mr.replace_tag('A', 'N')
     assert mr.readings[0].tags == ['N'] and mr.readings[1].tags == ['N']
-

@@ -12,55 +12,23 @@ def test_hfst_tokenize():
     assert toks == ['Мы', 'нашли', 'все', 'проблемы', ',', 'и', 'т.д.']
 
 
-def test_parse_tags_with_plus():
-    tr = udar.get_fst('analyzer')
-    tok = tr.lookup('+')
-    assert tok.orig == '+' and 'PUNCT' in tok
+def test_stressify_selection_safe():
+    text1 = udar.Text('шепотом')
+    text2 = udar.Text('замок')
+    text3 = udar.Text('карандаш')
+    assert (text1.stressify(selection='safe') == 'шёпотом'
+            and text2.stressify(selection='safe') == 'замок'
+            and text3.stressify(selection='safe') == 'каранда́ш')
 
 
-def test_accented_generator():
-    tr = udar.get_fst('accented-generator')
-    word = tr.generate('слово+N+Neu+Inan+Sg+Gen')
-    assert word == 'сло́ва'
+def test_stressify_selection_all():
+    text1 = udar.Text('Она узнает обо всем.')
+    assert text1.stressify(selection='all') == 'Она́ узна́ёт обо всё́м.'
 
 
-def test_L2_analyzer():
-    tr = udar.get_fst('L2-analyzer')
-    tok = tr.lookup('земла')
-    assert tok.readings[0].hfst_str() == 'земля+N+Fem+Inan+Sg+Nom+Err/L2_Pal'
-
-
-def test_recase():
-    tr = udar.get_fst('L2-analyzer')
-    tok = tr.lookup('Работа')
-    assert tok.recase('работа') == 'Работа'
-
-
-def test_stressify():
-    sent = udar.stressify('Это - первая попытка.')
-    assert sent == 'Э́то - пе́рвая попы́тка.'
-
-
-def test_diagnose_L2():
-    L2_sent = 'Я забыл дать девушекам денеги, которые упали на землу.'
-    err_dict = udar.diagnose_L2(L2_sent)
-    assert err_dict == {udar.tag_dict['Err/L2_FV']: {'денеги', 'девушекам'},
-                        udar.tag_dict['Err/L2_Pal']: {'землу'}}
-
-
-def test_noun_distractors_sg():
-    distractors = udar.noun_distractors('слово')
-    assert distractors == {'сло́ва', 'сло́ве', 'сло́вом', 'сло́во', 'сло́ву'}
-
-
-def test_noun_distractors_pl():
-    distractors = udar.noun_distractors('словам')
-    assert distractors == {'слова́м', 'сло́в', 'слова́х', 'слова́', 'слова́ми'}
-
-
-def test_noun_distractors_unstressed():
-    distractors = udar.noun_distractors('слово', stressed=False)
-    assert distractors == {'слова', 'слове', 'словом', 'слово', 'слову'}
+def test_stressify_lemma_limitation():
+    test = udar.Text('Моя первая попытка.').stressify(lemmas={'Моя': 'мой'})
+    assert test == 'Моя́ пе́рвая попы́тка.'
 
 
 def test_text_init():

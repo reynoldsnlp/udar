@@ -56,8 +56,9 @@ def noun_distractors(noun, stressed=True):
         try:
             this_reading = readings[0]
         except IndexError:
-            print(f'The token {noun} has no noun readings.', file=sys.stderr)
-    elif isinstance(noun, Reading):  # TODO works for MultiReading?
+            print(f'The token {noun!r} has no noun readings.', file=sys.stderr)
+            return set()
+    elif isinstance(noun, Reading):
         this_reading = noun
     else:
         raise NotImplementedError('Argument must be str or Reading.')
