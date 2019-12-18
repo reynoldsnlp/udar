@@ -4,6 +4,7 @@ from collections import namedtuple
 from enum import Enum
 from pkg_resources import resource_filename
 import re
+from typing import Dict
 
 
 __all__ = ['StressParams', 'Result', 'result_names', 'destress',
@@ -45,7 +46,8 @@ def destress(token):
     return token.replace(ACUTE, '').replace(GRAVE, '').replace('ё', 'е').replace('Ё', 'Е')  # noqa: E501
 
 
-def compute_metrics(results):
+def compute_metrics(results: Dict[Result, int]):
+    """Compute precision, recall and similar metrics."""
     N = sum((results[Result.FP], results[Result.FN],
              results[Result.TP], results[Result.TN]))
     assert N > 0
@@ -64,15 +66,10 @@ def compute_metrics(results):
                 'attempt_rate': tot_P / N,
                 'precision': results[Result.TP] / tot_P,
                 'recall': results[Result.TP] / tot_relevant}
-    out_dict.update(results)
     for old, new in result_names.items():
-        try:
-            out_dict[new] = out_dict[old]
-            del out_dict[old]
-        except KeyError:
-            out_dict[new] = 0
-    Metrics = namedtuple('Metrics', sorted(out_dict))
-    return Metrics(**out_dict)
+        out_dict[new] = results.get(old, 0)
+    Metrics = namedtuple('Metrics', sorted(out_dict))  # type: ignore
+    return Metrics(**out_dict)  # type: ignore
 
 
 def unspace_punct(in_str):

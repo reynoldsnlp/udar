@@ -166,7 +166,7 @@ class Token:
         selection  (Applies only to words in the lexicon.)
             safe   -- Only add stress if it is unambiguous.
             freq   -- lemma+reading > lemma > reading
-            random -- Randomly choose between specified stress positions.
+            rand   -- Randomly choose between specified stress positions.
             all    -- Add stress to all possible specified stress positions.
 
         guess
@@ -200,7 +200,7 @@ class Token:
                     pred = destress(self.orig)
                 else:
                     pred = self.orig
-            elif selection == 'random':
+            elif selection == 'rand':
                 pred = choice(list(stresses))
             elif selection == 'freq':
                 raise NotImplementedError("The 'freq' selection method is not "
@@ -279,7 +279,7 @@ class Token:
         selection  (Applies only to words in the lexicon.)
             safe   -- Only add stress if it is unambiguous.
             freq   -- lemma+reading > lemma > reading
-            random -- Randomly choose between specified stress positions.
+            rand   -- Randomly choose between specified stress positions.
             all    -- Add stress to all possible specified stress positions.
 
         guess

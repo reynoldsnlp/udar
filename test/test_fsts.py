@@ -1,5 +1,7 @@
 from pkg_resources import resource_filename
 
+import pytest
+
 import udar
 
 
@@ -34,3 +36,8 @@ def test_recase():
     tr = udar.get_fst('L2-analyzer')
     tok = tr.lookup('Работа')
     assert tok.recase('работа') == 'Работа'
+
+
+def test_Udar_g2p_ValueError():
+    with pytest.raises(ValueError):
+        udar.Udar('g2p')

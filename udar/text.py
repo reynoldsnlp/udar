@@ -9,12 +9,18 @@ from subprocess import PIPE
 from subprocess import Popen
 import sys
 from time import strftime
+from typing import Callable
+from typing import List
+from typing import Type
+from typing import TypeVar
+from typing import Union
 from warnings import warn
 
 from .fsts import get_fst
 from .fsts import HFSTTokenizer
 from .misc import destress
 from .misc import result_names
+from .misc import StressParams
 from .misc import unspace_punct
 from .tok import Token
 
@@ -23,6 +29,9 @@ __all__ = ['Text', 'hfst_tokenize']
 
 RSRC_PATH = resource_filename('udar', 'resources/')
 NEWLINE = '\n'
+
+Tokenizer = Callable[[str], List[str]]
+MypyText = TypeVar('MypyText', bound='Text')  # to annotate Text classmethods
 
 
 def is_exe(fpath):
@@ -43,14 +52,14 @@ def which(program):
     return None
 
 
-def hfst_tokenize(text):
+def hfst_tokenize(input_str: str) -> List[str]:
     try:
         p = Popen(['hfst-tokenize',
                    RSRC_PATH + 'tokeniser-disamb-gt-desc.pmhfst'],
                   stdin=PIPE,
                   stdout=PIPE,
                   universal_newlines=True)
-        output, error = p.communicate(text)
+        output, error = p.communicate(input_str)
         if error:
             print('ERROR (tokenizer):', error, file=sys.stderr)
         return output.rstrip().split('\n')
@@ -59,7 +68,7 @@ def hfst_tokenize(text):
                                 'the tokenizer.') from e
 
 
-def get_tokenizer(use_pexpect=True):
+def get_tokenizer(use_pexpect=True) -> Tokenizer:
     if which('hfst-tokenize'):
         if use_pexpect:
             return HFSTTokenizer()
@@ -67,7 +76,7 @@ def get_tokenizer(use_pexpect=True):
             return hfst_tokenize
     else:
         try:
-            import nltk
+            import nltk  # type: ignore
             assert nltk.download('punkt')
         except ModuleNotFoundError as e:
             raise ModuleNotFoundError('Neither hfst or nltk are installed. '
@@ -82,7 +91,7 @@ def get_tokenizer(use_pexpect=True):
             return nltk.word_tokenize
 
 
-class Text:  # TODO inherit from `list`, put Toks in self
+class Text:  # TODO inherit from `list`, put Toks in self ??
     """Sequence of `Token`s.
 
     An abbreviated `repr` can be achieved using string formatting:
@@ -96,17 +105,27 @@ class Text:  # TODO inherit from `list`, put Toks in self
     __slots__ = ['_tokenized', '_analyzed', '_disambiguated', '_from_str',
                  'orig', 'toks', 'Toks', 'text_name', 'experiment',
                  'annotation']
+    _tokenized: bool
+    _analyzed: bool
+    _disambiguated: bool
+    _from_str: bool
+    orig: str
+    toks: List[str]
+    Toks: List[Token]
+    text_name: str
+    experiment: bool
+    annotation: str
 
     def __init__(self, input_text, tokenize=True, analyze=True,
                  disambiguate=False, tokenizer=None, analyzer=None,
                  gram_path=None, text_name=None, experiment=False,
-                 annotation=''):
+                 annotation='') -> None:
         """Note the difference between self.toks and self.Toks, where the
         latter is a list of Token objects, the former a list of strings.
         """
         self._analyzed = False
         self._disambiguated = False
-        self.Toks = None
+        self.Toks = []
         self.text_name = text_name
         self.experiment = experiment
         self.annotation = annotation
@@ -116,18 +135,30 @@ class Text:  # TODO inherit from `list`, put Toks in self
             self._from_str = True
             self.orig = input_text
             self._tokenized = False
-            self.toks = None
+            self.toks = []
         # elif input_text is a sequence of `str`s...
         elif ((hasattr(input_text, '__iter__')
                or hasattr(input_text, '__getitem__'))
               and isinstance(input_text[0], str)):
-            self._from_str = False
-            self.orig = ' '.join(input_text)
-            self._tokenized = True
             self.toks = input_text
+            self._tokenized = True
+            self.orig = ' '.join(input_text)
+        # elif input_text is a sequence of `Token`s...
+        elif ((hasattr(input_text, '__iter__')
+               or hasattr(input_text, '__getitem__'))
+              and isinstance(input_text[0], Token)):
+            self._analyzed = True
+            self.Toks = input_text
+            self.toks = [t.orig for t in input_text]
+            self._tokenized = True
+            self.orig = ' '.join(input_text)
+            return
         else:
-            raise NotImplementedError(f'Expected `str` or sequence of `str`s; '
-                                      'got {type(input_text)}.')
+            raise NotImplementedError('Expected `str`, '
+                                      'or sequence of `str`s, '
+                                      'or sequence of `Token`s; '
+                                      f'got {type(input_text)}: '
+                                      f'{repr(input_text)[:50]}...')
         if tokenize and not self.toks:
             self.tokenize(tokenizer=tokenizer)
         if analyze:
@@ -135,20 +166,35 @@ class Text:  # TODO inherit from `list`, put Toks in self
         if disambiguate:
             self.disambiguate(gram_path=gram_path)
 
-    def __format__(self, format_spec):
+    @classmethod
+    def from_cg3(cls: Type[MypyText], input_str: str,
+                 disambiguate=False) -> MypyText:
+        """Initialize Text object from CG3 stream."""
+        Toks = cls.parse_cg3(input_str)
+        return cls(Toks, disambiguate=disambiguate)
+
+    @classmethod
+    def from_hfst(cls: Type[MypyText], input_str,
+                  disambiguate=False) -> MypyText:
+        """Initialize Text object from HFST stream."""
+        raise NotImplementedError
+        Toks = cls.parse_hfst(input_str)
+        return cls(Toks, disambiguate=disambiguate)
+
+    def __format__(self, format_spec: str) -> str:
         tok_count = len(self.toks)
         tok_count_str = f', {tok_count} tokens'
         if not format_spec:
             return f'Text({self.orig!r}{tok_count_str})'
         return f'Text({self.orig[:int(format_spec)]!r}{tok_count_str})'
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'Text({self.orig!r})'
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.hfst_str()
 
-    def hfst_str(self):
+    def hfst_str(self) -> str:
         """Text HFST-/XFST-style stream."""
         try:
             return '\n\n'.join(t.hfst_str() for t in self.Toks) + '\n\n'
@@ -158,7 +204,7 @@ class Text:  # TODO inherit from `list`, put Toks in self
             except TypeError:
                 return f'(Text (not tokenized) {self.orig[:30]})'
 
-    def cg3_str(self, traces=False, annotated=False):
+    def cg3_str(self, traces=False, annotated=False) -> str:
         """Text CG3-style stream."""
         if annotated and self.annotation:
             ann = f'TEXT: {self.annotation}\n'
@@ -166,19 +212,20 @@ class Text:  # TODO inherit from `list`, put Toks in self
             ann = ''
         return f"{ann}{NEWLINE.join(t.cg3_str(traces=traces, annotated=annotated) for t in self.Toks)}\n\n"  # noqa: E501
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         return self.Toks < other.Toks
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.Toks == other.Toks
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.Toks)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.Toks)
 
-    def __getitem__(self, i):
+    def __getitem__(self, i: int) -> Union[Token, str]:
+        # TODO return only Token or str, not either
         try:
             return self.Toks[i]
         except TypeError:
@@ -195,14 +242,14 @@ class Text:  # TODO inherit from `list`, put Toks in self
             raise TypeError('Text object only iterable after morphological '
                             'analysis. Try Text.analyze() first.') from e
 
-    def tokenize(self, tokenizer=None):
+    def tokenize(self, tokenizer=None) -> None:
         """Tokenize Text using `tokenizer`."""
         if tokenizer is None:
-            tokenizer = self.tokenizer
+            tokenizer = get_tokenizer()
         self.toks = tokenizer(self.orig)
         self._tokenized = True
 
-    def analyze(self, analyzer=None, experiment=None):
+    def analyze(self, analyzer=None, experiment=None) -> None:
         """Analyze Text's self.toks."""
         if analyzer is None:
             analyzer = get_fst('analyzer')
@@ -214,7 +261,7 @@ class Text:  # TODO inherit from `list`, put Toks in self
             self.Toks = [analyzer.lookup(t) for t in self.toks]
         self._analyzed = True
 
-    def disambiguate(self, gram_path=None, traces=True):
+    def disambiguate(self, gram_path=None, traces=True) -> None:
         """Remove Text's readings using CG3 grammar at gram_path."""
         if gram_path is None:
             gram_path = RSRC_PATH + 'disambiguator.cg3'
@@ -244,51 +291,44 @@ class Text:  # TODO inherit from `list`, put Toks in self
                                              in zip(self.Toks, new_Toks)))
         for old, new in zip(self.Toks, new_Toks):
             old.readings = new.readings
-            old.removed_readings = new.removed_readings  # TODO should be += ?
+            old.removed_readings += new.removed_readings
             old.lemmas = new.lemmas
         self._disambiguated = True
 
     @staticmethod
-    def parse_cg3(stream):
-        """Convert cg3 stream into hfst tuples.
-
-        Convert...
-        "<полчаса>"
-            "час N Msc Inan Sg Gen Count" <W:0.0000000000>
-                "пол Num Acc" <W:0.0000000000>
-        ;   "час N Msc Inan Sg Gen Count" <W:0.0000000000>
-                "пол Num Nom" <W:0.0000000000>
-        ...into...
-        ('полчаса',
-         (('пол+Num+Acc#час+N+Msc+Inan+Sg+Gen+Count', 0.0)),
-         (('пол+Num+Nom#час+N+Msc+Inan+Sg+Gen+Count', 0.0)))
-        """
+    def parse_cg3(stream: str) -> List[Token]:  # TODO redo w real parsing algo
+        """Convert cg3 stream into list of `Token`s."""
+        # variable names with o_ refer to "old", i.e. from the previous line
+        # variable names with n_ refer to "new", i.e. from the current line
         output = []
         readings = []
         rm_readings = []
+
+        # declare types that mypy cannot determine automatically
+        o_rm, o_read, o_weight, o_rule, o_tok = [''] * 5
+
         for line in stream.split('\n'):
             # print('LINE', line)
             # parse and get state: 0-token, 1-reading, 2+-sub-reading
-            try:
-                n_tok = re.match('"<((?:.|\")*)>"', line).group(1)
+            n_tok_match = re.match('"<((?:.|\")*)>"', line)
+            if n_tok_match:
+                n_tok = n_tok_match.group(1)
                 n_state = 0
                 # print('PARSE tok', n_tok)
-            except AttributeError:
-                try:
-                    n_rm, n_tabs, n_lemma, n_tags, n_weight, n_rule = re.match(r'(;)?(\t+)"((?:.|\")*)" (.*?) <W:(.*)> ?(.*)$', line).groups()  # noqa: E501
-                except AttributeError:
+            else:
+                line_match = re.match(r'(;)?(\t+)"((?:.|\")*)" (.*?) <W:(.*)> ?(.*)$', line)  # noqa: E501
+                if line_match:
+                    n_rm, n_tabs, n_lemma, n_tags, n_weight, n_rule = line_match.groups()  # noqa: E501
+                else:
                     if line:
                         print('WARNING (parse_cg3) unrecognized line:', line,
                               file=sys.stderr)
                     continue
-                n_tabs = len(n_tabs)  # used to track state as well
-                n_weight = float(n_weight)
                 if n_rule:
                     n_rule = f' {n_rule}'
-                else:
-                    n_rule = ''
-                n_state = n_tabs
+                n_state = len(n_tabs)
                 # print('PARSE read', n_lemma, n_tags)
+
             # ================================================================
             # do things based on state
             if n_state == 0:
@@ -296,56 +336,53 @@ class Text:  # TODO inherit from `list`, put Toks in self
                 # append previous Token to output
                 try:
                     if not o_rm:
-                        readings.append((o_read, o_weight, o_rule))
+                        readings.append((o_read, float(o_weight), o_rule))
                     else:
-                        rm_readings.append((o_read, o_weight, o_rule))
+                        rm_readings.append((o_read, float(o_weight), o_rule))
                     t = Token(o_tok, readings, removed_readings=rm_readings)
                     output.append(t)
                     # print(' '*60, '0\tappend.READ', o_read)
                     # print(' '*60, '0\tappend.TOK', t)
-                except NameError:
+                except ValueError:  # float('') occurs on the first line
                     pass
                 readings = []
                 rm_readings = []
                 o_tok, o_state = n_tok, n_state
-                del n_tok, n_state
             elif n_state == 1:
                 if o_state >= 1:
                     # append previous reading
-                    if not o_rm:  # noqa: F821
-                        readings.append((o_read, o_weight, o_rule))  # noqa: F821, E501
+                    if not o_rm:
+                        readings.append((o_read, float(o_weight), o_rule))
                     else:
-                        rm_readings.append((o_read, o_weight, o_rule))  # noqa: F821, E501
+                        rm_readings.append((o_read, float(o_weight), o_rule))
                     # print(' '*60, '1 (1+)\tappend.READ', o_read)
                 n_read = f"{n_lemma}+{n_tags.replace(' ', '+')}"
                 # print(' '*60, '1\tREAD', n_read)
                 # rotate values from new to old
-                o_rm, o_tabs, o_lemma, o_tags, o_weight, o_rule, o_read, o_state = n_rm, n_tabs, n_lemma, n_tags, n_weight, n_rule, n_read, n_state  # noqa: E501,F841
-                del n_rm, n_tabs, n_lemma, n_tags, n_weight, n_rule, n_read, n_state  # noqa: E501
+                o_rm, o_weight, o_rule, o_read, o_state = n_rm, n_weight, n_rule, n_read, n_state  # noqa: E501
             else:  # if n_state > 1
                 # add subreading to reading
                 n_read = f"{n_lemma}+{n_tags.replace(' ', '+')}#{o_read}"
                 # print(' '*60, '2\tREAD', n_read)
                 # rotate values from new to old
-                o_tabs, o_lemma, o_tags, o_weight, o_rule, o_read, o_state = n_tabs, n_lemma, n_tags, n_weight, n_rule, n_read, n_state  # noqa: E501, F841
-                del n_rm, n_tabs, n_lemma, n_tags, n_weight, n_rule, n_read, n_state  # noqa: E501
+                o_weight, o_rule, o_read, o_state = n_weight, n_rule, n_read, n_state  # noqa: E501
         # print(' '*60, 'FAT LADY', o_read)
         if not o_rm:
-            readings.append((o_read, o_weight, o_rule))
+            readings.append((o_read, float(o_weight), o_rule))
         else:
-            rm_readings.append((o_read, o_weight, o_rule))
+            rm_readings.append((o_read, float(o_weight), o_rule))
         t = Token(o_tok, readings, removed_readings=rm_readings)
         output.append(t)
         return output
 
     def stressify(self, selection='safe', guess=False, experiment=None,
-                  lemmas={}):
+                  lemmas={}) -> str:
         """Text: Return str of running text with stress marked.
 
         selection  (Applies only to words in the lexicon.)
             safe   -- Only add stress if it is unambiguous.
             freq   -- lemma+reading > lemma > reading
-            random -- Randomly choose between specified stress positions.
+            rand   -- Randomly choose between specified stress positions.
             all    -- Add stress to all possible specified stress positions.
 
         guess
@@ -371,7 +408,7 @@ class Text:  # TODO inherit from `list`, put Toks in self
                     for t in self.Toks]
         return self.respace(out_text)
 
-    def stress_eval(self, stress_params):
+    def stress_eval(self, stress_params: StressParams) -> Counter:
         """Text: get dictionary of evaluation metrics of stress predictions."""
         V = 'аэоуыяеёюи'
         counts = Counter(t.stress_predictions[stress_params][1]
@@ -382,7 +419,8 @@ class Text:  # TODO inherit from `list`, put Toks in self
                                           > 1))])
         return counts
 
-    def stress_preds2tsv(self, path=None, timestamp=True, filename=None):
+    def stress_preds2tsv(self, path=None, timestamp=True,
+                         filename=None) -> None:
         """From Text, write a tab-separated file with aligned predictions
         from experiment.
 
@@ -423,13 +461,13 @@ class Text:  # TODO inherit from `list`, put Toks in self
                       sep='\t', file=f)
 
     def phoneticize(self, selection='safe', guess=False, experiment=False,
-                    context=False):
+                    context=False) -> str:
         """Text: Return str of running text of phonetic transcription.
 
         selection  (Applies only to words in the lexicon.)
             safe   -- Only add stress if it is unambiguous.
             freq   -- lemma+reading > lemma > reading
-            random -- Randomly choose between specified stress positions.
+            rand   -- Randomly choose between specified stress positions.
             all    -- Add stress to all possible specified stress positions.
 
         guess
@@ -452,7 +490,7 @@ class Text:  # TODO inherit from `list`, put Toks in self
                                           experiment=experiment))
         return self.respace(out_text)
 
-    def respace(self, toks):
+    def respace(self, toks: List[str]) -> str:
         """Attempt to restore/normalize spacing (esp. around punctuation)."""
         # TODO re-evaluate this
         if self._from_str:
@@ -463,7 +501,7 @@ class Text:  # TODO inherit from `list`, put Toks in self
                 return unspace_punct(' '.join(t if t else 'UDAR.None'
                                               for t in toks))
         elif isinstance(toks, list):
-            for match in re.finditer(r'\s+', self.orig):
-                raise NotImplementedError(f'Cannot respace {self}.')
+            # for match in re.finditer(r'\s+', self.orig):
+            raise NotImplementedError(f'Cannot respace {self}.')
         else:
             return unspace_punct(' '.join(toks))

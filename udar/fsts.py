@@ -1,10 +1,11 @@
 """Python wrapper of UDAR, a part-of-speech tagger for (accented) Russian"""
 
-import pexpect
 from pkg_resources import resource_filename
 from random import shuffle
+from typing import Dict
 
-import hfst
+import hfst  # type: ignore
+import pexpect  # type: ignore
 
 from .misc import destress
 from .tok import Token
@@ -14,8 +15,6 @@ __all__ = ['get_fst', 'get_g2p', 'Udar']
 
 RSRC_PATH = resource_filename('udar', 'resources/')
 G2P_FNAME = RSRC_PATH + 'g2p.hfstol'
-
-fst_cache = {}
 
 ALIAS = {'analyser': 'analyzer',
          'L2-analyser': 'L2-analyzer',
@@ -48,7 +47,7 @@ class Udar:
             - 'accented-generator' (or 'acc-generator')
         """
         if flavor == 'g2p':
-            raise TypeError('For g2p, use get_g2p().')
+            raise ValueError('For g2p, use get_g2p().')
         self.flavor = flavor
         fnames = {'analyzer': 'analyser-gt-desc.hfstol',
                   'L2-analyzer': 'analyser-gt-desc-L2.hfstol',
@@ -100,6 +99,9 @@ class Udar:
         in_tok.readings = [max(in_tok.readings, default=Token(),
                                key=lambda r: r.weight)]
         return in_tok
+
+
+fst_cache: Dict[str, Udar] = {}
 
 
 class HFSTTokenizer:

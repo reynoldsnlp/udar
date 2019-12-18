@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 from types import GeneratorType
 
-import pandas as pd
+import pandas as pd  # type: ignore
 
 import udar
 
