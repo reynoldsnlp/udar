@@ -296,10 +296,8 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
         self._disambiguated = True
 
     @staticmethod
-    def parse_cg3(stream: str) -> List[Token]:  # TODO redo w real parsing algo
+    def parse_cg3(stream: str) -> List[Token]:
         """Convert cg3 stream into list of `Token`s."""
-        # variable names with o_ refer to "old", i.e. from the previous line
-        # variable names with n_ refer to "new", i.e. from the current line
         output = []
         readings = []
         rm_readings = []
@@ -308,13 +306,23 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
         o_rm, o_read, o_weight, o_rule, o_tok = [''] * 5
 
         for line in stream.split('\n'):
-            # print('LINE', line)
             # parse and get state: 0-token, 1-reading, 2+-sub-reading
             n_tok_match = re.match('"<((?:.|\")*)>"', line)
             if n_tok_match:
                 n_tok = n_tok_match.group(1)
                 n_state = 0
-                # print('PARSE tok', n_tok)
+                try:
+                    if not o_rm:
+                        readings.append((o_read, float(o_weight), o_rule))
+                    else:
+                        rm_readings.append((o_read, float(o_weight), o_rule))
+                    t = Token(o_tok, readings, removed_readings=rm_readings)
+                    output.append(t)
+                except ValueError:  # float('') occurs on the first line
+                    pass
+                readings = []
+                rm_readings = []
+                o_tok, o_state = n_tok, n_state
             else:
                 line_match = re.match(r'(;)?(\t+)"((?:.|\")*)" (.*?) <W:(.*)> ?(.*)$', line)  # noqa: E501
                 if line_match:
@@ -327,46 +335,22 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
                 if n_rule:
                     n_rule = f' {n_rule}'
                 n_state = len(n_tabs)
-                # print('PARSE read', n_lemma, n_tags)
 
-            # ================================================================
-            # do things based on state
-            if n_state == 0:
-                # add previous reading to readings
-                # append previous Token to output
-                try:
-                    if not o_rm:
-                        readings.append((o_read, float(o_weight), o_rule))
-                    else:
-                        rm_readings.append((o_read, float(o_weight), o_rule))
-                    t = Token(o_tok, readings, removed_readings=rm_readings)
-                    output.append(t)
-                    # print(' '*60, '0\tappend.READ', o_read)
-                    # print(' '*60, '0\tappend.TOK', t)
-                except ValueError:  # float('') occurs on the first line
-                    pass
-                readings = []
-                rm_readings = []
-                o_tok, o_state = n_tok, n_state
-            elif n_state == 1:
-                if o_state >= 1:
-                    # append previous reading
-                    if not o_rm:
-                        readings.append((o_read, float(o_weight), o_rule))
-                    else:
-                        rm_readings.append((o_read, float(o_weight), o_rule))
-                    # print(' '*60, '1 (1+)\tappend.READ', o_read)
-                n_read = f"{n_lemma}+{n_tags.replace(' ', '+')}"
-                # print(' '*60, '1\tREAD', n_read)
-                # rotate values from new to old
-                o_rm, o_weight, o_rule, o_read, o_state = n_rm, n_weight, n_rule, n_read, n_state  # noqa: E501
-            else:  # if n_state > 1
-                # add subreading to reading
-                n_read = f"{n_lemma}+{n_tags.replace(' ', '+')}#{o_read}"
-                # print(' '*60, '2\tREAD', n_read)
-                # rotate values from new to old
-                o_weight, o_rule, o_read, o_state = n_weight, n_rule, n_read, n_state  # noqa: E501
-        # print(' '*60, 'FAT LADY', o_read)
+                if n_state == 1:
+                    if o_state >= 1:
+                        # append previous reading
+                        if not o_rm:
+                            readings.append((o_read, float(o_weight), o_rule))
+                        else:
+                            rm_readings.append((o_read, float(o_weight), o_rule))  # noqa: E501
+                    n_read = f"{n_lemma}+{n_tags.replace(' ', '+')}"
+                    # rotate values from new to old
+                    o_rm, o_weight, o_rule, o_read, o_state = n_rm, n_weight, n_rule, n_read, n_state  # noqa: E501
+                else:  # if n_state > 1
+                    # add subreading to reading
+                    n_read = f"{n_lemma}+{n_tags.replace(' ', '+')}#{o_read}"
+                    # rotate values from new to old
+                    o_weight, o_rule, o_read, o_state = n_weight, n_rule, n_read, n_state  # noqa: E501
         if not o_rm:
             readings.append((o_read, float(o_weight), o_rule))
         else:
