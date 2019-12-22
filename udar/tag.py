@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 from typing import Dict
+from typing import Union
 
 
 __all__ = ['Tag', 'tag_dict']
@@ -19,37 +20,37 @@ class Tag:
     """Grammatical tag expressing a morphosyntactic or other value."""
     __slots__ = ['name', 'ms_feat', 'detail', 'is_L2', 'is_Err']
 
-    def __init__(self, name: str, ms_feat: str, detail: str) -> None:
+    def __init__(self, name: str, ms_feat: str, detail: str):
         self.name = name
         self.ms_feat = ms_feat
         self.detail = detail
         self.is_L2 = name.startswith('Err/L2')
         self.is_Err = name.startswith('Err')
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return f'Tag({self.name})'
 
-    def __str__(self) -> str:
+    def __str__(self):
         return f'{self.name}'
 
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other):
         return self.name < other.name
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other):
         """Exactly equivalent to Tag or str."""
         try:
             return self.name == other.name
         except AttributeError:
             return self.name == other
 
-    def is_congruent_with(self, other) -> bool:
+    def is_congruent_with(self, other):
         """Like __eq__, but allow loose matches, e.g. AnIn == Anim."""
         return self == other or self.name in ambiguous_tag_dict[other]
 
-    def __hash__(self) -> int:
+    def __hash__(self):
         return hash(self.name)
 
-    def info(self) -> str:
+    def info(self):
         return f'{self.detail}'
 
 
@@ -195,7 +196,7 @@ _tags = [('A', 'POS', 'Adjective'),
          ('CLB', 'SYNTAX', 'Clause boundary'),
         ]
 
-tag_dict: Dict[str, Tag] = {}
+tag_dict: Dict[Union[Tag, str], Tag] = {}
 for tag_name, ms_feat, detail in _tags:
     if tag_name in tag_dict:
         raise NameError(f'{tag_name} is listed twice in _tags.')  # pragma: no cover  # noqa: E501

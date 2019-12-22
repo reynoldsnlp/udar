@@ -1,11 +1,14 @@
 from collections import defaultdict
 import re
 import sys
+from typing import Dict
+from typing import Union
 
 from .fsts import get_fst
 from .misc import destress
 from .reading import Reading
 from .tag import tag_dict
+from .tag import Tag
 from .text import Text
 from .text import get_tokenizer
 
@@ -15,11 +18,11 @@ __all__ = ['tag_info', 'stressify', 'noun_distractors', 'stress_distractors',
 CASES = [tag for name, tag in tag_dict.items() if tag.ms_feat == 'CASE']
 
 
-def tag_info(in_tag):
+def tag_info(in_tag: Union[Tag, str]):
     return tag_dict[in_tag].info()
 
 
-def stressify(in_text, disambiguate=False, **kwargs):
+def stressify(in_str: str, disambiguate=False, **kwargs):
     """Automatically add stress to running text.
 
     disambiguate -- whether to use the constraint grammar
@@ -27,11 +30,11 @@ def stressify(in_text, disambiguate=False, **kwargs):
     >>> stressify('слову')
     'сло́ву'
     """
-    in_text = Text(in_text, disambiguate=disambiguate)
+    in_text = Text(in_str, disambiguate=disambiguate)
     return in_text.stressify(**kwargs)
 
 
-def noun_distractors(noun, stressed=True):
+def noun_distractors(noun: Union[str, Reading], stressed=True):
     """Given an input noun, return set of wordforms in its paradigm.
 
     The input noun can be in any case. Output paradigm is limited to the same
@@ -71,7 +74,7 @@ def noun_distractors(noun, stressed=True):
     return out_set - {None}
 
 
-def diagnose_L2(in_text, tokenizer=None):
+def diagnose_L2(in_str: str, tokenizer=None):
     """Analyze running text for L2 errors.
 
     Return dict of errors: {<Tag>: {set, of, exemplars, in, text}, ...}
@@ -81,12 +84,12 @@ def diagnose_L2(in_text, tokenizer=None):
     True
     >>> tag_info('Err/L2_ii')
     'L2 error: Failure to change ending ие to ии in +Sg+Loc or +Sg+Dat, e.g. к Марие, о кафетерие, о знание'
-    """
+    """  # noqa: E501
     if tokenizer is None:
         tokenizer = get_tokenizer()
-    out_dict = defaultdict(set)
+    out_dict: Dict[Tag, set] = defaultdict(set)
     L2an = get_fst('L2-analyzer')
-    in_text = Text(in_text, analyze=False)
+    in_text = Text(in_str, analyze=False)
     in_text.analyze(analyzer=L2an)
     for tok in in_text:
         if tok.is_L2():
@@ -96,7 +99,7 @@ def diagnose_L2(in_text, tokenizer=None):
     return dict(out_dict)
 
 
-def stress_distractors(word):
+def stress_distractors(word: str):
     """Given a word, return a list of all possible stress positions,
     including ё-ification.
 
@@ -112,4 +115,4 @@ def stress_distractors(word):
     Yos = [f'{word[:m.start()]}Ё{word[m.end():]}'
            for m in re.finditer('(Е)', word)]
     return sorted(stresses + yos + Yos,
-                  key=lambda x: re.search('[Ёё\u0301]', x).start())
+                  key=lambda x: re.search('[Ёё\u0301]', x).start())  # type: ignore  # noqa: E501

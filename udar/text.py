@@ -125,6 +125,7 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
         """
         self._analyzed = False
         self._disambiguated = False
+        self._from_str = False
         self.Toks = []
         self.text_name = text_name
         self.experiment = experiment
@@ -151,7 +152,7 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
             self.Toks = input_text
             self.toks = [t.orig for t in input_text]
             self._tokenized = True
-            self.orig = ' '.join(input_text)
+            self.orig = ' '.join(self.toks)
             return
         else:
             raise NotImplementedError('Expected `str`, '
@@ -177,21 +178,20 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
     def from_hfst(cls: Type[MypyText], input_str,
                   disambiguate=False) -> MypyText:
         """Initialize Text object from HFST stream."""
-        raise NotImplementedError
         Toks = cls.parse_hfst(input_str)
         return cls(Toks, disambiguate=disambiguate)
 
-    def __format__(self, format_spec: str) -> str:
+    def __format__(self, format_spec: str):
         tok_count = len(self.toks)
         tok_count_str = f', {tok_count} tokens'
         if not format_spec:
             return f'Text({self.orig!r}{tok_count_str})'
         return f'Text({self.orig[:int(format_spec)]!r}{tok_count_str})'
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return f'Text({self.orig!r})'
 
-    def __str__(self) -> str:
+    def __str__(self):
         return self.hfst_str()
 
     def hfst_str(self) -> str:
@@ -212,16 +212,16 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
             ann = ''
         return f"{ann}{NEWLINE.join(t.cg3_str(traces=traces, annotated=annotated) for t in self.Toks)}\n\n"  # noqa: E501
 
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other):
         return self.Toks < other.Toks
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other):
         return self.Toks == other.Toks
 
-    def __hash__(self) -> int:
+    def __hash__(self):
         return hash(self.Toks)
 
-    def __len__(self) -> int:
+    def __len__(self):
         return len(self.Toks)
 
     def __getitem__(self, i: int) -> Union[Token, str]:
@@ -296,6 +296,21 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
         self._disambiguated = True
 
     @staticmethod
+    def parse_hfst(stream: str) -> List[Token]:
+        """Convert hfst stream into list of `Token`s."""
+        output = []
+        for cohort in stream.strip().split('\n\n'):
+            readings = []
+            for line in cohort.split('\n'):
+                try:
+                    token, reading, weight = line.split('\t')
+                except ValueError as e:
+                    raise ValueError(line) from e
+                readings.append((reading, weight, ''))
+            output.append(Token(token, readings))
+        return output
+
+    @staticmethod
     def parse_cg3(stream: str) -> List[Token]:
         """Convert cg3 stream into list of `Token`s."""
         output = []
@@ -312,10 +327,11 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
                 n_tok = n_tok_match.group(1)
                 n_state = 0
                 try:
+                    float(o_weight)  # to trigger ValueError on first line
                     if not o_rm:
-                        readings.append((o_read, float(o_weight), o_rule))
+                        readings.append((o_read, o_weight, o_rule))
                     else:
-                        rm_readings.append((o_read, float(o_weight), o_rule))
+                        rm_readings.append((o_read, o_weight, o_rule))
                     t = Token(o_tok, readings, removed_readings=rm_readings)
                     output.append(t)
                 except ValueError:  # float('') occurs on the first line
@@ -340,9 +356,9 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
                     if o_state >= 1:
                         # append previous reading
                         if not o_rm:
-                            readings.append((o_read, float(o_weight), o_rule))
+                            readings.append((o_read, o_weight, o_rule))
                         else:
-                            rm_readings.append((o_read, float(o_weight), o_rule))  # noqa: E501
+                            rm_readings.append((o_read, o_weight, o_rule))  # noqa: E501
                     n_read = f"{n_lemma}+{n_tags.replace(' ', '+')}"
                     # rotate values from new to old
                     o_rm, o_weight, o_rule, o_read, o_state = n_rm, n_weight, n_rule, n_read, n_state  # noqa: E501
@@ -352,9 +368,9 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
                     # rotate values from new to old
                     o_weight, o_rule, o_read, o_state = n_weight, n_rule, n_read, n_state  # noqa: E501
         if not o_rm:
-            readings.append((o_read, float(o_weight), o_rule))
+            readings.append((o_read, o_weight, o_rule))
         else:
-            rm_readings.append((o_read, float(o_weight), o_rule))
+            rm_readings.append((o_read, o_weight, o_rule))
         t = Token(o_tok, readings, removed_readings=rm_readings)
         output.append(t)
         return output

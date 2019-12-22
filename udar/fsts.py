@@ -3,6 +3,7 @@
 from pkg_resources import resource_filename
 from random import shuffle
 from typing import Dict
+from typing import Union
 
 import hfst  # type: ignore
 import pexpect  # type: ignore
@@ -36,10 +37,13 @@ class Udar:
     >>> gen = Udar('accented-generator')
     >>> gen.generate('слово+N+Neu+Inan+Sg+Gen')
     'сло́ва'
-    """
+    """  # noqa: E501
     __slots__ = ['flavor', 'path2fst', 'fst']
+    flavor: str
+    path2fst: str
+    # fst: 'libhfst.HfstTransducer'
 
-    def __init__(self, flavor):
+    def __init__(self, flavor: str):
         """Build fst for lookup. Flavor must be one of the following:
             - 'analyzer' (or 'analyser')
             - 'L2-analyzer' (or 'L2-analyser')
@@ -63,17 +67,17 @@ class Udar:
         self.fst = fst_stream.read()
         assert fst_stream.is_eof()  # be sure the hfstol file only had one fst
 
-    def generate(self, read):
+    def generate(self, read: str) -> Union[Token, None]:
         """Return str from a given lemma+Reading."""
-        from .reading import Reading  # TODO This is probably a performance hit
+        from .reading import Reading  # TODO is this a performance hit?
         if isinstance(read, Reading):
-            read = read.noL2_str()
+            read = read.hfst_noL2_str()
         try:
             return self.fst.lookup(read)[0][0]
         except IndexError:
             return None
 
-    def lookup(self, in_tok):
+    def lookup(self, in_tok: str) -> Token:
         """Return Token with all readings.
 
         If lookup returns nothing, try lookup with stress removed.
@@ -81,20 +85,20 @@ class Udar:
         return Token(in_tok, (self.fst.lookup(in_tok) or
                               self.fst.lookup(destress(in_tok))))
 
-    def lookup_all_best(self, in_tok):
+    def lookup_all_best(self, in_str: str) -> Token:
         """Return Token with only the highest-weighted reading(s)."""
-        in_tok = self.lookup(in_tok)
+        in_tok = self.lookup(in_str)
         rmax = max([r.weight for r in in_tok.readings])
         in_tok.readings = [r for r in in_tok.readings if r.weight == rmax]
         return in_tok
 
-    def lookup_one_best(self, in_tok):
+    def lookup_one_best(self, in_str: str) -> Token:
         """Return Token with only one highest-weighted output.
 
         In the case of multiple readings with the same max weight,
         one is selected at random.
         """
-        in_tok = self.lookup(in_tok)
+        in_tok = self.lookup(in_str)
         shuffle(in_tok.readings)
         in_tok.readings = [max(in_tok.readings, default=Token(),
                                key=lambda r: r.weight)]
@@ -109,13 +113,15 @@ class HFSTTokenizer:
     once, and then each call to the tokenizer sends input and returns the
     output.
     """
+    tokenizer: 'pexpect.pty_spawn.spawn'
+
     def __init__(self):
         self.tokenizer = pexpect.spawn(f'hfst-tokenize {RSRC_PATH}/tokeniser-disamb-gt-desc.pmhfst',  # noqa: E501
                                        echo=False, encoding='utf8')
         self.tokenizer.delaybeforesend = None
         self.tokenizer.expect('')
 
-    def __call__(self, input_str):
+    def __call__(self, input_str: str):
         self.tokenizer.sendline(f'{input_str} >>>\n')
         try:
             self.tokenizer.expect('\r\n>\r\n>\r\n>\r\n')
@@ -124,7 +130,7 @@ class HFSTTokenizer:
         return self.tokenizer.before.split('\r\n')
 
 
-def get_fst(flavor):
+def get_fst(flavor: str):
     global fst_cache
     try:
         return fst_cache[flavor]

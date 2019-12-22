@@ -1,45 +1,26 @@
 """Grammatical readings."""
 
+from math import isclose
 import re
 import sys
+from typing import List
+from typing import Set
+from typing import Tuple
+from typing import TypeVar
+from typing import Union
 
 from .fsts import get_fst
 from .tag import tag_dict
+from .tag import Tag
 
 
 __all__ = ['Reading', 'MultiReading']
 
+# `TypeVar`s for type annotations of Reading and Multireading
+MypyReading = TypeVar('MypyReading', bound='Reading')
+MypyMultiReading = TypeVar('MypyMultiReading', bound='MultiReading')
+
 TAB = '\t'
-
-
-def _readify(in_tup):
-    """Try to make Reading. If that fails, try to make a MultiReading."""
-    try:
-        r, weight = in_tup
-        cg_rule = ''
-    except ValueError:
-        r, weight, cg_rule = in_tup
-    try:
-        return Reading(r, weight, cg_rule)
-    except KeyError:
-        try:
-            return MultiReading(r, weight, cg_rule)
-        except AssertionError:
-            if r.endswith('+?'):
-                return None
-            else:
-                raise NotImplementedError(f'Cannot parse reading {r}.')
-
-
-def _get_lemmas(reading):
-    try:
-        return [reading.lemma]
-    except AttributeError:
-        out = []
-        for r in reading.readings:
-            out.extend(_get_lemmas(r))
-        return out
-    raise NotImplementedError("I don't know either... ;-)")
 
 
 class Reading:
@@ -48,17 +29,23 @@ class Reading:
     A given Token can have many Readings.
     """
     __slots__ = ['lemma', 'tags', 'weight', 'tagset', 'L2_tags', 'cg_rule']
+    lemma: str
+    tags: List[Tag]
+    tagset: Set[Tag]
+    L2_tags: Set[Tag]
+    weight: str
+    cg_rule: Union[str, None]
 
-    def __init__(self, r, weight, cg_rule):
+    def __init__(self, r: str, weight: str, cg_rule: str):
         """Convert HFST tuples to more user-friendly interface."""
-        self.lemma, *self.tags = re.split(r'\+(?=[^+])', r)  # TODO timeit
-        self.tags = [tag_dict[t] for t in self.tags]
+        self.lemma, *tags = re.split(r'\+(?=[^+])', r)  # TODO timeit
+        self.tags = [tag_dict[t] for t in tags]
         self.tagset = set(self.tags)
         self.L2_tags = {t for t in self.tags if t.is_L2}
         self.weight = weight
         self.cg_rule = cg_rule
 
-    def __contains__(self, key):
+    def __contains__(self, key: Union[Tag, str]):
         """Enable `in` Reading.
 
         Fastest if `key` is a Tag, but can also be a str.
@@ -84,22 +71,24 @@ class Reading:
             rule = self.cg_rule
         else:
             rule = ''
-        return f'\t"{self.lemma}" {" ".join(t.name for t in self.tags)} <W:{self.weight:.6f}>{rule}'  # noqa: E501
+        return f'\t"{self.lemma}" {" ".join(t.name for t in self.tags)} <W:{float(self.weight):.6f}>{rule}'  # noqa: E501
 
     def hfst_noL2_str(self):
         """Reading HFST-/XFST-style stream, excluding L2 error tags."""
         return f'{self.lemma}+{"+".join(t.name for t in self.tags if not t.is_L2)}'  # noqa: E501
 
-    def __lt__(self, other):
-        return ((self.lemma, self.tags, self.weight, self.cg_rule)
-                < (other.lemma, other.tags, other.weight, other.cg_rule))
+    def __lt__(self, other: MypyReading):
+        return ((self.lemma, self.tags, float(self.weight), self.cg_rule)
+                < (other.lemma, other.tags, float(other.weight), other.cg_rule))  # noqa: E501
 
     def __eq__(self, other):
         """Matches lemma and all tags."""  # TODO decide about L2, Sem, etc.
         try:
             return (self.lemma == other.lemma
                     and self.tags == other.tags
-                    and self.weight == other.weight
+                    and (self.weight == other.weight
+                         or isclose(float(self.weight), float(other.weight),
+                                    abs_tol=1e-6))
                     and self.cg_rule == other.cg_rule)
         except AttributeError:
             return False
@@ -121,7 +110,7 @@ class Reading:
                   f'{self} {self.hfst_noL2_str()} {fst.generate(self.noL2_str())}',  # noqa: E501
                   file=sys.stderr)
 
-    def replace_tag(self, orig_tag, new_tag):
+    def replace_tag(self, orig_tag: Union[Tag, str], new_tag: Union[Tag, str]):
         """Replace a given tag in Reading with new tag."""
         # if given tags are `str`s, convert them to `Tag`s.
         # (`Tag`s are mapped to themselves.)
@@ -139,8 +128,11 @@ class MultiReading(Reading):
     (more than one underlying lemma)
     """
     __slots__ = ['readings', 'weight', 'cg_rule']
+    readings: List[Reading]
+    weight: str
+    cg_rule: str
 
-    def __init__(self, readings, weight, cg_rule):
+    def __init__(self, readings: str, weight: str, cg_rule: str):
         """Convert HFST tuples to more user-friendly interface."""
         assert '#' in readings
         self.readings = [_readify((r, weight, cg_rule))
@@ -148,7 +140,7 @@ class MultiReading(Reading):
         self.weight = weight
         self.cg_rule = cg_rule
 
-    def __contains__(self, key):
+    def __contains__(self, key: Union[Tag, str]):
         """Enable `in` MultiReading.
 
         Fastest if `key` is a Tag, but it can also be a str.
@@ -184,8 +176,7 @@ class MultiReading(Reading):
         return '\n'.join(lines)
 
     def __lt__(self, other):
-        return ((self.readings, self.removed_readings)
-                < (other.readings, other.removed_readings))
+        return self.readings < other.readings
 
     def __eq__(self, other):
         try:
@@ -205,10 +196,11 @@ class MultiReading(Reading):
             return fst.generate(self.hfst_noL2_str())
         except IndexError:
             print('ERROR Failed to generate: '
-                  f'{self} {self.hfst_noL2_str()} {fst.generate(self.noL2_str())}',  # noqa: E501
+                  f'{self} {self.hfst_noL2_str()} {fst.generate(self.hfst_noL2_str())}',  # noqa: E501
                   file=sys.stderr)
 
-    def replace_tag(self, orig_tag, new_tag, which_reading=None):
+    def replace_tag(self, orig_tag: Union[Tag, str], new_tag: Union[Tag, str],
+                    which_reading=None):
         """Attempt to replace tag in reading indexed by `which_reading`.
         If which_reading is not supplied, replace tag in all readings.
         """
@@ -228,3 +220,30 @@ class MultiReading(Reading):
                 self.readings[which_reading].tags[self.readings[which_reading].tags.index(orig_tag)] = new_tag  # noqa: E501
             except ValueError:
                 pass
+
+
+def _readify(in_tup: Union[Tuple[str, str], Tuple[str, str, str]]):
+    """Try to make Reading. If that fails, try to make a MultiReading."""
+    r, weight, *optional = in_tup
+    cg_rule: str = optional[0] if optional else ''
+    try:
+        return Reading(r, weight, cg_rule)
+    except KeyError:
+        try:
+            return MultiReading(r, weight, cg_rule)
+        except AssertionError:
+            if r.endswith('+?'):
+                return None
+            else:
+                raise NotImplementedError(f'Cannot parse reading {r}.')
+
+
+def _get_lemmas(reading: Union[Reading, MultiReading]) -> List[str]:
+    try:
+        return [reading.lemma]
+    except AttributeError:  # implies MultiReading
+        out = []
+        for r in reading.readings:  # type: ignore
+            out.extend(_get_lemmas(r))
+        return out
+    raise NotImplementedError("I don't know either... ;-)")

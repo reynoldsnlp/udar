@@ -42,7 +42,7 @@ result_names = dict([(Result.TP, 'TP'), (Result.TN, 'TN'), (Result.FP, 'FP'),
                      (Result.UNK, 'UNK')])
 
 
-def destress(token):
+def destress(token: str):
     return token.replace(ACUTE, '').replace(GRAVE, '').replace('ё', 'е').replace('Ё', 'Е')  # noqa: E501
 
 
@@ -72,6 +72,6 @@ def compute_metrics(results: Dict[Result, int]):
     return Metrics(**out_dict)  # type: ignore
 
 
-def unspace_punct(in_str):
+def unspace_punct(in_str: str):
     """Attempt to remove spaces before punctuation."""
     return re.sub(r' +([.?!;:])', r'\1', in_str)

@@ -4,7 +4,27 @@ import udar
 
 
 RSRC_PATH = resource_filename('udar', 'resources/')
+
 sent = 'Иванов и Сыроежкин говорили полчаса кое с кем о лицах, "ртах" и т.д.'
+
+hfst_str = '''Мы	мы+Pron+Pers+Pl1+Nom	50.000000
+
+"	"+PUNCT	50.000000
+
+уже	уже+Adv	50.000000
+уже	уже+Pcle	50.000000
+уже	уж²+N+Msc+Anim+Sg+Loc	53.304688
+уже	узкий+A+Cmpar+Pred	55.022461
+уже	узкий+A+Cmpar+Pred+Att	55.022461
+
+"	"+PUNCT	50.000000
+
+говорили	говорить+V+Impf+IV+Pst+MFN+Pl	56.312500
+говорили	говорить+V+Impf+TV+Pst+MFN+Pl	56.312500
+
+кое о чем	о+Pr#кое-что+Pron+Indef+Neu+Inan+Sg+Loc	50.000000
+
+.	.+CLB	50.000000'''
 
 
 def test_hfst_tokenize():
@@ -80,3 +100,9 @@ def test_cg3_parse_w_traces():
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
     assert output == text.cg3_str(traces=True)
+
+
+def test_from_hfst():
+    text = udar.Text(sent)
+    text2 = udar.Text.from_hfst(text.hfst_str())
+    assert text == text2

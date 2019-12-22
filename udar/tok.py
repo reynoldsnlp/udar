@@ -3,10 +3,14 @@
 from random import choice
 import re
 import sys
+from typing import Dict
+from typing import Tuple
+from typing import Union
 
 from .misc import destress
 from .misc import Result
 from .misc import StressParams
+from .tag import Tag
 
 
 __all__ = ['Token']
@@ -45,7 +49,7 @@ class Token:
         self.features = {}
         self.annotation = None
 
-    def __contains__(self, key):
+    def __contains__(self, key: Union[str, Tag]):
         """Enable `in` Token. Checks both lemmas and tags."""
         if self.readings:
             return key in self.lemmas or any(key in r for r in self.readings)
@@ -60,7 +64,7 @@ class Token:
 
     def hfst_str(self):
         """Token HFST-/XFST-style stream."""
-        return '\n'.join(f'{self.orig}\t{r.hfst_str()}\t{r.weight:.6f}'
+        return '\n'.join(f'{self.orig}\t{r.hfst_str()}\t{float(r.weight):.6f}'
                          for r in self.readings) \
                or f'{self.orig}\t{self.orig}+?\tinf'
 
@@ -85,10 +89,13 @@ class Token:
 
     def __eq__(self, other):
         # Do not include removed_readings in the comparison
-        return (self.orig == other.orig
-                and len(self.readings) == len(other.readings)
-                and all(s == o for s, o in zip(sorted(self.readings),
-                                               sorted(other.readings))))
+        try:
+            return (self.orig == other.orig
+                    and len(self.readings) == len(other.readings)
+                    and all(s == o for s, o in zip(sorted(self.readings),
+                                                   sorted(other.readings))))
+        except AttributeError:
+            return False
 
     def __hash__(self):
         return hash((self.orig, self.readings))
@@ -96,36 +103,36 @@ class Token:
     def __len__(self):
         return len(self.readings)
 
-    def is_L2(self):
+    def is_L2(self) -> bool:
         """Token: test if ALL readings contain an L2 error tag."""
         if self.readings:
             return all(r.L2_tags for r in self.readings)
         else:
             return False
 
-    def has_L2(self):
+    def has_L2(self) -> bool:
         """Token has ANY readings contain an L2 error tag."""
         if self.readings:
             return any(r.L2_tags for r in self.readings)
         else:
             return False
 
-    def has_lemma(self, lemma):
+    def has_lemma(self, lemma: str) -> bool:
         """Token has ANY readings that contain a given lemma."""
         return lemma in self.lemmas
 
-    def has_tag(self, tag):
+    def has_tag(self, tag: Union[Tag, str]) -> bool:
         """Token has ANY readings that contain a given tag."""
         if self.readings:
             return any(tag in r for r in self.readings)
         else:
             return False
 
-    def cap_indices(self):
+    def cap_indices(self) -> set:
         """Token's indices of capitalized characters in the original."""
         return {i for i, char in enumerate(self.orig) if char.isupper()}
 
-    def recase(self, in_str):
+    def recase(self, in_str: str) -> str:
         """Capitalize each letter in `in_str` indicated in `indices`."""
         if not self.upper_indices:
             return in_str
@@ -141,7 +148,7 @@ class Token:
                         else char
                         for i, char in enumerate(in_str)])
 
-    def stresses(self, recase=True):
+    def stresses(self, recase=True) -> set:
         """Return set of all surface forms from a Token's readings."""
         from .fsts import get_fst
         acc_gen = get_fst('acc-generator')
@@ -157,7 +164,7 @@ class Token:
         return stresses
 
     def stressify(self, disambiguated=None, selection='safe', guess=False,
-                  experiment=False, lemma=None):
+                  experiment=False, lemma=None) -> str:
         """Set of Token's surface forms with stress marked.
 
         disambiguated
@@ -229,7 +236,7 @@ class Token:
                                                       self.stress_eval(pred))
         return pred
 
-    def stress_eval(self, pred, ignore_monosyll=True):
+    def stress_eval(self, pred: str, ignore_monosyll=True) -> Result:
         """Token's stress prediction Result Enum value.
 
         If ignore_monosyll is True, then monosyllabic original forms always
@@ -273,7 +280,7 @@ class Token:
             raise NotImplementedError(f'Bad Result: {orig_prim} {pred_prim}')
 
     def phoneticize(self, disambiguated=None, selection='safe', guess=False,
-                    experiment=False):
+                    experiment=False) -> str:
         """Token's phonetic transcription.
 
         selection  (Applies only to words in the lexicon.)
@@ -311,63 +318,53 @@ class Token:
             self.phon_predictions[stress_params] = (pred, self.phon_eval(pred))
         return pred
 
-    def phon_eval(self, pred):
+    def phon_eval(self, pred: str):
         """Token Results of phonetic transcription predictions."""
         # raise NotImplementedError
         return None
 
-    def guess(self, backoff=None):
-        # if self.isInsane():
-        #     if backoff is None:
-        #         return self.surface
-        #     if backoff == 'syllable':
-        #         return self.guess_syllable()
-        if len(self.readingsdict) > 0:
-            randomchoice = choice(list(self.readingsdict))
-            return self.readingsdict[randomchoice][0]
+    def guess(self, backoff=None) -> str:
+        if len(self.readings) > 0:
+            random_reading = choice(self.readings)
+            return random_reading.generate(fst='accented-generator')
         else:
             return self.guess_syllable()
 
-    def guess_freq(self, backoff=None):
+    def guess_freq(self, backoff=None) -> str:
         """Guess stress location by selecting the most likely Reading based on
         frequency of Reading (backoff to frequency of tagset).
 
         Leftovers from dissertation script.
         """
-        tag_freq_dict = None  # Just to get flake8 off my back
-        lem_tag_freq_dict = None  # Just to get flake8 off my back
-        # if self.isInsane():
-        #     if backoff is None:
-        #         return self.surface
-        #     if backoff == 'syllable':
-        #         return self.guess_syllable()
-        read = (0, '')
-        tag = (0, '')
-        for r in self.readingsdict:
+        tag_freq_dict: Dict[str, int] = {}  # TODO import this dict
+        lem_tag_freq_dict: Dict[str, int] = {}  # TODO import this dict
+        read: Tuple[int, Union[str, None]] = (0, None)
+        tag: Tuple[int, Union[str, None]] = (0, None)
+        for r in self.readings:
             if '<' in r:
-                tagSeq = r[r.index('<'):]
+                tag_seq = r[r.index('<'):]
             else:
-                tagSeq = ' '*16  # force tag backoff to fail if there is no '<'
+                tag_seq = ' '*16  # force tag backoff to fail if no '<'
 
-            if tagSeq in tag_freq_dict:
-                if tag_freq_dict[tagSeq] > tag[0]:
-                    tag = (tag_freq_dict[tagSeq], r)
+            if tag_freq_dict.get(tag_seq, 0) > tag[0]:
+                tag = (tag_freq_dict[tag_seq], r)
 
-            if r in lem_tag_freq_dict:
-                if lem_tag_freq_dict[r] > read[0]:
-                    read = (lem_tag_freq_dict[r], r)
+            if lem_tag_freq_dict.get(r, 0) > read[0]:
+                read = (lem_tag_freq_dict[r], r)
 
         if read[0] > 0:
-            return self.readingsdict[read[1]][0]
+            return self.readings[read[1]][0]
         elif tag[0] > 0:
-            return self.readingsdict[tag[1]][0]
+            return self.readings[tag[1]][0]
         else:
             if backoff is None:
-                return self.surface
+                return self.orig
             elif backoff == 'syllable':
                 return self.guess_syllable()
+            else:
+                raise NotImplementedError('???')
 
-    def guess_syllable(self):
+    def guess_syllable(self) -> str:
         """Token: Place stress on the last vowel followed by a consonant.
 
         This is a (bad) approximation of the last syllable of the stem. Not
