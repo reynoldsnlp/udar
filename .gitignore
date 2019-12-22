@@ -5,3 +5,4 @@ udar.egg-info
 coverage.xml
 .coverage
 cov_annotate/
+.mypy_cache
