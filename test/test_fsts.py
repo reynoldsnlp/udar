@@ -41,3 +41,33 @@ def test_recase():
 def test_Udar_g2p_ValueError():
     with pytest.raises(ValueError):
         udar.Udar('g2p')
+
+
+def test_Udar_bad_flavor():
+    with pytest.raises(KeyError):
+        udar.Udar('this-is-not-one-of-the-options')
+
+
+def test_Udar_generate():
+    ana = udar.get_fst('analyzer')
+    gen = udar.get_fst('generator')
+    tok = ana.lookup('сло́во')
+    assert gen.generate(tok.readings[0]) == 'слово'
+    assert gen.generate(tok.readings[0].hfst_str()) == 'слово'
+
+
+def test_lookup_all_best():
+    tr = udar.get_fst('analyzer')
+    tok = tr.lookup_all_best('стали')
+    assert 'сталь' not in tok
+
+
+def test_lookup_one_best():
+    tr = udar.get_fst('analyzer')
+    tok = tr.lookup_one_best('стали')
+    assert len(tok.readings) == 1 and 'сталь' not in tok
+
+
+# def test_get_g2p():
+#     g2p = udar.get_g2p()
+#     assert g2p.lookup('сло́во')[0][0] == 'сло́въ'

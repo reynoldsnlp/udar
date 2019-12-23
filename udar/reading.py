@@ -50,7 +50,7 @@ class Reading:
 
         Fastest if `key` is a Tag, but can also be a str.
         """
-        return key in self.tagset or tag_dict[key] in self.tagset
+        return key in self.tagset or tag_dict.get(key, None) in self.tagset
 
     def __iter__(self):
         return (t for t in self.tags)

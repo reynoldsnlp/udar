@@ -29,10 +29,16 @@ class Token:
     def __init__(self, orig=None, readings=[], removed_readings=[]):
         from .reading import _readify
         self.orig = orig
+        self.upper_indices = self.cap_indices()
         self.readings = [_readify(r) for r in readings]
         if self.readings == [None]:
             self.readings = []
         self.removed_readings = [_readify(r) for r in removed_readings]
+        self.features = {}
+        self.annotation = None
+        self.update_lemmas_stress_and_phon()
+
+    def update_lemmas_stress_and_phon(self):
         self.lemmas = set()
         for r in self.readings:
             try:
@@ -42,12 +48,9 @@ class Token:
                 lemmas = _get_lemmas(r)
                 for lemma in lemmas:
                     self.lemmas.add(lemma)
-        self.upper_indices = self.cap_indices()
         self.stress_predictions = {}
         self.phon_predictions = {}
         self.stress_ambig = len(self.stresses())
-        self.features = {}
-        self.annotation = None
 
     def __contains__(self, key: Union[str, Tag]):
         """Enable `in` Token. Checks both lemmas and tags."""

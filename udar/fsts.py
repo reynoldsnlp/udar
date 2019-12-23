@@ -67,7 +67,7 @@ class Udar:
         self.fst = fst_stream.read()
         assert fst_stream.is_eof()  # be sure the hfstol file only had one fst
 
-    def generate(self, read: str) -> Union[Token, None]:
+    def generate(self, read: str) -> Union[str, None]:
         """Return str from a given lemma+Reading."""
         from .reading import Reading  # TODO is this a performance hit?
         if isinstance(read, Reading):
@@ -88,8 +88,12 @@ class Udar:
     def lookup_all_best(self, in_str: str) -> Token:
         """Return Token with only the highest-weighted reading(s)."""
         in_tok = self.lookup(in_str)
-        rmax = max([r.weight for r in in_tok.readings])
-        in_tok.readings = [r for r in in_tok.readings if r.weight == rmax]
+        readings = in_tok.readings[:]  # copy
+        rmax = max([float(r.weight) for r in readings])
+        in_tok.readings = [r for r in readings if float(r.weight) == rmax]
+        in_tok.removed_readings = [r for r in readings
+                                   if r not in in_tok.readings]
+        in_tok.update_lemmas_stress_and_phon()
         return in_tok
 
     def lookup_one_best(self, in_str: str) -> Token:
@@ -99,9 +103,12 @@ class Udar:
         one is selected at random.
         """
         in_tok = self.lookup(in_str)
-        shuffle(in_tok.readings)
-        in_tok.readings = [max(in_tok.readings, default=Token(),
-                               key=lambda r: r.weight)]
+        readings = in_tok.readings[:]  # make copy
+        shuffle(readings)
+        in_tok.readings = [max(readings, key=lambda r: float(r.weight))]
+        in_tok.removed_readings = [r for r in readings
+                                   if r not in in_tok.readings]
+        in_tok.update_lemmas_stress_and_phon()
         return in_tok
 
 
@@ -125,8 +132,9 @@ class HFSTTokenizer:
         self.tokenizer.sendline(f'{input_str} >>>\n')
         try:
             self.tokenizer.expect('\r\n>\r\n>\r\n>\r\n')
-        except pexpect.exceptions.TIMEOUT as e:
-            return e
+        except pexpect.exceptions.TIMEOUT as e:  # pragma: no cover
+            raise pexpect.exceptions.TIMEOUT('hfst-tokenize subprocess timed '
+                                             'out.') from e  # pragma: no cover
         return self.tokenizer.before.split('\r\n')
 
 
