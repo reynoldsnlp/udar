@@ -2,7 +2,6 @@
 
 from math import isclose
 import re
-import sys
 from typing import List
 from typing import Set
 from typing import Tuple
@@ -93,22 +92,17 @@ class Reading:
         except AttributeError:
             return False
 
-    def __hash__(self):
+    def __hash__(self):  # pragma: no cover
         return hash((self.lemma, self.tags, self.weight, self.cg_rule))
 
     def __len__(self):
         return bool(self.lemma) + len(self.tags)
 
-    def generate(self, fst=None):
+    def generate(self, fst=None) -> Union[str, None]:
         """From Reading generate surface form."""
         if fst is None:
             fst = get_fst('generator')
-        try:
-            return fst.generate(self.hfst_noL2_str())
-        except IndexError:
-            print('ERROR Failed to generate: '
-                  f'{self} {self.hfst_noL2_str()} {fst.generate(self.noL2_str())}',  # noqa: E501
-                  file=sys.stderr)
+        return fst.generate(self.hfst_noL2_str())
 
     def replace_tag(self, orig_tag: Union[Tag, str], new_tag: Union[Tag, str]):
         """Replace a given tag in Reading with new tag."""
@@ -119,7 +113,7 @@ class Reading:
         try:
             self.tags[self.tags.index(orig_tag)] = new_tag
             self.tagset = set(self.tags)
-        except ValueError:
+        except ValueError:  # orig_tag isn't in self.tags
             pass
 
 
@@ -185,19 +179,14 @@ class MultiReading(Reading):
         except AttributeError:
             return False
 
-    def __hash__(self):
+    def __hash__(self):  # pragma: no cover
         return hash([(r.lemma, r.tags, r.weight, r.cg_rule)
                      for r in self.readings])
 
     def generate(self, fst=None):
         if fst is None:
             fst = get_fst('generator')
-        try:
-            return fst.generate(self.hfst_noL2_str())
-        except IndexError:
-            print('ERROR Failed to generate: '
-                  f'{self} {self.hfst_noL2_str()} {fst.generate(self.hfst_noL2_str())}',  # noqa: E501
-                  file=sys.stderr)
+        return fst.generate(self.hfst_noL2_str())
 
     def replace_tag(self, orig_tag: Union[Tag, str], new_tag: Union[Tag, str],
                     which_reading=None):
@@ -225,6 +214,8 @@ class MultiReading(Reading):
 def _readify(in_tup: Union[Tuple[str, str], Tuple[str, str, str]]):
     """Try to make Reading. If that fails, try to make a MultiReading."""
     r, weight, *optional = in_tup
+    if isinstance(weight, float):
+        weight = f'{weight:.6f}'
     cg_rule: str = optional[0] if optional else ''
     try:
         return Reading(r, weight, cg_rule)
@@ -246,4 +237,3 @@ def _get_lemmas(reading: Union[Reading, MultiReading]) -> List[str]:
         for r in reading.readings:  # type: ignore
             out.extend(_get_lemmas(r))
         return out
-    raise NotImplementedError("I don't know either... ;-)")
