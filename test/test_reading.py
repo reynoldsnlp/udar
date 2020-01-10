@@ -18,7 +18,7 @@ def test_readify_simple():
 
 def test_readify_bad():
     with pytest.raises(NotImplementedError):
-        r = udar.reading._readify(("слово+THISISNOTAVALIDTAG", '5.975586'))
+        udar.reading._readify(("слово+THISISNOTAVALIDTAG", '5.975586'))
 
 
 def test_readify_rule():
@@ -85,24 +85,29 @@ def test_replace_tag_multi():
     mr.replace_tag('A', 'N')
     assert mr.readings[0].tags == ['N'] and mr.readings[1].tags == ['N']
 
+
 def test_contains_multi():
     mr = udar.reading._readify(('и т.д.+Abbr#.+SENT', '0.000000'))
     assert 'Abbr' in mr
     mr.readings = []
     assert 'Abbr' not in mr
 
+
 def test_iter_multi():
     mr = udar.reading._readify(('и т.д.+Abbr#.+SENT', '0.000000'))
     all_tags = [t for r in mr.readings for t in r.tags]
     assert [t for t in mr] == all_tags
 
+
 def test_repr_multi():
     mr = udar.reading._readify(('и т.д.+Abbr#.+SENT', '0.000000'))
     assert repr(mr) == 'MultiReading(и т.д.+Abbr#.+SENT, 0.000000, )'
 
+
 def test_str_multi():
     mr = udar.reading._readify(('и т.д.+Abbr#.+SENT', '0.000000'))
     assert str(mr) == 'и т.д._Abbr#._SENT'
+
 
 def test_generate_multi():
     mr = udar.reading._readify(('за+Pr#нечего+Pron+Neg+Acc', '50.000000'))

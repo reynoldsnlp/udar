@@ -77,9 +77,9 @@ class Token:
                            for r in self.readings) \
                  or f'\t"{self.orig}" ? <W:{281474976710655.000000:.6f}>'
         if traces and self.removed_readings:
-            more = '\n'.join(f';{r.cg3_str(traces=traces)}'
-                             for r in self.removed_readings)
-            output = f'{output}\n{more}'
+            removed = '\n'.join(f';{r.cg3_str(traces=traces)}'
+                                for r in self.removed_readings)
+            output = f'{output}\n{removed}'
         if annotated and self.annotation:
             ann = f'NB: ↓↓  {self.annotation}  ↓↓\n'
         else:
@@ -101,7 +101,7 @@ class Token:
             return False
 
     def __hash__(self):
-        return hash((self.orig, self.readings))
+        return hash((self.orig, self.readings))  # pragma: no cover
 
     def __len__(self):
         return len(self.readings)
