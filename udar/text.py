@@ -11,6 +11,7 @@ import sys
 from time import strftime
 from typing import Callable
 from typing import List
+from typing import Tuple
 from typing import Type
 from typing import TypeVar
 from typing import Union
@@ -31,7 +32,7 @@ RSRC_PATH = resource_filename('udar', 'resources/')
 NEWLINE = '\n'
 
 Tokenizer = Callable[[str], List[str]]
-MypyText = TypeVar('MypyText', bound='Text')  # to annotate Text classmethods
+T = TypeVar('T', bound='Text')  # to annotate Text classmethods
 
 
 def is_exe(fpath):
@@ -104,7 +105,7 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
     """
     __slots__ = ['_tokenized', '_analyzed', '_disambiguated', '_from_str',
                  'orig', 'toks', 'Toks', 'text_name', 'experiment',
-                 'annotation']
+                 'annotation', 'features', '_feat_cache']
     _tokenized: bool
     _analyzed: bool
     _disambiguated: bool
@@ -115,11 +116,14 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
     text_name: str
     experiment: bool
     annotation: str
+    features: Tuple
+    _feat_cache: dict
 
     def __init__(self, input_text, tokenize=True, analyze=True,
                  disambiguate=False, tokenizer=None, analyzer=None,
                  gram_path=None, text_name=None, experiment=False,
-                 annotation='') -> None:
+                 annotation='', features=None, feat_cache=None,
+                 from_file=False):
         """Note the difference between self.toks and self.Toks, where the
         latter is a list of Token objects, the former a list of strings.
         """
@@ -130,17 +134,32 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
         self.text_name = text_name
         self.experiment = experiment
         self.annotation = annotation
+        if features is None:
+            self.features = ()
+        else:
+            self.features = features
+        if feat_cache is None:
+            self._feat_cache = {}
+        else:
+            self._feat_cache = feat_cache
         if tokenizer is None:
             tokenizer = get_tokenizer()
         if isinstance(input_text, str):
             self._from_str = True
-            self.orig = input_text
+            if from_file:
+                with open(input_text) as f:
+                    self.orig = f.read()
+            else:
+                self.orig = input_text
             self._tokenized = False
             self.toks = []
         # elif input_text is a sequence of `str`s...
         elif ((hasattr(input_text, '__iter__')
                or hasattr(input_text, '__getitem__'))
               and isinstance(input_text[0], str)):
+            if from_file:
+                raise TypeError('With from_file set to True, input_text must '
+                                'be a filename; sequence of str\'s given.')
             self.toks = input_text
             self._tokenized = True
             self.orig = ' '.join(input_text)
@@ -148,6 +167,9 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
         elif ((hasattr(input_text, '__iter__')
                or hasattr(input_text, '__getitem__'))
               and isinstance(input_text[0], Token)):
+            if from_file:
+                raise TypeError('With from_file set to True, input_text must '
+                                'be a filename; sequence of Tokens given.')
             self._analyzed = True
             self.Toks = input_text
             self.toks = [t.orig for t in input_text]
@@ -168,18 +190,18 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
             self.disambiguate(gram_path=gram_path)
 
     @classmethod
-    def from_cg3(cls: Type[MypyText], input_str: str,
-                 disambiguate=False) -> MypyText:
+    def from_cg3(cls: Type[T], input_str: str, disambiguate=False,
+                 **kwargs) -> T:
         """Initialize Text object from CG3 stream."""
         Toks = cls.parse_cg3(input_str)
-        return cls(Toks, disambiguate=disambiguate)
+        return cls(Toks, disambiguate=disambiguate, **kwargs)
 
     @classmethod
-    def from_hfst(cls: Type[MypyText], input_str,
-                  disambiguate=False) -> MypyText:
+    def from_hfst(cls: Type[T], input_str: str, disambiguate=False,
+                  **kwargs) -> T:
         """Initialize Text object from HFST stream."""
         Toks = cls.parse_hfst(input_str)
-        return cls(Toks, disambiguate=disambiguate)
+        return cls(Toks, disambiguate=disambiguate, **kwargs)
 
     def __format__(self, format_spec: str):
         tok_count = len(self.toks)

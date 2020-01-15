@@ -159,7 +159,7 @@ class Token:
             try:
                 stresses = {self.recase(r.generate(acc_gen))
                             for r in self.readings}
-            except AttributeError as e:
+            except AttributeError as e:  # pragma: no cover
                 raise AttributeError('Problem generating stresses from: '
                                      f'{self} {self.readings}.') from e
         else:
