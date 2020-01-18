@@ -17,8 +17,8 @@ def test_ALL():
 def test_extract_ALL():
     t1 = udar.Text(sent)
     t2 = udar.Text(sent)
-    assert repr(ALL(t1)) == "[('num_chars', 'num_uniq_chars', 'num_tokens', 'num_types', 'num_sents', 'type_token_ratio', 'chars_per_word', 'words_per_sent'), Features(num_chars=56, num_uniq_chars=25, num_tokens=14, num_types=12, num_sents=1, type_token_ratio=0.8571428571428571, chars_per_word=4.636363636363637, words_per_sent=11.0)]"  # noqa: E501
-    assert repr(ALL([t1, t2])) == "[('num_chars', 'num_uniq_chars', 'num_tokens', 'num_types', 'num_sents', 'type_token_ratio', 'chars_per_word', 'words_per_sent'), Features(num_chars=56, num_uniq_chars=25, num_tokens=14, num_types=12, num_sents=1, type_token_ratio=0.8571428571428571, chars_per_word=4.636363636363637, words_per_sent=11.0), Features(num_chars=56, num_uniq_chars=25, num_tokens=14, num_types=12, num_sents=1, type_token_ratio=0.8571428571428571, chars_per_word=4.636363636363637, words_per_sent=11.0)]"  # noqa: E501
+    assert len(ALL(t1)) == 2
+    assert len(ALL([t1, t2])) == 3
 
 
 def test_ensure_that_depends_on_is_complete():
