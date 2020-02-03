@@ -10,6 +10,8 @@ A python wrapper for the [Russian finite-state
 transducer](https://victorio.uit.no/langtech/trunk/langs/rus/) described
 originally in chapter 2 of [my dissertation](http://hdl.handle.net/10037/9685).
 
+> Feature requests, issues, and pull requests are welcome!
+
 ## Dependencies
 
 For all features to be available, you should have `hfst` and `vislcg3`
@@ -24,42 +26,6 @@ $ python3 -m pip install --user git+https://github.com/reynoldsnlp/udar
 ```
 
 ## Introduction
-
-The following objects are provided for convenience:
-
-* Tag
-    * A part of speech or a morphosyntactic property
-* Reading
-    * Lemma (`str`) and a set of `Tag`s
-* Token
-    * Surface form (`str`) and a list of `Reading`s
-* Text
-    * List of `Token`s
-
-The `Udar` class has four flavors.
-
-1. `analyzer`: General-purpose analyzer
-1. `L2-analyzer`: General analyzer with second-language learner errors added
-1. `generator`: Generator of unstressed wordforms
-1. `accented-generator`: Generator of stressed wordforms
-
-```python
-import udar
-analyzer = udar.Udar('analyzer')
-```
-
-The `Udar.lookup()` method takes a token `str` and returns a `Token`.
-
-```python
-token1 = analyzer.lookup('сло́ва')
-token1
-# сло́ва [слово_N_Neu_Inan_Sg_Gen]
-'Gen' in token1  # do any of the readings include Genitive case?
-# True
-token2 = analyzer.lookup('слова')
-token2
-# слова [слово_N_Neu_Inan_Pl_Acc  слово_N_Neu_Inan_Pl_Nom  слово_N_Neu_Inan_Sg_Gen]
-```
 
 The most common use-case is to use the `Text` constructor to automatically
 tokenize and analyze a text. The `repr` is an `xfst`/`hfst` stream:
@@ -87,6 +53,46 @@ with stress/accents.
 text1.stressify()
 # 'Мы́ удиви́лись простото́й систе́мы.'
 ```
+
+### objects and methods
+
+The analyzer itself is the `Udar` class, which can be initialized as one of
+four flavors:
+
+1. `analyzer`: General-purpose analyzer
+1. `L2-analyzer`: General analyzer with second-language learner errors added
+1. `generator`: Generator of unstressed wordforms
+1. `accented-generator`: Generator of stressed wordforms
+
+```python
+import udar
+analyzer = udar.Udar('analyzer')
+```
+
+The `Udar.lookup()` method takes a token `str` and returns a `Token`.
+
+```python
+token1 = analyzer.lookup('сло́ва')
+token1
+# сло́ва [слово_N_Neu_Inan_Sg_Gen]
+'Gen' in token1  # do any of the readings include Genitive case?
+# True
+token2 = analyzer.lookup('слова')
+token2
+# слова [слово_N_Neu_Inan_Pl_Acc  слово_N_Neu_Inan_Pl_Nom  слово_N_Neu_Inan_Sg_Gen]
+```
+
+Grammatical analyses are parsed into the following objects:
+
+* Tag
+    * A part of speech or a morphosyntactic property
+* Reading
+    * Lemma (`str`) and a set of `Tag`s
+* Token
+    * Surface form (`str`) and a list of `Reading`s
+* Text
+    * List of `Token`s
+
 
 `Tag`s can be looked up using the `tag_info()` function:
 
