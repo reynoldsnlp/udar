@@ -31,6 +31,7 @@ The most common use-case is to use the `Text` constructor to automatically
 tokenize and analyze a text. The `repr` is an `xfst`/`hfst` stream:
 
 ```python
+import udar
 text1 = udar.Text('Мы удивились простотой системы.')
 text1
 # Мы	мы+Pron+Pers+Pl1+Nom	0.0
@@ -46,26 +47,30 @@ text1
 # .	.+CLB	0.0
 ```
 
-`Text` objects have convenience functions, like returning the original text
-with stress/accents.
+### Text methods
+
+`Text` objects have convenient methods for adding stress or converting to
+phonetic transcription.
 
 ```python
 text1.stressify()
 # 'Мы́ удиви́лись простото́й систе́мы.'
+text1.phoneticize()
+"Мы́ уд'ив'и́л'ис' пръстʌто́й с'ис'т'э́мы."
 ```
 
-### objects and methods
+### Using the analyzer manually
 
 The analyzer itself is the `Udar` class, which can be initialized as one of
 four flavors:
 
+1. `L2-analyzer` [default]: General analyzer with second-language learner
+   errors added
 1. `analyzer`: General-purpose analyzer
-1. `L2-analyzer`: General analyzer with second-language learner errors added
 1. `generator`: Generator of unstressed wordforms
 1. `accented-generator`: Generator of stressed wordforms
 
 ```python
-import udar
 analyzer = udar.Udar('analyzer')
 ```
 
@@ -75,11 +80,33 @@ The `Udar.lookup()` method takes a token `str` and returns a `Token`.
 token1 = analyzer.lookup('сло́ва')
 token1
 # сло́ва [слово_N_Neu_Inan_Sg_Gen]
-'Gen' in token1  # do any of the readings include Genitive case?
-# True
 token2 = analyzer.lookup('слова')
 token2
 # слова [слово_N_Neu_Inan_Pl_Acc  слово_N_Neu_Inan_Pl_Nom  слово_N_Neu_Inan_Sg_Gen]
+```
+
+## Working with `Token`s and `Readings`s
+
+You can easily check if a lemma or morphosyntactic tag are in a `Token` or
+`Reading` using `in`:
+ 
+```python
+token2
+# слова [слово_N_Neu_Inan_Pl_Acc  слово_N_Neu_Inan_Pl_Nom  слово_N_Neu_Inan_Sg_Gen]
+'Gen' in token2  # do any of the readings include Genitive case?
+# True
+'слово' in token2  # do any of the readings have the lemma 'слово'?
+# True
+'новый' in token2
+# False
+```
+
+You can make a filtered list of a `Token`'s readings using the following idiom:
+
+```python
+pl_readings = [reading for reading in token2 if 'Pl' in reading]
+pl_readings
+# [слово_N_Neu_Inan_Pl_Acc  слово_N_Neu_Inan_Pl_Nom]
 ```
 
 Grammatical analyses are parsed into the following objects:
