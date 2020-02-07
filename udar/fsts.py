@@ -44,7 +44,7 @@ class Udar:
     path2fst: str
     # fst: 'libhfst.HfstTransducer'
 
-    def __init__(self, flavor: str):
+    def __init__(self, flavor: str='L2-analyzer'):
         """Build fst for lookup. Flavor must be one of the following:
             - 'analyzer' (or 'analyser')
             - 'L2-analyzer' (or 'L2-analyser')

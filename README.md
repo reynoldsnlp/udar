@@ -10,7 +10,7 @@ A python wrapper for the [Russian finite-state
 transducer](https://victorio.uit.no/langtech/trunk/langs/rus/) described
 originally in chapter 2 of [my dissertation](http://hdl.handle.net/10037/9685).
 
-> Feature requests, issues, and pull requests are welcome!
+#### Feature requests, issues, and pull requests are welcome!
 
 ## Dependencies
 
@@ -47,7 +47,7 @@ text1
 # .	.+CLB	0.0
 ```
 
-### Text methods
+### `Text` methods
 
 `Text` objects have convenient methods for adding stress or converting to
 phonetic transcription.
@@ -57,6 +57,50 @@ text1.stressify()
 # 'Мы́ удиви́лись простото́й систе́мы.'
 text1.phoneticize()
 "Мы́ уд'ив'и́л'ис' пръстʌто́й с'ис'т'э́мы."
+```
+
+### Convenience functions
+
+A number of functions are included, both for convenience, and to give concrete
+examples for using the API. They can be found in the `convenience.py` file.
+
+#### noun\_distractors()
+
+This function generates all six cases of a given noun. If the given noun is
+singular, then the function generates singular forms. If the given noun is
+plural, then the function generates plural forms. Such a list can be used in a
+multiple-choice exercise, hence the name `distractors`.
+
+```python
+sg_paradigm = udar.noun_distractors('словом')
+sg_paradigm == {'сло́ву', 'сло́ве', 'сло́вом', 'сло́ва', 'сло́во'}
+# True
+pl_paradigm = udar.noun_distractors('словах')
+pl_paradigm == {'слова́м', 'слова́', 'слова́х', 'слова́ми', 'сло́в'}
+# True
+```
+
+If unstressed forms are desired, simply pass the argument `stressed=False`.
+
+#### diagnose\_L2()
+
+This function will take a text string as the argument, and will return a
+dictionary of all the types of L2 errors in the text, along with examples of
+the error.
+
+```python
+diag = udar.diagnose_L2('Мы разговаривали в кафетерие с Таной')
+diag == {'Err/L2_ii': {'кафетерие'}, 'Err/L2_Pal': {'Таной'}}
+# True
+```
+
+#### tag\_info()
+
+This function will look up the meaning of any tag used by the analyzer.
+
+```python
+udar.tag_info('Err/L2_ii')
+# 'L2 error: Failure to change ending ие to ии in +Sg+Loc or +Sg+Dat, e.g. к Марие, о кафетерие, о знание'
 ```
 
 ### Using the analyzer manually
