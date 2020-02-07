@@ -1,8 +1,9 @@
 from collections import OrderedDict
-from collections import namedtuple
+# from collections import namedtuple
 from datetime import datetime
 from functools import partial
 import inspect
+from math import log
 import re
 from typing import Any
 from typing import Callable
@@ -14,7 +15,10 @@ from typing import Union
 
 import nltk  # type: ignore
 
+from .tag import Tag
+from .tag import tag_dict
 from .text import Text
+from .tok import Token
 
 __all__ = ['ALL']
 
@@ -24,12 +28,9 @@ punc_re = r'[\\!"#$%&\'()*+,\-./:;<=>?@[\]^_`{|}~]+'
 vowel_re = r'[аэоуыяеёюи]'
 
 
-def _filter_punc_from_str(in_str):
-    return re.sub(punc_re, '', in_str)
-
-
-def _filter_punc_from_toks(toks):
-    return [t for t in toks if not re.match(punc_re, t)]
+def safe_name(tag: Union[str, Tag]) -> str:
+    """Convert tag name to valid python variable name."""
+    return str(tag).replace('/', '_')
 
 
 class Feature:
@@ -61,10 +62,10 @@ class Feature:
                 if param.default != inspect._empty}  # type: ignore
 
     def set_default_kwargs(self, default_kwargs=None):
-        """Set kwargs used in __call__() by default.
+        """Set kwargs to be used in __call__() by default.
 
         If `default_kwargs` is None, reset self.default_kwargs to original
-        default values declared in the function's signature.
+        default values declared in the original function's signature.
         """
         auto_kwargs = self.get_orig_kwargs(self.func)
         if default_kwargs is None:
@@ -126,25 +127,30 @@ class FeatureSetExtractor(OrderedDict):
         return cls(extractor_name=extractor_name,
                    features={name: self[name] for name in feature_names})
 
-    def __call__(self, texts: Union[List[Text], Text], header=True,
-                 tsv=False, **kwargs) -> Union[List[Tuple[Any, ...]], str]:
-        FeaturesTuple = namedtuple('Features', self)  # type: ignore
+    def __call__(self, texts: Union[List[Text], Text], feat_names=None,
+                 header=True, tsv=False,
+                 **kwargs) -> Union[List[Tuple[Any, ...]], str]:
+        # python 3.6 cannot handle more than 255 arguments, so namedtuple
+        # will not work. Using plain tuples instead for now :-( TODO?
+        # FeaturesTuple = namedtuple('Features', self)  # type: ignore
         output = []
+        if feat_names is None:
+            feat_names = tuple(feat_name for feat_name in self
+                               if not feat_name.startswith('_')
+                               and not self[feat_name].category.startswith('Absolute'))  # noqa: E501
         if header:
-            output.append(tuple(feat_name for feat_name in self))
+            output.append(feat_names)
         if ((hasattr(texts, '__iter__') or hasattr(texts, '__getitem__'))
                 and isinstance(texts[0], Text)):
             for text in texts:
-                row = []
-                for name, feature in self.items():
-                    row.append(feature(text, **kwargs))
-                text.features = FeaturesTuple(*row)
+                text.features = self._call_features(text,
+                                                    feat_names=feat_names,
+                                                    **kwargs)
                 output.append(text.features)
         elif isinstance(texts, Text):
-            row = []
-            for name, feature in self.items():
-                row.append(feature(texts, **kwargs))
-            texts.features = FeaturesTuple(*row)
+            texts.features = self._call_features(texts,
+                                                 feat_names=feat_names,
+                                                 **kwargs)
             output.append(texts.features)
         else:
             raise TypeError('Expected Text or list of Texts; got '
@@ -153,6 +159,13 @@ class FeatureSetExtractor(OrderedDict):
             return '\n'.join('\t'.join(row) for row in output)
         else:
             return output
+
+    def _call_features(self, text: Text, feat_names=(), **kwargs):
+        row = []
+        for name in feat_names:
+            feature = self[name]
+            row.append(feature(text, **kwargs))
+        return tuple(row)
 
 
 ALL = FeatureSetExtractor(extractor_name='All')
@@ -167,13 +180,45 @@ def add_to_ALL(name, category=None, depends_on=None):
     return decorator
 
 
-@add_to_ALL('num_chars', category='Absolute length')
-def num_chars(text: Text, ignore_whitespace=True, ignore_punc=False) -> int:
+@add_to_ALL('_filter_str', category='_prior')
+def _filter_str(text: Text, lower=False, rm_punc=False, rm_whitespace=False,
+                uniq=False) -> str:
     orig = text.orig
-    if ignore_whitespace:
+    if uniq:
+        orig = ''.join(set(orig))
+    if rm_whitespace:
         orig = re.sub(r'\s+', '', orig)
-    if ignore_punc:
-        orig = _filter_punc_from_str(orig)
+    if rm_punc:
+        orig = re.sub(punc_re, '', orig)
+    if lower:
+        orig = orig.lower()
+    return orig
+
+
+@add_to_ALL('_filter_toks', category='_prior')
+def _filter_toks(text: Text, lower=False, rm_punc=False) -> List[str]:
+    toks = text.toks
+    if rm_punc:
+        toks = [t for t in toks if not re.match(punc_re, t)]
+    if lower:
+        toks = [t.lower() for t in toks]
+    return toks
+
+
+@add_to_ALL('_filter_Toks', category='_prior')
+def _filter_Toks(text: Text, has_tag='', rm_punc=False) -> List[Token]:
+    Toks = text.Toks
+    if has_tag:
+        Toks = [t for t in Toks if t.has_tag_in_most_likely_reading(tag)]
+    if rm_punc:
+        Toks = [t for t in Toks if not re.match(punc_re, t.orig)]
+    return Toks
+
+
+@add_to_ALL('num_chars', category='Absolute length')
+def num_chars(text: Text, ignore_punc=False, ignore_whitespace=True) -> int:
+    orig = ALL['_filter_str'](text, rm_punc=ignore_punc,
+                              rm_whitespace=ignore_whitespace)
     return len(orig)
 
 
@@ -183,28 +228,31 @@ def num_sylls(text: Text) -> int:
 
 
 @add_to_ALL('num_uniq_chars', category='Absolute length')
-def num_uniq_chars(text: Text, ignore_whitespace=True,
-                   ignore_punc=False) -> int:
-    orig = ''.join(set(text.orig))
-    if ignore_whitespace:
-        orig = re.sub(r'\s+', '', orig)
-    if ignore_punc:
-        orig = _filter_punc_from_str(orig)
+def num_uniq_chars(text: Text, ignore_punc=False, ignore_whitespace=True,
+                   lower=False) -> int:
+    orig = ALL['_filter_str'](text, lower=lower, rm_punc=ignore_punc,
+                              rm_whitespace=ignore_whitespace,
+                              uniq=True)
     return len(orig)
 
 
 @add_to_ALL('num_tokens', category='Absolute length')
 def num_tokens(text: Text, ignore_punc=False) -> int:
-    toks = text.toks[:]
-    if ignore_punc:
-        toks = _filter_punc_from_toks(text.toks)
+    toks = ALL['_filter_toks'](text, rm_punc=ignore_punc)
     return len(toks)
 
 
+def num_tokens_Tag(tag: str, text: Text, ignore_punc=False) -> int:
+    Toks = ALL['_filter_Toks'](text, has_tag=tag, rm_punc=ignore_punc)
+    return len(Toks)
+for tag in tag_dict:  # noqa: E305
+    name = f'num_tokens_{safe_name(tag)}'
+    ALL[name] = Feature(name, partial(num_tokens_Tag, tag),
+                        category='Absolute length')
+
+
 def num_tokens_over_n_sylls(n, text: Text, ignore_punc=True) -> int:
-    toks = text.toks[:]
-    if ignore_punc:
-        toks = _filter_punc_from_toks(text.toks)
+    toks = ALL['_filter_toks'](text, rm_punc=ignore_punc)
     return len([t for t in toks if len(re.findall(vowel_re, t, re.I)) > n])
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'num_tokens_over_{n}_sylls'
@@ -213,13 +261,28 @@ for n in range(1, MAX_SYLL):  # noqa: E305
 
 
 @add_to_ALL('num_types', category='Absolute length')
-def num_types(text: Text, lower=True, ignore_punc=False) -> int:
-    toks = text.toks[:]
-    if lower:
-        toks = [t.lower() for t in toks]
-    if ignore_punc:
-        toks = _filter_punc_from_toks(toks)
+def num_types(text: Text, ignore_punc=False, lower=True) -> int:
+    toks = ALL['_filter_toks'](text, lower=lower, rm_punc=ignore_punc)
     return len(set(toks))
+
+
+@add_to_ALL('num_lemma_types', category='Absolute length')
+def num_lemma_types(text: Text, has_tag='', ignore_punc=False) -> int:
+    Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rm_punc=ignore_punc)
+    types = set([t.get_most_likely_lemma() for t in Toks])
+    return len(types)
+
+
+def num_types_Tag(tag: str, text: Text, ignore_punc=False, lower=True) -> int:
+    Toks = ALL['_filter_Toks'](text, has_tag=tag, rm_punc=ignore_punc)
+    if lower:
+        return len(set([t.orig.lower() for t in Toks]))
+    else:
+        return len(set([t.orig for t in Toks]))
+for tag in tag_dict:  # noqa: E305
+    name = f'num_types_{safe_name(tag)}'
+    ALL[name] = Feature(name, partial(num_types_Tag, tag),
+                        category='Absolute length')
 
 
 @add_to_ALL('num_sents', category='Absolute length')
@@ -243,10 +306,10 @@ for n in range(1, MAX_SYLL):  # noqa: E305
                         category='Lexical variation')
 
 
-@add_to_ALL('type_token_ratio', category='Lexical variability')
-def type_token_ratio(text: Text, lower=True, ignore_punc=False,
+@add_to_ALL('type_token_ratio', category='Lexical variation')
+def type_token_ratio(text: Text, ignore_punc=False, lower=True,
                      zero_div_val=NaN) -> float:
-    num_types = ALL['num_types'](text, lower=lower, ignore_punc=ignore_punc)
+    num_types = ALL['num_types'](text, ignore_punc=ignore_punc, lower=lower)
     num_tokens = ALL['num_tokens'](text, ignore_punc=ignore_punc)
     try:
         return num_types / num_tokens
@@ -254,11 +317,84 @@ def type_token_ratio(text: Text, lower=True, ignore_punc=False,
         return zero_div_val
 
 
+@add_to_ALL('lemma_type_token_ratio', category='Lexical variation')
+def lemma_type_token_ratio(text: Text, has_tag='', ignore_punc=False,
+                           zero_div_val=NaN) -> float:
+    num_types = ALL['num_lemma_types'](text, has_tag=has_tag,
+                                       ignore_punc=ignore_punc)
+    num_tokens = ALL['num_tokens'](text, ignore_punc=ignore_punc)
+    try:
+        return num_types / num_tokens
+    except ZeroDivisionError:
+        return zero_div_val
+
+
+@add_to_ALL('root_type_token_ratio', category='Lexical variation')
+def root_type_token_ratio(text: Text, ignore_punc=False, lower=True,
+                          zero_div_val=NaN) -> float:
+    num_types = ALL['num_types'](text, ignore_punc=ignore_punc, lower=lower)
+    num_tokens = ALL['num_tokens'](text, ignore_punc=ignore_punc)
+    try:
+        return num_types / (num_tokens ** 0.5)
+    except ZeroDivisionError:
+        return zero_div_val
+
+
+@add_to_ALL('corrected_type_token_ratio', category='Lexical variation')
+def corrected_type_token_ratio(text: Text, ignore_punc=False, lower=True,
+                               zero_div_val=NaN) -> float:
+    num_types = ALL['num_types'](text, ignore_punc=ignore_punc, lower=lower)
+    num_tokens = ALL['num_tokens'](text, ignore_punc=ignore_punc)
+    try:
+        return num_types / ((2 * num_tokens) ** 0.5)
+    except ZeroDivisionError:
+        return zero_div_val
+
+
+@add_to_ALL('bilog_type_token_ratio', category='Lexical variation')
+def bilog_type_token_ratio(text: Text, ignore_punc=False, lower=True,
+                           zero_div_val=NaN) -> float:
+    num_types = ALL['num_types'](text, ignore_punc=ignore_punc, lower=lower)
+    num_tokens = ALL['num_tokens'](text, ignore_punc=ignore_punc)
+    try:
+        return log(num_types) / log(num_tokens)
+    except (ValueError, ZeroDivisionError):
+        return zero_div_val
+
+
+@add_to_ALL('uber_index', category='Lexical variation')
+def uber_index(text: Text, ignore_punc=False, lower=True,
+               zero_div_val=NaN) -> float:
+    num_types = ALL['num_types'](text, ignore_punc=ignore_punc, lower=lower)
+    num_tokens = ALL['num_tokens'](text, ignore_punc=ignore_punc)
+    try:
+        return log(num_types, 2) / log(num_tokens / num_types)
+    except (ValueError, ZeroDivisionError):
+        return zero_div_val
+
+
+def type_token_ratio_Tag(tag: str, text: Text, ignore_punc=False, lower=True,
+                         zero_div_val=NaN) -> float:
+    num_types = ALL[f'num_types_{safe_name(tag)}'](text,
+                                                   ignore_punc=ignore_punc,
+                                                   lower=lower)
+    num_tokens = ALL[f'num_tokens_{safe_name(tag)}'](text,
+                                                     ignore_punc=ignore_punc)
+    try:
+        return num_types / num_tokens
+    except ZeroDivisionError:
+        return zero_div_val
+for tag in tag_dict:  # noqa: E305
+    name = f'type_token_ratio_{safe_name(tag)}'
+    ALL[name] = Feature(name, partial(type_token_ratio_Tag, tag),
+                        category='Lexical variation')
+
+
 @add_to_ALL('chars_per_word', category='Normalized length')
-def chars_per_word(text: Text, ignore_whitespace=True, ignore_punc=True,
+def chars_per_word(text: Text, ignore_punc=True, ignore_whitespace=True,
                    zero_div_val=NaN) -> float:
-    num_chars = ALL['num_chars'](text, ignore_whitespace=ignore_whitespace,
-                                 ignore_punc=ignore_punc)
+    num_chars = ALL['num_chars'](text, ignore_punc=ignore_punc,
+                                 ignore_whitespace=ignore_whitespace)
     num_tokens = ALL['num_tokens'](text, ignore_punc=ignore_punc)
     try:
         return num_chars / num_tokens
@@ -299,5 +435,38 @@ def matskovskij(text: Text, ignore_punc=True, sent_tokenizer=None) -> float:
 def oborneva(text: Text, ignore_punc=True, sent_tokenizer=None) -> float:
     words_per_sent = ALL['words_per_sent'](text, ignore_punc=ignore_punc,
                                            sent_tokenizer=sent_tokenizer)
-    syll_per_word = ALL['sylls_per_word'](text, ignore_punc=ignore_punc)
-    return 0.5 * words_per_sent + 8.4 * syll_per_word - 15.59
+    sylls_per_word = ALL['sylls_per_word'](text, ignore_punc=ignore_punc)
+    return 0.5 * words_per_sent + 8.4 * sylls_per_word - 15.59
+
+
+@add_to_ALL('solnyshkina', category='Readability formula')
+def solnyshkina(text: Text, ignore_punc=True, sent_tokenizer=None,
+                zero_div_val=NaN) -> float:
+    words_per_sent = ALL['words_per_sent'](text, ignore_punc=ignore_punc,
+                                           sent_tokenizer=sent_tokenizer)
+    sylls_per_word = ALL['sylls_per_word'](text, ignore_punc=ignore_punc)
+    num_types_N = ALL['num_types_N'](text, ignore_punc=ignore_punc)
+    num_types_A = ALL['num_types_A'](text, ignore_punc=ignore_punc)
+    num_types_V = ALL['num_types_V'](text, ignore_punc=ignore_punc)
+    TTR_N = ALL['type_token_ratio_N'](text, ignore_punc=ignore_punc)
+    TTR_A = ALL['type_token_ratio_A'](text, ignore_punc=ignore_punc)
+    TTR_V = ALL['type_token_ratio_V'](text, ignore_punc=ignore_punc)
+    try:
+        UNAV = (num_types_N + num_types_A) / num_types_V
+        NAV = (TTR_N + TTR_A) / TTR_V
+    except ZeroDivisionError:
+        return zero_div_val
+    return (-0.124 * words_per_sent  # ASL  average sentence length (words)
+            + 0.018 * sylls_per_word  # ASW  average word length (syllables)
+            - 0.007 * UNAV
+            + 0.007 * NAV
+            - 0.003 * words_per_sent ** 2
+            + 0.184 * words_per_sent * sylls_per_word
+            + 0.097 * words_per_sent * UNAV
+            - 0.158 * words_per_sent * NAV
+            + 0.090 * sylls_per_word ** 2
+            + 0.091 * sylls_per_word * UNAV
+            + 0.023 * sylls_per_word * NAV
+            - 0.157 * UNAV ** 2
+            - 0.079 * UNAV * NAV
+            + 0.058 * NAV ** 2)

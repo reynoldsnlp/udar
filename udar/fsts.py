@@ -23,6 +23,7 @@ ALIAS = {'analyser': 'analyzer',
 
 
 class Udar:
+    # TODO make Analyzer(L2=True) and Generator(stress=True)
     """UDAR Does Accented Russian: a finite-state detailed part-of-speech
     tagger for (accented) Russian.
 

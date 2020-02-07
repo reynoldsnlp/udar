@@ -48,6 +48,9 @@ class Tag:
         return self == other or self.name in ambiguous_tag_dict[other]
 
     def __hash__(self):
+        """Use same hash as self.name to allow lookup in tag_dict by name (str)
+        or by Tag.
+        """
         return hash(self.name)
 
     def info(self):

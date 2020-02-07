@@ -527,3 +527,8 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
             raise NotImplementedError(f'Cannot respace {self}.')
         else:
             return unspace_punct(' '.join(toks))
+
+    def readability(approach=None):
+        # TODO
+        from .features import ALL
+        pass

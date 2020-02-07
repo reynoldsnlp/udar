@@ -10,6 +10,8 @@ from typing import Union
 from .misc import destress
 from .misc import Result
 from .misc import StressParams
+# from .reading import MultiReading
+# from .reading import Reading
 from .tag import Tag
 
 
@@ -106,6 +108,43 @@ class Token:
     def __len__(self):
         return len(self.readings)
 
+    def __getitem__(self, i: int):  # TODO -> Union[MultiReading, Reading]:
+        # TODO tests
+        return self.readings[i]
+
+    def __iter__(self):
+        return (r for r in self.readings)
+
+    def get_most_likely_reading(self):
+        """If one reading is marked as most likely, return it. Otherwise,
+        select a most likely reading, label it as such, and return it.
+        """
+        most_likely = [r for r in self.readings if r.most_likely]
+        if len(most_likely) == 1:
+            return most_likely[0]
+        else:
+            try:
+                max_weight = max(float(r.weight) for r in self.readings)
+            except ValueError:
+                return None
+            most_likely_readings = [r for r in self.readings
+                                    if float(r.weight) == max_weight]
+            lucky_reading = choice(most_likely_readings)
+            lucky_reading.most_likely = True
+            return lucky_reading
+
+
+    def get_most_likely_lemma(self):
+        """If one reading is marked as most likely, return its lemma.
+        Otherwise, select a most likely reading, label it as such, and return
+        its lemma.
+        """
+        most_likely_reading = self.get_most_likely_reading()
+        try:
+            return most_likely_reading.get_lemma()
+        except AttributeError:
+            return None
+
     def is_L2(self) -> bool:
         """Token: test if ALL readings contain an L2 error tag."""
         if self.readings:
@@ -121,13 +160,22 @@ class Token:
             return False
 
     def has_lemma(self, lemma: str) -> bool:
-        """Token has ANY readings that contain a given lemma."""
+        """Token has ANY readings that contain the given lemma."""
         return lemma in self.lemmas
 
     def has_tag(self, tag: Union[Tag, str]) -> bool:
-        """Token has ANY readings that contain a given tag."""
+        """Token has ANY readings that contain the given tag."""
+        # TODO do not need if...else here. any([]) is False.
         if self.readings:
             return any(tag in r for r in self.readings)
+        else:
+            return False
+
+    def has_tag_in_most_likely_reading(self, tag: Union[Tag, str],
+                                       partial=True) -> bool:
+        """Token's most likely reading contains the given tag."""
+        if self.readings:
+            return tag in self.get_most_likely_reading()
         else:
             return False
 

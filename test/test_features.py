@@ -21,15 +21,13 @@ def test_extract_ALL():
     assert len(ALL([t1, t2])) == 3
 
 
-def test_ensure_that_depends_on_is_complete():
-    """Make sure that the `depends_on` attributes match the code."""
-    t1 = udar.Text(sent)
-    for feat_name in ALL:
-        subset = ALL.new_extractor_from_subset([feat_name])
-        subset(t1)
-
-
 def test_extract_subset():
     t1 = udar.Text(sent)
     subset = ALL.new_extractor_from_subset(['type_token_ratio'])
-    assert repr(subset(t1)) == "[('type_token_ratio',), Features(type_token_ratio=0.8571428571428571)]"  # noqa: E501
+    assert repr(subset(t1)) == "[('type_token_ratio',), (0.8571428571428571,)]"
+
+
+def test_feature_keywords_declared_in_alphabetical_order():
+    for name, feat in ALL.items():
+        kwargs = list(feat.default_kwargs)
+        assert kwargs == sorted(kwargs)
