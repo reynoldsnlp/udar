@@ -1,10 +1,11 @@
 from collections import OrderedDict
-# from collections import namedtuple
+from collections import namedtuple
 from datetime import datetime
 from functools import partial
 import inspect
 from math import log
 import re
+import sys
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -113,7 +114,26 @@ class FeatureSetExtractor(OrderedDict):
         if features is not None:
             self.update(features)
 
-    def new_extractor_from_subset(self, feature_names: List[str],
+    def _get_cat_and_feat_names(self, feat_names: List[str] = None,
+                                category_names: List[str] = None) -> List[str]:
+        if category_names is not None:
+            cat_feat_names = list(feat_name for feat_name, feat in self.items()
+                                  if feat.category in category_names)
+        else:
+            cat_feat_names = []
+        if feat_names is not None:
+            feat_names = cat_feat_names + feat_names
+        else:
+            if category_names is None:
+                feat_names = list(feat_name for feat_name in self
+                                  if not feat_name.startswith('_')
+                                  and not self[feat_name].category.startswith('Absolute'))  # noqa: E501
+            else:
+                feat_names = cat_feat_names
+        return feat_names
+
+    def new_extractor_from_subset(self, feat_names: List[str] = None,
+                                  category_names: List[str] = None,
                                   extractor_name=None):
         """Make new FeatureSetExtractor with a subset of the feature_names in
         `extractor`.
@@ -121,23 +141,28 @@ class FeatureSetExtractor(OrderedDict):
         `feature_names` is a list of tuples. The first item is a Feature, and
         the second item is the kwargs to pass to the feature.
         """
+        feat_names = self._get_cat_and_feat_names(feat_names=feat_names,
+                                                  category_names=category_names)  # noqa: E501
         cls = type(self)
         if extractor_name is None:
             extractor_name = datetime.now().strftime('%Y-%m-%d, %H:%M:%S')
         return cls(extractor_name=extractor_name,
-                   features={name: self[name] for name in feature_names})
+                   features={name: self[name] for name in feat_names})
 
     def __call__(self, texts: Union[List[Text], Text], feat_names=None,
-                 header=True, tsv=False,
+                 category_names: List[str] = None, header=True,
+                 return_named_tuples=True, tsv=False,
                  **kwargs) -> Union[List[Tuple[Any, ...]], str]:
-        # python 3.6 cannot handle more than 255 arguments, so namedtuple
-        # will not work. Using plain tuples instead for now :-( TODO?
-        # FeaturesTuple = namedtuple('Features', self)  # type: ignore
+        feat_names = self._get_cat_and_feat_names(feat_names=feat_names,
+                                                  category_names=category_names)  # noqa: E501
+        if return_named_tuples:
+            if sys.version_info <= (3, 6) and len(feat_names) > 255:
+                tuple_constructor = tuple
+            else:
+                tuple_constructor = namedtuple('Features', feat_names)  # type: ignore  # noqa: E501
+        else:
+            tuple_constructor = tuple
         output = []
-        if feat_names is None:
-            feat_names = tuple(feat_name for feat_name in self
-                               if not feat_name.startswith('_')
-                               and not self[feat_name].category.startswith('Absolute'))  # noqa: E501
         if header:
             output.append(feat_names)
         if ((hasattr(texts, '__iter__') or hasattr(texts, '__getitem__'))
@@ -145,11 +170,13 @@ class FeatureSetExtractor(OrderedDict):
             for text in texts:
                 text.features = self._call_features(text,
                                                     feat_names=feat_names,
+                                                    tuple_constructor=tuple_constructor,  # noqa: E501
                                                     **kwargs)
                 output.append(text.features)
         elif isinstance(texts, Text):
             texts.features = self._call_features(texts,
                                                  feat_names=feat_names,
+                                                 tuple_constructor=tuple_constructor,  # noqa: E501
                                                  **kwargs)
             output.append(texts.features)
         else:
@@ -160,12 +187,16 @@ class FeatureSetExtractor(OrderedDict):
         else:
             return output
 
-    def _call_features(self, text: Text, feat_names=(), **kwargs):
+    def _call_features(self, text: Text, feat_names=(),
+                       tuple_constructor=tuple, **kwargs):
         row = []
         for name in feat_names:
             feature = self[name]
             row.append(feature(text, **kwargs))
-        return tuple(row)
+        try:
+            return tuple_constructor(*row)
+        except TypeError:
+            return tuple_constructor(row)
 
 
 ALL = FeatureSetExtractor(extractor_name='All')

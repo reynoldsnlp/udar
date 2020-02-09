@@ -2,13 +2,16 @@ from collections import defaultdict
 import re
 import sys
 from typing import Dict
+from typing import List
 from typing import Union
 
+from .features import ALL
 from .fsts import get_fst
 from .misc import destress
 from .reading import Reading
 from .tag import tag_dict
 from .tag import Tag
+from .text import _get_Text
 from .text import Text
 from .text import get_tokenizer
 
@@ -116,3 +119,8 @@ def stress_distractors(word: str):
            for m in re.finditer('(Е)', word)]
     return sorted(stresses + yos + Yos,
                   key=lambda x: re.search('[Ёё\u0301]', x).start())  # type: ignore  # noqa: E501
+
+
+def readability_measures(text: Union[str, List[str], Text]):
+    my_Text = _get_Text(text)
+    return ALL(my_Text, category_names=['Readability formula'])

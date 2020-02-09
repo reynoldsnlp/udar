@@ -530,5 +530,14 @@ class Text:  # TODO inherit from `list`, put Toks in self ??
 
     def readability(approach=None):
         # TODO
-        from .features import ALL
+        # from .features import ALL
         pass
+
+
+def _get_Text(text: Union[str, List[str], Text], **kwargs) -> Text:
+    if isinstance(text, str):
+        return Text(text, **kwargs)
+    elif isinstance(text, list):
+        return Text(' '.join(text), **kwargs)  # TODO make more robust
+    else:
+        return text

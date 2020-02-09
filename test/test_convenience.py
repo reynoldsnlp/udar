@@ -3,6 +3,7 @@ from pkg_resources import resource_filename
 import pytest
 
 from udar import convenience
+from udar import Text
 
 
 RSRC_PATH = resource_filename('udar', 'resources/')
@@ -67,7 +68,7 @@ def test_noun_distractors_empty():
 
 
 def test_noun_distractors_reading():
-    r = convenience.Text('слово').Toks[0].readings[0]
+    r = Text('слово').Toks[0].readings[0]
     distractors = convenience.noun_distractors(r)
     assert distractors == {'сло́ва', 'сло́ве', 'сло́вом', 'сло́во', 'сло́ву'}
 
@@ -75,3 +76,10 @@ def test_noun_distractors_reading():
 def test_noun_distractors_NotImplementedError():
     with pytest.raises(NotImplementedError):
         distractors = convenience.noun_distractors(['слово'])  # noqa: F841
+
+
+def test_readability():
+    r1 = convenience.readability_measures(Text('Анастасия сотрудничает со всякими корреспондентами.'))  # noqa: E501
+    assert repr(r1) == "[['matskovskij', 'oborneva', 'solnyshkina'], Features(matskovskij=3.2248, oborneva=20.51, solnyshkina=nan)]"  # noqa: E501
+    r2 = convenience.readability_measures(Text('Он идет с разными людьми.'))
+    assert repr(r2) == "[['matskovskij', 'oborneva', 'solnyshkina'], Features(matskovskij=3.1510000000000002, oborneva=0.3500000000000014, solnyshkina=nan)]"  # noqa: E501

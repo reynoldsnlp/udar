@@ -19,7 +19,8 @@ G2P_FNAME = RSRC_PATH + 'g2p.hfstol'
 
 ALIAS = {'analyser': 'analyzer',
          'L2-analyser': 'L2-analyzer',
-         'acc-generator': 'accented-generator'}
+         'acc-generator': 'accented-generator',
+         'phon-generator': 'phonetic-generator'}
 
 
 class Udar:
@@ -44,12 +45,13 @@ class Udar:
     path2fst: str
     # fst: 'libhfst.HfstTransducer'
 
-    def __init__(self, flavor: str='L2-analyzer'):
+    def __init__(self, flavor: str = 'L2-analyzer'):
         """Build fst for lookup. Flavor must be one of the following:
             - 'analyzer' (or 'analyser')
             - 'L2-analyzer' (or 'L2-analyser')
             - 'generator'
             - 'accented-generator' (or 'acc-generator')
+            - 'phonetic-generator' (or 'phon-generator')
         """
         if flavor == 'g2p':
             raise ValueError('For g2p, use get_g2p().')
@@ -57,7 +59,8 @@ class Udar:
         fnames = {'analyzer': 'analyser-gt-desc.hfstol',
                   'L2-analyzer': 'analyser-gt-desc-L2.hfstol',
                   'generator': 'generator-gt-norm.hfstol',
-                  'accented-generator': 'generator-gt-norm.accented.hfstol'}
+                  'accented-generator': 'generator-gt-norm.accented.hfstol',
+                  'phonetic-generator': 'generator-gt-norm.phonetic.hfstol'}
         for alias, orig in ALIAS.items():
             fnames[alias] = fnames[orig]
         try:

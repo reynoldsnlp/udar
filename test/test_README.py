@@ -1,6 +1,19 @@
 """Test that all code blocks in README.md run without errors."""
+import contextlib
+from io import StringIO
 from pathlib import Path
 import re
+import sys
+
+
+@contextlib.contextmanager
+def stdoutIO(stdout=None):
+    old = sys.stdout
+    if stdout is None:
+        stdout = StringIO()
+    sys.stdout = stdout
+    yield stdout
+    sys.stdout = old
 
 
 README = Path('README.md').read_text()
@@ -17,6 +30,10 @@ def test_block_extraction():
 
 
 def test_blocks():
-    """Just checks that nothing throws errors."""
     for block in blocks:
-        exec(block, globals())
+        for code, expected_out in re.findall(r'((?:[^#].*\n)+)((?:# .*\n)*)',
+                                             block):
+            expected_out = re.sub('^# ?', '', expected_out, flags=re.M).strip()
+            with stdoutIO() as s:
+                exec(code, globals())
+            assert s.getvalue().strip() == expected_out

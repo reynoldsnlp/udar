@@ -24,7 +24,7 @@ def test_extract_ALL():
 def test_extract_subset():
     t1 = udar.Text(sent)
     subset = ALL.new_extractor_from_subset(['type_token_ratio'])
-    assert repr(subset(t1)) == "[('type_token_ratio',), (0.8571428571428571,)]"
+    assert repr(list(zip(*subset(t1)))) == "[('type_token_ratio', 0.8571428571428571)]"  # noqa: E501
 
 
 def test_feature_keywords_declared_in_alphabetical_order():

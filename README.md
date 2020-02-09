@@ -32,19 +32,20 @@ tokenize and analyze a text. The `repr` is an `xfst`/`hfst` stream:
 
 ```python
 import udar
-text1 = udar.Text('Мы удивились простотой системы.')
-text1
-# Мы	мы+Pron+Pers+Pl1+Nom	0.0
+text1 = udar.Text('Мы удивились простоте системы.')
+print(text1)
+# Мы	мы+Pron+Pers+Pl1+Nom	0.000000
 # 
 # удивились	удивиться+V+Perf+IV+Pst+MFN+Pl	5.078125
 # 
-# простотой	простота+N+Fem+Inan+Sg+Ins	4.2109375
+# простоте	простота+N+Fem+Inan+Sg+Dat	4.210938
+# простоте	простота+N+Fem+Inan+Sg+Loc	4.210938
 # 
-# системы	система+N+Fem+Inan+Pl+Acc	5.4296875
-# системы	система+N+Fem+Inan+Pl+Nom	5.4296875
-# системы	система+N+Fem+Inan+Sg+Gen	5.4296875
+# системы	система+N+Fem+Inan+Pl+Acc	5.429688
+# системы	система+N+Fem+Inan+Pl+Nom	5.429688
+# системы	система+N+Fem+Inan+Sg+Gen	5.429688
 # 
-# .	.+CLB	0.0
+# .	.+CLB	0.000000
 ```
 
 ### `Text` methods
@@ -53,10 +54,13 @@ text1
 phonetic transcription.
 
 ```python
-text1.stressify()
-# 'Мы́ удиви́лись простото́й систе́мы.'
-text1.phoneticize()
-"Мы́ уд'ив'и́л'ис' пръстʌто́й с'ис'т'э́мы."
+stressed_text1 = text1.stressify()
+print(stressed_text1)
+# Мы́ удиви́лись простоте́ систе́мы.
+
+phonetic_text1 = text1.phoneticize()
+print(phonetic_text1)
+# мы́ уд'ив'и́л'ис' пръстʌт'э́ с'ис'т'э́мы.
 ```
 
 ### Convenience functions
@@ -73,10 +77,11 @@ multiple-choice exercise, hence the name `distractors`.
 
 ```python
 sg_paradigm = udar.noun_distractors('словом')
-sg_paradigm == {'сло́ву', 'сло́ве', 'сло́вом', 'сло́ва', 'сло́во'}
+print(sg_paradigm == {'сло́ву', 'сло́ве', 'сло́вом', 'сло́ва', 'сло́во'})
 # True
+
 pl_paradigm = udar.noun_distractors('словах')
-pl_paradigm == {'слова́м', 'слова́', 'слова́х', 'слова́ми', 'сло́в'}
+print(pl_paradigm == {'слова́м', 'слова́', 'слова́х', 'слова́ми', 'сло́в'})
 # True
 ```
 
@@ -90,7 +95,7 @@ the error.
 
 ```python
 diag = udar.diagnose_L2('Мы разговаривали в кафетерие с Таной')
-diag == {'Err/L2_ii': {'кафетерие'}, 'Err/L2_Pal': {'Таной'}}
+print(diag == {'Err/L2_ii': {'кафетерие'}, 'Err/L2_Pal': {'Таной'}})
 # True
 ```
 
@@ -99,8 +104,8 @@ diag == {'Err/L2_ii': {'кафетерие'}, 'Err/L2_Pal': {'Таной'}}
 This function will look up the meaning of any tag used by the analyzer.
 
 ```python
-udar.tag_info('Err/L2_ii')
-# 'L2 error: Failure to change ending ие to ии in +Sg+Loc or +Sg+Dat, e.g. к Марие, о кафетерие, о знание'
+print(udar.tag_info('Err/L2_ii'))
+# L2 error: Failure to change ending ие to ии in +Sg+Loc or +Sg+Dat, e.g. к Марие, о кафетерие, о знание
 ```
 
 ### Using the analyzer manually
@@ -122,10 +127,11 @@ The `Udar.lookup()` method takes a token `str` and returns a `Token`.
 
 ```python
 token1 = analyzer.lookup('сло́ва')
-token1
+print(token1)
 # сло́ва [слово_N_Neu_Inan_Sg_Gen]
+
 token2 = analyzer.lookup('слова')
-token2
+print(token2)
 # слова [слово_N_Neu_Inan_Pl_Acc  слово_N_Neu_Inan_Pl_Nom  слово_N_Neu_Inan_Sg_Gen]
 ```
 
@@ -135,13 +141,16 @@ You can easily check if a lemma or morphosyntactic tag are in a `Token` or
 `Reading` using `in`:
  
 ```python
-token2
+print(token2)
 # слова [слово_N_Neu_Inan_Pl_Acc  слово_N_Neu_Inan_Pl_Nom  слово_N_Neu_Inan_Sg_Gen]
-'Gen' in token2  # do any of the readings include Genitive case?
+
+print('Gen' in token2)  # do any of the readings include Genitive case?
 # True
-'слово' in token2  # do any of the readings have the lemma 'слово'?
+
+print('слово' in token2)  # do any of the readings have the lemma 'слово'?
 # True
-'новый' in token2
+
+print('новый' in token2)
 # False
 ```
 
@@ -149,8 +158,8 @@ You can make a filtered list of a `Token`'s readings using the following idiom:
 
 ```python
 pl_readings = [reading for reading in token2 if 'Pl' in reading]
-pl_readings
-# [слово_N_Neu_Inan_Pl_Acc  слово_N_Neu_Inan_Pl_Nom]
+print(pl_readings)
+# [Reading(слово+N+Neu+Inan+Pl+Acc, 5.975586, ), Reading(слово+N+Neu+Inan+Pl+Nom, 5.975586, )]
 ```
 
 Grammatical analyses are parsed into the following objects:
@@ -163,14 +172,6 @@ Grammatical analyses are parsed into the following objects:
     * Surface form (`str`) and a list of `Reading`s
 * Text
     * List of `Token`s
-
-
-`Tag`s can be looked up using the `tag_info()` function:
-
-```python
-udar.tag_info('Err/L2_NoFV')
-# Err/L2_NoFV	L2 error: Lack of fleeting vowel where it should be inserted, e.g. окн (compare окон)
-```
 
 ### Related projects
 

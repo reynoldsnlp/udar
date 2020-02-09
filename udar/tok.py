@@ -133,7 +133,6 @@ class Token:
             lucky_reading.most_likely = True
             return lucky_reading
 
-
     def get_most_likely_lemma(self):
         """If one reading is marked as most likely, return its lemma.
         Otherwise, select a most likely reading, label it as such, and return
@@ -330,8 +329,15 @@ class Token:
         else:
             raise NotImplementedError(f'Bad Result: {orig_prim} {pred_prim}')
 
+    def phonetic_transcriptions(self) -> set:
+        """Return set of all phonetic transcriptions from self.readings."""
+        from .fsts import get_fst
+        phon_gen = get_fst('phonetic-generator')
+        phon_transcriptions = {r.generate(phon_gen) for r in self.readings}
+        return phon_transcriptions
+
     def phoneticize(self, disambiguated=None, selection='safe', guess=False,
-                    experiment=False) -> str:
+                    experiment=False, lemma=None) -> str:
         """Token's phonetic transcription.
 
         selection  (Applies only to words in the lexicon.)
@@ -346,33 +352,62 @@ class Token:
         # TODO check if `all` selection is compatible with g2p.hfstol
         from .fsts import get_g2p
         g2p = get_g2p()
-        stress_params = StressParams(disambiguated, selection, guess)
-        out_token = self.stressify(disambiguated=disambiguated,
-                                   selection=selection, guess=guess,
-                                   experiment=experiment)
-        if 'Gen' in self:
-            out_token += "G"
-        if 'Pl3' in self:
-            out_token += "P"
-        if 'Loc' in self:
-            out_token += "L"
-        if 'Dat' in self:
-            out_token += "D"
-        elif 'Ins' in self:
-            out_token += "I"
-        if out_token.endswith("я") or out_token.endswith("Я"):
-            out_token += "Y"
-        elif out_token.endswith("ясь") or out_token.endswith("ЯСЬ"):
-            out_token += "S"
-        pred = g2p.lookup(out_token)[0][0]
-        if experiment:
-            self.phon_predictions[stress_params] = (pred, self.phon_eval(pred))
-        return pred
+        if lemma:
+            self.removed_readings.extend([r for r in self.readings
+                                          if r.lemma != lemma])
+            self.readings = [r for r in self.readings if r.lemma == lemma]
+        transcriptions = self.phonetic_transcriptions()
+        if not transcriptions:
+            if guess:
+                stress_pred = self.guess_syllable()
+            elif experiment:
+                stress_pred = destress(self.orig)
+            else:
+                stress_pred = self.orig
+        elif len(transcriptions) == 1:
+            return transcriptions.pop()
+        else:  # if there are more than one possible transcription
+            if selection == 'safe':
+                if experiment:
+                    stress_pred = destress(self.orig)
+                else:
+                    stress_pred = self.orig
+            elif selection == 'rand':
+                return choice(list(transcriptions))
+            elif selection == 'freq':
+                raise NotImplementedError("The 'freq' selection method is not "
+                                          'implemented yet.')
+            elif selection == 'all':
+                stresses = self.stresses()
+                acutes = [(w.replace(GRAVE, '').index(ACUTE), ACUTE)
+                          for w in stresses if ACUTE in w]
+                graves = [(w.replace(ACUTE, '').index(GRAVE), GRAVE)
+                          for w in stresses if GRAVE in w]
+                yos = [(w.replace(GRAVE, '').replace(ACUTE, '').index('ё'), 'ё')  # noqa: E501
+                       for w in stresses if 'ё' in w]
+                positions = acutes + graves + yos
+                word = list(destress(transcriptions.pop()))
+                for i, char in sorted(positions, key=lambda x: (-x[0], x[1]),
+                                      reverse=True):
+                    if char in (ACUTE, GRAVE):
+                        word.insert(i, char)
+                    else:  # 'ё'
+                        word[i] = char
+                stress_pred = ''.join(word)
+            else:
+                raise NotImplementedError(f"The '{selection}' selection "
+                                          'method does not exist.')
+        return g2p.lookup(stress_pred)[0][0]
+        # TODO Are Y and S still implemented in g2p.twolc?
+        # if out_token.endswith("я") or out_token.endswith("Я"):
+        #     out_token += "Y"
+        # elif out_token.endswith("ясь") or out_token.endswith("ЯСЬ"):
+        #     out_token += "S"
 
     def phon_eval(self, pred: str):
         """Token Results of phonetic transcription predictions."""
         # raise NotImplementedError
-        return None
+        pass
 
     def guess(self, backoff=None) -> str:
         if len(self.readings) > 0:
