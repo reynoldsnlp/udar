@@ -92,7 +92,7 @@ def get_tokenizer(use_pexpect=True) -> Tokenizer:
             return nltk.word_tokenize
 
 
-class Text:  # TODO inherit from `list`, put Toks in self ??
+class Text:
     """Sequence of `Token`s.
 
     An abbreviated `repr` can be achieved using string formatting:
