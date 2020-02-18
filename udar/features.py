@@ -26,7 +26,7 @@ __all__ = ['ALL']
 MAX_SYLL = 8
 NaN = float('nan')
 punc_re = r'[\\!"#$%&\'()*+,\-./:;<=>?@[\]^_`{|}~]+'
-vowel_re = r'[аэоуыяеёюи]'
+vowel_re = r'[аэоуыяеёюиaeiou]'  # TODO make latin vowels optional?
 
 
 def safe_name(tag: Union[str, Tag]) -> str:
@@ -37,25 +37,32 @@ def safe_name(tag: Union[str, Tag]) -> str:
 class Feature:
     name: str
     func: Callable
+    doc: str
     default_kwargs: Mapping
     category: str
     depends_on: List[str]
 
-    def __init__(self, name, func, default_kwargs=None, category=None,
-                 depends_on=None):
+    def __init__(self, name, func, doc=None, default_kwargs=None,
+                 category=None, depends_on=None):
         self.name = name
         self.func = func
+        if doc is None:
+            self.doc = inspect.cleandoc(func.func.__doc__
+                                        if isinstance(func, partial)
+                                        else func.__doc__)
+        else:
+            self.doc = inspect.cleandoc(doc)
         self.set_default_kwargs(default_kwargs=default_kwargs)
         self.category = category
         if depends_on is None:
             src = inspect.getsource(func.func if isinstance(func, partial)
                                     else func)
-            self.depends_on = re.findall(r" = extractor['(.+?)']\(", src)
+            self.depends_on = re.findall(r''' = ALL\[['"](.+?)['"]\]\(''', src)
         else:
             self.depends_on = depends_on
 
     @staticmethod
-    def get_orig_kwargs(func) -> Dict[str, Any]:
+    def _get_orig_kwargs(func) -> Dict[str, Any]:
         """Get kwargs defaults as declared in the original function."""
         sig = inspect.signature(func)
         return {name: param.default
@@ -68,7 +75,7 @@ class Feature:
         If `default_kwargs` is None, reset self.default_kwargs to original
         default values declared in the original function's signature.
         """
-        auto_kwargs = self.get_orig_kwargs(self.func)
+        auto_kwargs = self._get_orig_kwargs(self.func)
         if default_kwargs is None:
             self.default_kwargs = auto_kwargs
         else:
@@ -100,6 +107,13 @@ class Feature:
 
     def __str__(self):
         return self.name
+
+    def info(self):
+        return '\n'.join([f'Name: {self.name}',
+                          f'About: {self.doc}',
+                          f'Default keyword arguments: {self.default_kwargs}',
+                          f'Category: {self.category}',
+                          f'Depends on: {self.depends_on}'])
 
 
 class FeatureSetExtractor(OrderedDict):
@@ -198,6 +212,10 @@ class FeatureSetExtractor(OrderedDict):
         except TypeError:
             return tuple_constructor(row)
 
+    def info(self):
+        hline = '\n' + '=' * 79 + '\n'
+        return hline.join([feat.info() for name, feat in self.items()])
+
 
 ALL = FeatureSetExtractor(extractor_name='All')
 
@@ -212,14 +230,17 @@ def add_to_ALL(name, category=None, depends_on=None):
 
 
 @add_to_ALL('_filter_str', category='_prior')
-def _filter_str(text: Text, lower=False, rm_punc=False, rm_whitespace=False,
+def _filter_str(text: Text, lower=False, rmv_punc=False, rmv_whitespace=False,
                 uniq=False) -> str:
+    """Convert string to lower case, remove punctuation, remove whitespace,
+    and/or reduce string to unique characters.
+    """
     orig = text.orig
-    if uniq:
+    if uniq:  # Putting this first improves performance of subsequent filters.
         orig = ''.join(set(orig))
-    if rm_whitespace:
+    if rmv_whitespace:
         orig = re.sub(r'\s+', '', orig)
-    if rm_punc:
+    if rmv_punc:
         orig = re.sub(punc_re, '', orig)
     if lower:
         orig = orig.lower()
@@ -227,9 +248,10 @@ def _filter_str(text: Text, lower=False, rm_punc=False, rm_whitespace=False,
 
 
 @add_to_ALL('_filter_toks', category='_prior')
-def _filter_toks(text: Text, lower=False, rm_punc=False) -> List[str]:
+def _filter_toks(text: Text, lower=False, rmv_punc=False) -> List[str]:
+    """Convert surface tokens to lower case and/or remove punctuation."""
     toks = text.toks
-    if rm_punc:
+    if rmv_punc:
         toks = [t for t in toks if not re.match(punc_re, t)]
     if lower:
         toks = [t.lower() for t in toks]
@@ -237,111 +259,134 @@ def _filter_toks(text: Text, lower=False, rm_punc=False) -> List[str]:
 
 
 @add_to_ALL('_filter_Toks', category='_prior')
-def _filter_Toks(text: Text, has_tag='', rm_punc=False) -> List[Token]:
+def _filter_Toks(text: Text, has_tag='', rmv_punc=False) -> List[Token]:
+    """Filter Token objects according to whether each Token contains a given
+    Tag or whether the original surface form is punctuation.
+    """
     Toks = text.Toks
     if has_tag:
         Toks = [t for t in Toks if t.has_tag_in_most_likely_reading(tag)]
-    if rm_punc:
+    if rmv_punc:
         Toks = [t for t in Toks if not re.match(punc_re, t.orig)]
     return Toks
 
 
 @add_to_ALL('num_chars', category='Absolute length')
-def num_chars(text: Text, ignore_punc=False, ignore_whitespace=True) -> int:
-    orig = ALL['_filter_str'](text, rm_punc=ignore_punc,
-                              rm_whitespace=ignore_whitespace)
+def num_chars(text: Text, lower=False, rmv_punc=False,
+              rmv_whitespace=True, uniq=False) -> int:
+    """Count number of characters in original string of Text."""
+    orig = ALL['_filter_str'](text, lower=lower, rmv_punc=rmv_punc,
+                              rmv_whitespace=rmv_whitespace)
     return len(orig)
 
 
 @add_to_ALL('num_sylls', category='Absolute length')
 def num_sylls(text: Text) -> int:
+    """Count number of syllables in a Text."""
     return len(re.findall(vowel_re, text.orig, flags=re.I))
 
 
-@add_to_ALL('num_uniq_chars', category='Absolute length')
-def num_uniq_chars(text: Text, ignore_punc=False, ignore_whitespace=True,
-                   lower=False) -> int:
-    orig = ALL['_filter_str'](text, lower=lower, rm_punc=ignore_punc,
-                              rm_whitespace=ignore_whitespace,
-                              uniq=True)
-    return len(orig)
-
-
 @add_to_ALL('num_tokens', category='Absolute length')
-def num_tokens(text: Text, ignore_punc=False) -> int:
-    toks = ALL['_filter_toks'](text, rm_punc=ignore_punc)
+def num_tokens(text: Text, lower=False, rmv_punc=False) -> int:
+    """Count number of tokens in a Text."""
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    toks = ALL['_filter_toks'](text, lower=lower, rmv_punc=rmv_punc)
     return len(toks)
 
 
-def num_tokens_Tag(tag: str, text: Text, ignore_punc=False) -> int:
-    Toks = ALL['_filter_Toks'](text, has_tag=tag, rm_punc=ignore_punc)
+def num_tokens_Tag(has_tag: str, text: Text, rmv_punc=False) -> int:
+    """Count number of tokens with a given tag."""
+    Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
     return len(Toks)
 for tag in tag_dict:  # noqa: E305
     name = f'num_tokens_{safe_name(tag)}'
-    ALL[name] = Feature(name, partial(num_tokens_Tag, tag),
+    this_partial = partial(num_tokens_Tag, tag)
+    doc = num_tokens_Tag.__doc__.replace('a given', f'the `{tag}`')  # type: ignore  # noqa: E501
+    ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Absolute length')
 
 
-def num_tokens_over_n_sylls(n, text: Text, ignore_punc=True) -> int:
-    toks = ALL['_filter_toks'](text, rm_punc=ignore_punc)
+def num_tokens_over_n_sylls(n, text: Text, lower=False, rmv_punc=True) -> int:
+    """Count the number of tokens with more than n syllables."""
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    toks = ALL['_filter_toks'](text, lower=lower, rmv_punc=rmv_punc)
     return len([t for t in toks if len(re.findall(vowel_re, t, re.I)) > n])
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'num_tokens_over_{n}_sylls'
-    ALL[name] = Feature(name, partial(num_tokens_over_n_sylls, n),
+    this_partial = partial(num_tokens_over_n_sylls, n)
+    doc = num_tokens_over_n_sylls.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
+    ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Absolute length')
 
 
 @add_to_ALL('num_types', category='Absolute length')
-def num_types(text: Text, ignore_punc=False, lower=True) -> int:
-    toks = ALL['_filter_toks'](text, lower=lower, rm_punc=ignore_punc)
+def num_types(text: Text, lower=True, rmv_punc=False) -> int:
+    """Count number of unique tokens ("types") in a Text."""
+    toks = ALL['_filter_toks'](text, lower=lower, rmv_punc=rmv_punc)
     return len(set(toks))
 
 
 @add_to_ALL('num_lemma_types', category='Absolute length')
-def num_lemma_types(text: Text, has_tag='', ignore_punc=False) -> int:
-    Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rm_punc=ignore_punc)
-    types = set([t.get_most_likely_lemma() for t in Toks])
-    return len(types)
+def num_lemma_types(text: Text, has_tag='', lower=False,
+                    rmv_punc=False) -> int:
+    """Count number of unique lemmas in a Text."""
+    Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    if lower:
+        return len(set([t.get_most_likely_lemma().lower() for t in Toks]))
+    else:
+        return len(set([t.get_most_likely_lemma() for t in Toks]))
 
 
-def num_types_Tag(tag: str, text: Text, ignore_punc=False, lower=True) -> int:
-    Toks = ALL['_filter_Toks'](text, has_tag=tag, rm_punc=ignore_punc)
+def num_types_Tag(tag: str, text: Text, lower=True, rmv_punc=False) -> int:
+    """Count number of unique tokens with a given tag in a Text."""
+    Toks = ALL['_filter_Toks'](text, has_tag=tag, rmv_punc=rmv_punc)
     if lower:
         return len(set([t.orig.lower() for t in Toks]))
     else:
         return len(set([t.orig for t in Toks]))
 for tag in tag_dict:  # noqa: E305
     name = f'num_types_{safe_name(tag)}'
-    ALL[name] = Feature(name, partial(num_types_Tag, tag),
+    this_partial = partial(num_types_Tag, tag)
+    doc = num_types_Tag.__doc__.replace('a given', f'the `{tag}`')  # type: ignore  # noqa: E501
+    ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Absolute length')
 
 
 @add_to_ALL('num_sents', category='Absolute length')
 def num_sents(text: Text, sent_tokenizer=None) -> int:
+    """Count number of sentences in a Text."""
     if sent_tokenizer is None:
         sent_tokenizer = nltk.sent_tokenize
     return len(sent_tokenizer(text.orig))
 
 
-def prcnt_words_over_n_sylls(n, text: Text, ignore_punc=True,
+def prcnt_words_over_n_sylls(n, text: Text, lower=False, rmv_punc=True,
                              zero_div_val=NaN) -> float:
-    num_tokens = ALL['num_tokens'](text, ignore_punc=ignore_punc)
-    num_tokens_over_n_sylls = ALL[f'num_tokens_over_{n}_sylls'](text, ignore_punc=ignore_punc)  # noqa: E501
+    """Compute the percentage of words over n syllables in a Text."""
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    num_tokens_over_n_sylls = ALL[f'num_tokens_over_{n}_sylls'](text,
+                                                                lower=lower,
+                                                                rmv_punc=rmv_punc)  # noqa: E501
     try:
         return num_tokens_over_n_sylls / num_tokens
     except ZeroDivisionError:
         return zero_div_val
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'prcnt_words_over_{n}_sylls'
-    ALL[name] = Feature(name, partial(prcnt_words_over_n_sylls, n),
+    this_partial = partial(prcnt_words_over_n_sylls, n)  # type: ignore
+    doc = prcnt_words_over_n_sylls.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
+    ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Lexical variation')
 
 
 @add_to_ALL('type_token_ratio', category='Lexical variation')
-def type_token_ratio(text: Text, ignore_punc=False, lower=True,
+def type_token_ratio(text: Text, lower=True, rmv_punc=False,
                      zero_div_val=NaN) -> float:
-    num_types = ALL['num_types'](text, ignore_punc=ignore_punc, lower=lower)
-    num_tokens = ALL['num_tokens'](text, ignore_punc=ignore_punc)
+    """Compute the "type-token ratio", i.e. the number of unique tokens
+    ("types") divided by the number of tokens."""
+    num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
     try:
         return num_types / num_tokens
     except ZeroDivisionError:
@@ -349,11 +394,13 @@ def type_token_ratio(text: Text, ignore_punc=False, lower=True,
 
 
 @add_to_ALL('lemma_type_token_ratio', category='Lexical variation')
-def lemma_type_token_ratio(text: Text, has_tag='', ignore_punc=False,
+def lemma_type_token_ratio(text: Text, has_tag='', lower=False, rmv_punc=False,
                            zero_div_val=NaN) -> float:
-    num_types = ALL['num_lemma_types'](text, has_tag=has_tag,
-                                       ignore_punc=ignore_punc)
-    num_tokens = ALL['num_tokens'](text, ignore_punc=ignore_punc)
+    """Compute the "lemma type-token ratio", i.e. the number of unique lemmas
+    divided by the number of lemmas."""
+    num_types = ALL['num_lemma_types'](text, has_tag=has_tag, lower=lower,
+                                       rmv_punc=rmv_punc)
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
     try:
         return num_types / num_tokens
     except ZeroDivisionError:
@@ -361,10 +408,12 @@ def lemma_type_token_ratio(text: Text, has_tag='', ignore_punc=False,
 
 
 @add_to_ALL('root_type_token_ratio', category='Lexical variation')
-def root_type_token_ratio(text: Text, ignore_punc=False, lower=True,
+def root_type_token_ratio(text: Text, lower=True, rmv_punc=False,
                           zero_div_val=NaN) -> float:
-    num_types = ALL['num_types'](text, ignore_punc=ignore_punc, lower=lower)
-    num_tokens = ALL['num_tokens'](text, ignore_punc=ignore_punc)
+    """Compute the "root type-token ratio", i.e. number of unique tokens
+    divided by the square root of the number of tokens."""
+    num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
     try:
         return num_types / (num_tokens ** 0.5)
     except ZeroDivisionError:
@@ -372,10 +421,12 @@ def root_type_token_ratio(text: Text, ignore_punc=False, lower=True,
 
 
 @add_to_ALL('corrected_type_token_ratio', category='Lexical variation')
-def corrected_type_token_ratio(text: Text, ignore_punc=False, lower=True,
+def corrected_type_token_ratio(text: Text, lower=True, rmv_punc=False,
                                zero_div_val=NaN) -> float:
-    num_types = ALL['num_types'](text, ignore_punc=ignore_punc, lower=lower)
-    num_tokens = ALL['num_tokens'](text, ignore_punc=ignore_punc)
+    """Compute the "corrected type-token ratio", i.e. the number of unique
+    tokens divided by the square root of twice the number of tokens."""
+    num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
     try:
         return num_types / ((2 * num_tokens) ** 0.5)
     except ZeroDivisionError:
@@ -383,10 +434,12 @@ def corrected_type_token_ratio(text: Text, ignore_punc=False, lower=True,
 
 
 @add_to_ALL('bilog_type_token_ratio', category='Lexical variation')
-def bilog_type_token_ratio(text: Text, ignore_punc=False, lower=True,
+def bilog_type_token_ratio(text: Text, lower=True, rmv_punc=False,
                            zero_div_val=NaN) -> float:
-    num_types = ALL['num_types'](text, ignore_punc=ignore_punc, lower=lower)
-    num_tokens = ALL['num_tokens'](text, ignore_punc=ignore_punc)
+    """Compute the "bilogarithmic type-token ratio", i.e. the log of the number
+    of unique tokens divided by the log of the number of tokens."""
+    num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
     try:
         return log(num_types) / log(num_tokens)
     except (ValueError, ZeroDivisionError):
@@ -394,39 +447,47 @@ def bilog_type_token_ratio(text: Text, ignore_punc=False, lower=True,
 
 
 @add_to_ALL('uber_index', category='Lexical variation')
-def uber_index(text: Text, ignore_punc=False, lower=True,
+def uber_index(text: Text, lower=True, rmv_punc=False,
                zero_div_val=NaN) -> float:
-    num_types = ALL['num_types'](text, ignore_punc=ignore_punc, lower=lower)
-    num_tokens = ALL['num_tokens'](text, ignore_punc=ignore_punc)
+    """Compute the "uber index", i.e. the log base 2 of the number of types
+    divided by the log base 10 of the number of tokens divided by the number of
+    unique tokens."""
+    num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
     try:
         return log(num_types, 2) / log(num_tokens / num_types)
     except (ValueError, ZeroDivisionError):
         return zero_div_val
 
 
-def type_token_ratio_Tag(tag: str, text: Text, ignore_punc=False, lower=True,
+def type_token_ratio_Tag(tag: str, text: Text, lower=True, rmv_punc=False,
                          zero_div_val=NaN) -> float:
+    """Compute type-token ratio for all tokens in a Text with a given Tag."""
     num_types = ALL[f'num_types_{safe_name(tag)}'](text,
-                                                   ignore_punc=ignore_punc,
+                                                   rmv_punc=rmv_punc,
                                                    lower=lower)
     num_tokens = ALL[f'num_tokens_{safe_name(tag)}'](text,
-                                                     ignore_punc=ignore_punc)
+                                                     rmv_punc=rmv_punc)
     try:
         return num_types / num_tokens
     except ZeroDivisionError:
         return zero_div_val
 for tag in tag_dict:  # noqa: E305
     name = f'type_token_ratio_{safe_name(tag)}'
-    ALL[name] = Feature(name, partial(type_token_ratio_Tag, tag),
+    this_partial = partial(type_token_ratio_Tag, tag)  # type: ignore
+    doc = this_partial.func.__doc__.replace('a given', f'the `{tag}`')  # type: ignore  # noqa: E501
+    ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Lexical variation')
 
 
 @add_to_ALL('chars_per_word', category='Normalized length')
-def chars_per_word(text: Text, ignore_punc=True, ignore_whitespace=True,
-                   zero_div_val=NaN) -> float:
-    num_chars = ALL['num_chars'](text, ignore_punc=ignore_punc,
-                                 ignore_whitespace=ignore_whitespace)
-    num_tokens = ALL['num_tokens'](text, ignore_punc=ignore_punc)
+def chars_per_word(text: Text, lower=False, rmv_punc=True, rmv_whitespace=True,
+                   uniq=False, zero_div_val=NaN) -> float:
+    """Calculate the average number of characters per word."""
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    num_chars = ALL['num_chars'](text, lower=lower, rmv_punc=rmv_punc,
+                                 rmv_whitespace=rmv_whitespace, uniq=uniq)
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
     try:
         return num_chars / num_tokens
     except ZeroDivisionError:
@@ -434,9 +495,12 @@ def chars_per_word(text: Text, ignore_punc=True, ignore_whitespace=True,
 
 
 @add_to_ALL('sylls_per_word', category='Normalized length')
-def sylls_per_word(text: Text, ignore_punc=True, zero_div_val=NaN) -> float:
+def sylls_per_word(text: Text, lower=False, rmv_punc=True,
+                   zero_div_val=NaN) -> float:
+    """Calculate the average number of syllables per word."""
+    # `lower` is irrelevant here, but included for hierarchical consistency
     num_sylls = ALL['num_sylls'](text)
-    num_tokens = ALL['num_tokens'](text, ignore_punc=ignore_punc)
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
     try:
         return num_sylls / num_tokens
     except ZeroDivisionError:
@@ -444,9 +508,11 @@ def sylls_per_word(text: Text, ignore_punc=True, zero_div_val=NaN) -> float:
 
 
 @add_to_ALL('words_per_sent', category='Normalized length')
-def words_per_sent(text: Text, ignore_punc=True, sent_tokenizer=None,
+def words_per_sent(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
                    zero_div_val=NaN) -> float:
-    num_tokens = ALL['num_tokens'](text, ignore_punc=ignore_punc)
+    """Calculate the average number of words per sentence."""
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
     num_sents = ALL['num_sents'](text, sent_tokenizer=sent_tokenizer)
     try:
         return num_tokens / num_sents
@@ -455,34 +521,63 @@ def words_per_sent(text: Text, ignore_punc=True, sent_tokenizer=None,
 
 
 @add_to_ALL('matskovskij', category='Readability formula')
-def matskovskij(text: Text, ignore_punc=True, sent_tokenizer=None) -> float:
-    words_per_sent = ALL['words_per_sent'](text, ignore_punc=ignore_punc,
-                                           sent_tokenizer=sent_tokenizer)
-    prcnt_words_over_3_sylls = ALL['prcnt_words_over_3_sylls'](text, ignore_punc=ignore_punc)  # noqa: E501
+def matskovskij(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
+                zero_div_val=NaN) -> float:
+    """Calculate document readability according to Matskovskij's formula."""
+    # TODO add citation
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    words_per_sent = ALL['words_per_sent'](text, lower=lower,
+                                           rmv_punc=rmv_punc,
+                                           sent_tokenizer=sent_tokenizer,
+                                           zero_div_val=zero_div_val)
+    prcnt_words_over_3_sylls = ALL['prcnt_words_over_3_sylls'](text,
+                                                               lower=lower,
+                                                               rmv_punc=rmv_punc,  # noqa: E501
+                                                               zero_div_val=zero_div_val)  # noqa: E501
     return 0.62 * words_per_sent + 0.123 * prcnt_words_over_3_sylls + 0.051
 
 
 @add_to_ALL('oborneva', category='Readability formula')
-def oborneva(text: Text, ignore_punc=True, sent_tokenizer=None) -> float:
-    words_per_sent = ALL['words_per_sent'](text, ignore_punc=ignore_punc,
-                                           sent_tokenizer=sent_tokenizer)
-    sylls_per_word = ALL['sylls_per_word'](text, ignore_punc=ignore_punc)
+def oborneva(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
+             zero_div_val=NaN) -> float:
+    """Calculate document readability according to Oborneva's formula."""
+    # TODO add citation
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    words_per_sent = ALL['words_per_sent'](text, lower=lower,
+                                           rmv_punc=rmv_punc,
+                                           sent_tokenizer=sent_tokenizer,
+                                           zero_div_val=zero_div_val)
+    sylls_per_word = ALL['sylls_per_word'](text, lower=lower,
+                                           rmv_punc=rmv_punc,
+                                           zero_div_val=zero_div_val)
     return 0.5 * words_per_sent + 8.4 * sylls_per_word - 15.59
 
 
 @add_to_ALL('solnyshkina', category='Readability formula')
-def solnyshkina(text: Text, ignore_punc=True, sent_tokenizer=None,
+def solnyshkina(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
                 zero_div_val=NaN) -> float:
-    words_per_sent = ALL['words_per_sent'](text, ignore_punc=ignore_punc,
+    """Calculate document readability according to Solnyshkina et al.'s
+    formula.
+    """
+    # TODO add citation
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    words_per_sent = ALL['words_per_sent'](text, lower=lower,
+                                           rmv_punc=rmv_punc,
                                            sent_tokenizer=sent_tokenizer)
-    sylls_per_word = ALL['sylls_per_word'](text, ignore_punc=ignore_punc)
-    num_types_N = ALL['num_types_N'](text, ignore_punc=ignore_punc)
-    num_types_A = ALL['num_types_A'](text, ignore_punc=ignore_punc)
-    num_types_V = ALL['num_types_V'](text, ignore_punc=ignore_punc)
-    TTR_N = ALL['type_token_ratio_N'](text, ignore_punc=ignore_punc)
-    TTR_A = ALL['type_token_ratio_A'](text, ignore_punc=ignore_punc)
-    TTR_V = ALL['type_token_ratio_V'](text, ignore_punc=ignore_punc)
+    sylls_per_word = ALL['sylls_per_word'](text, lower=lower,
+                                           rmv_punc=rmv_punc,
+                                           zero_div_val=zero_div_val)
+    num_types_N = ALL['num_types_N'](text, lower=lower, rmv_punc=rmv_punc)
+    num_types_A = ALL['num_types_A'](text, lower=lower, rmv_punc=rmv_punc)
+    num_types_V = ALL['num_types_V'](text, lower=lower, rmv_punc=rmv_punc)
+    TTR_N = ALL['type_token_ratio_N'](text, lower=lower, rmv_punc=rmv_punc,
+                                      zero_div_val=zero_div_val)
+    TTR_A = ALL['type_token_ratio_A'](text, lower=lower, rmv_punc=rmv_punc,
+                                      zero_div_val=zero_div_val)
+    TTR_V = ALL['type_token_ratio_V'](text, lower=lower, rmv_punc=rmv_punc,
+                                      zero_div_val=zero_div_val)
     try:
+        # TODO make these their own features
         UNAV = (num_types_N + num_types_A) / num_types_V
         NAV = (TTR_N + TTR_A) / TTR_V
     except ZeroDivisionError:
