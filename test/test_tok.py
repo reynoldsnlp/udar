@@ -94,3 +94,13 @@ def test_tok_stressify_no_readings():
     t = udar.Token('сло́во')
     assert '\u0301' not in t.stressify(experiment=True)
     assert t.stressify() == 'сло́во'
+
+
+def test_tok_can_be_pickled():
+    import pickle
+    t = udar.Token('слово')
+    with open('/tmp/tok.pkl', 'wb') as f:
+        pickle.dump(t, f)
+    with open('/tmp/tok.pkl', 'rb') as f:
+        t2 = pickle.load(f)
+    assert t == t2

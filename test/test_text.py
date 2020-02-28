@@ -106,3 +106,13 @@ def test_from_hfst():
     text = udar.Text(sent)
     text2 = udar.Text.from_hfst(text.hfst_str())
     assert text == text2
+
+
+def test_can_be_pickled():
+    import pickle
+    text = udar.Text('Мы нашли то, что искали.')
+    with open('/tmp/text.pkl', 'wb') as f:
+        pickle.dump(text, f)
+    with open('/tmp/text.pkl', 'rb') as f:
+        text2 = pickle.load(f)
+    assert text == text2

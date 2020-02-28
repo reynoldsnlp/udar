@@ -1,3 +1,4 @@
+import pickle
 from pkg_resources import resource_filename
 
 import pytest
@@ -112,3 +113,21 @@ def test_str_multi():
 def test_generate_multi():
     mr = udar.reading._readify(('за+Pr#нечего+Pron+Neg+Acc', '50.000000'))
     assert mr.generate() == 'не за что'
+
+
+def test_reading_can_be_pickled():
+    r = udar.reading._readify(("слово+N+Neu+Inan+Pl+Ins", '5.975586'))
+    with open('/tmp/reading.pkl', 'wb') as f:
+        pickle.dump(r, f)
+    with open('/tmp/reading.pkl', 'rb') as f:
+        r2 = pickle.load(f)
+    assert r == r2
+
+
+def test_reading_can_be_pickled_multi():
+    mr = udar.reading._readify(('и т.д.+Abbr#.+SENT', '0.000000'))
+    with open('/tmp/reading.pkl', 'wb') as f:
+        pickle.dump(mr, f)
+    with open('/tmp/reading.pkl', 'rb') as f:
+        mr2 = pickle.load(f)
+    assert mr == mr2

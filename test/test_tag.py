@@ -28,3 +28,12 @@ def test_tag_is_congruent_with():
     assert not udar.tag_dict['A'].is_congruent_with('N')
     assert udar.tag_dict['AnIn'].is_congruent_with('Inan')
     assert udar.tag_dict['Inan'].is_congruent_with('AnIn')
+
+
+def test_tag_can_be_pickled():
+    import pickle
+    with open('/tmp/tag.pkl', 'wb') as f:
+        pickle.dump(udar.tag_dict['A'], f)
+    with open('/tmp/tag.pkl', 'rb') as f:
+        my_tag = pickle.load(f)
+    assert my_tag == udar.tag_dict['A']
