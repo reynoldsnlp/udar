@@ -24,6 +24,7 @@ from .misc import result_names
 from .misc import StressParams
 from .misc import unspace_punct
 from .tok import Token
+from .xlit import transliterate
 
 
 __all__ = ['Text', 'hfst_tokenize']
@@ -527,6 +528,9 @@ class Text:
             raise NotImplementedError(f'Cannot respace {self}.')
         else:
             return unspace_punct(' '.join(toks))
+
+    def transliterate(self, **kwargs):
+        return transliterate(self.orig, **kwargs)
 
     def readability(approach=None):
         # TODO

@@ -104,3 +104,7 @@ def test_tok_can_be_pickled():
     with open('/tmp/tok.pkl', 'rb') as f:
         t2 = pickle.load(f)
     assert t == t2
+
+def test_transliterate():
+    t = anl.lookup('объясняли')
+    assert t.transliterate() == 'obʺjasnjali'

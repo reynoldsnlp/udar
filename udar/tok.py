@@ -13,6 +13,7 @@ from .misc import StressParams
 # from .reading import MultiReading
 # from .reading import Reading
 from .tag import Tag
+from .xlit import transliterate
 
 
 __all__ = ['Token']
@@ -464,3 +465,6 @@ class Token:
             return re.sub(f'([{V}])([^{V}]+[{V}]+(?:[^{V}]+)?)$',
                           f'\\1{ACUTE}\\2',
                           self.orig)
+
+    def transliterate(self, **kwargs):
+        return transliterate(self.orig, **kwargs)
