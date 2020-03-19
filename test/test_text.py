@@ -117,8 +117,9 @@ def test_can_be_pickled():
         text2 = pickle.load(f)
     assert text == text2
 
+
 def test_transliterate():
     t = udar.Text('Мы объяснили ему, но он не хочет.')
-    assert t.transliterate(system='loc') == 'My obʺi͡asnili emu, no on ne khochet.'
+    assert t.transliterate(system='loc') == 'My obʺi͡asnili emu, no on ne khochet.'  # noqa: E501
     assert t.transliterate() == 'My obʺjasnili emu, no on ne xočet.'
-    assert t.transliterate(system='iso9') == 'My obʺâsnili emu, no on ne hočet.'
+    assert t.transliterate(system='iso9') == 'My obʺâsnili emu, no on ne hočet.'  # noqa: E501

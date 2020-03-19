@@ -13,7 +13,6 @@ from typing import Callable
 from typing import List
 from typing import Tuple
 from typing import Type
-from typing import TypeVar
 from typing import Union
 from warnings import warn
 
@@ -33,7 +32,6 @@ RSRC_PATH = resource_filename('udar', 'resources/')
 NEWLINE = '\n'
 
 Tokenizer = Callable[[str], List[str]]
-T = TypeVar('T', bound='Text')  # to annotate Text classmethods
 
 
 def is_exe(fpath):
@@ -191,15 +189,15 @@ class Text:
             self.disambiguate(gram_path=gram_path)
 
     @classmethod
-    def from_cg3(cls: Type[T], input_str: str, disambiguate=False,
-                 **kwargs) -> T:
+    def from_cg3(cls: 'Type[Text]', input_str: str, disambiguate=False,
+                 **kwargs) -> 'Text':
         """Initialize Text object from CG3 stream."""
         Toks = cls.parse_cg3(input_str)
         return cls(Toks, disambiguate=disambiguate, **kwargs)
 
     @classmethod
-    def from_hfst(cls: Type[T], input_str: str, disambiguate=False,
-                  **kwargs) -> T:
+    def from_hfst(cls: 'Type[Text]', input_str: str, disambiguate=False,
+                  **kwargs) -> 'Text':
         """Initialize Text object from HFST stream."""
         Toks = cls.parse_hfst(input_str)
         return cls(Toks, disambiguate=disambiguate, **kwargs)

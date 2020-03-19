@@ -57,8 +57,8 @@ system_names = {'scholar': scholarly_table,
                 'gost 7.79-2000': iso9_table,
                 'gost7.79': iso9_table,
                 'gost-7.79': iso9_table,
-                'gost 7.79': iso9_table
-               }
+                'gost 7.79': iso9_table,
+                }
 
 
 def transliterate(text, system='scholarly'):

@@ -5,7 +5,6 @@ import re
 from typing import List
 from typing import Set
 from typing import Tuple
-from typing import TypeVar
 from typing import Union
 
 from .fsts import get_fst
@@ -14,10 +13,6 @@ from .tag import Tag
 
 
 __all__ = ['Reading', 'MultiReading']
-
-# `TypeVar`s for type annotations of Reading and Multireading
-MypyReading = TypeVar('MypyReading', bound='Reading')
-MypyMultiReading = TypeVar('MypyMultiReading', bound='MultiReading')
 
 TAB = '\t'
 
@@ -79,7 +74,7 @@ class Reading:
         """Reading HFST-/XFST-style stream, excluding L2 error tags."""
         return f'{self.lemma}+{"+".join(t.name for t in self.tags if not t.is_L2)}'  # noqa: E501
 
-    def __lt__(self, other: MypyReading):
+    def __lt__(self, other: 'Reading'):
         return ((self.lemma, self.tags, float(self.weight), self.cg_rule)
                 < (other.lemma, other.tags, float(other.weight), other.cg_rule))  # noqa: E501
 
