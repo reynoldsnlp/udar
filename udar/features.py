@@ -13,6 +13,7 @@ from typing import List
 from typing import Mapping
 from typing import Tuple
 from typing import Union
+import warnings
 
 import nltk  # type: ignore
 
@@ -32,6 +33,13 @@ vowel_re = r'[аэоуыяеёюиaeiou]'  # TODO make latin vowels optional?
 def safe_name(tag: Union[str, Tag]) -> str:
     """Convert tag name to valid python variable name."""
     return str(tag).replace('/', '_')
+
+
+def warn_about_irrelevant_argument(func_name, arg_name):
+    warnings.warn(f'In {func_name}(), the `{arg_name}` keyword argument is '
+                  'irrelevant (but included for hierarchical consistency). '
+                  'This warning was raised because the non-default value was '
+                  'used.')
 
 
 class Feature:
@@ -290,6 +298,8 @@ def num_sylls(text: Text) -> int:
 def num_tokens(text: Text, lower=False, rmv_punc=False) -> int:
     """Count number of tokens in a Text."""
     # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('num_tokens', 'lower')
     toks = ALL['_filter_toks'](text, lower=lower, rmv_punc=rmv_punc)
     return len(toks)
 
@@ -309,6 +319,8 @@ for tag in tag_dict:  # noqa: E305
 def num_tokens_over_n_sylls(n, text: Text, lower=False, rmv_punc=True) -> int:
     """Count the number of tokens with more than n syllables."""
     # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('num_tokens_over_n_sylls', 'lower')
     toks = ALL['_filter_toks'](text, lower=lower, rmv_punc=rmv_punc)
     return len([t for t in toks if len(re.findall(vowel_re, t, re.I)) > n])
 for n in range(1, MAX_SYLL):  # noqa: E305
@@ -364,6 +376,8 @@ def prcnt_words_over_n_sylls(n, text: Text, lower=False, rmv_punc=True,
                              zero_div_val=NaN) -> float:
     """Compute the percentage of words over n syllables in a Text."""
     # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('prcnt_words_over_n_sylls', 'lower')
     num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
     num_tokens_over_n_sylls = ALL[f'num_tokens_over_{n}_sylls'](text,
                                                                 lower=lower,
@@ -386,7 +400,8 @@ def type_token_ratio(text: Text, lower=True, rmv_punc=False,
     """Compute the "type-token ratio", i.e. the number of unique tokens
     ("types") divided by the number of tokens."""
     num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    # for num_tokens(), lower is irrelevant, so we use the default lower=False
+    num_tokens = ALL['num_tokens'](text, lower=False, rmv_punc=rmv_punc)
     try:
         return num_types / num_tokens
     except ZeroDivisionError:
@@ -413,7 +428,8 @@ def root_type_token_ratio(text: Text, lower=True, rmv_punc=False,
     """Compute the "root type-token ratio", i.e. number of unique tokens
     divided by the square root of the number of tokens."""
     num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    # for num_tokens(), lower is irrelevant, so we use the default lower=False
+    num_tokens = ALL['num_tokens'](text, lower=False, rmv_punc=rmv_punc)
     try:
         return num_types / (num_tokens ** 0.5)
     except ZeroDivisionError:
@@ -426,7 +442,8 @@ def corrected_type_token_ratio(text: Text, lower=True, rmv_punc=False,
     """Compute the "corrected type-token ratio", i.e. the number of unique
     tokens divided by the square root of twice the number of tokens."""
     num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    # for num_tokens(), lower is irrelevant, so we use the default lower=False
+    num_tokens = ALL['num_tokens'](text, lower=False, rmv_punc=rmv_punc)
     try:
         return num_types / ((2 * num_tokens) ** 0.5)
     except ZeroDivisionError:
@@ -439,7 +456,8 @@ def bilog_type_token_ratio(text: Text, lower=True, rmv_punc=False,
     """Compute the "bilogarithmic type-token ratio", i.e. the log of the number
     of unique tokens divided by the log of the number of tokens."""
     num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    # for num_tokens(), lower is irrelevant, so we use the default lower=False
+    num_tokens = ALL['num_tokens'](text, lower=False, rmv_punc=rmv_punc)
     try:
         return log(num_types) / log(num_tokens)
     except (ValueError, ZeroDivisionError):
@@ -453,7 +471,8 @@ def uber_index(text: Text, lower=True, rmv_punc=False,
     divided by the log base 10 of the number of tokens divided by the number of
     unique tokens."""
     num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    # for num_tokens(), lower is irrelevant, so we use the default lower=False
+    num_tokens = ALL['num_tokens'](text, lower=False, rmv_punc=rmv_punc)
     try:
         return log(num_types, 2) / log(num_tokens / num_types)
     except (ValueError, ZeroDivisionError):
@@ -485,6 +504,8 @@ def chars_per_word(text: Text, lower=False, rmv_punc=True, rmv_whitespace=True,
                    uniq=False, zero_div_val=NaN) -> float:
     """Calculate the average number of characters per word."""
     # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('chars_per_word', 'lower')
     num_chars = ALL['num_chars'](text, lower=lower, rmv_punc=rmv_punc,
                                  rmv_whitespace=rmv_whitespace, uniq=uniq)
     num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
@@ -499,6 +520,8 @@ def sylls_per_word(text: Text, lower=False, rmv_punc=True,
                    zero_div_val=NaN) -> float:
     """Calculate the average number of syllables per word."""
     # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('sylls_per_word', 'lower')
     num_sylls = ALL['num_sylls'](text)
     num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
     try:
@@ -512,6 +535,8 @@ def words_per_sent(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
                    zero_div_val=NaN) -> float:
     """Calculate the average number of words per sentence."""
     # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('words_per_sent', 'lower')
     num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
     num_sents = ALL['num_sents'](text, sent_tokenizer=sent_tokenizer)
     try:
@@ -526,6 +551,8 @@ def matskovskij(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
     """Calculate document readability according to Matskovskij's formula."""
     # TODO add citation
     # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('matskovskij', 'lower')
     words_per_sent = ALL['words_per_sent'](text, lower=lower,
                                            rmv_punc=rmv_punc,
                                            sent_tokenizer=sent_tokenizer,
@@ -543,6 +570,8 @@ def oborneva(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
     """Calculate document readability according to Oborneva's formula."""
     # TODO add citation
     # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('oborneva', 'lower')
     words_per_sent = ALL['words_per_sent'](text, lower=lower,
                                            rmv_punc=rmv_punc,
                                            sent_tokenizer=sent_tokenizer,
@@ -561,6 +590,8 @@ def solnyshkina(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
     """
     # TODO add citation
     # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('solnyshkina', 'lower')
     words_per_sent = ALL['words_per_sent'](text, lower=lower,
                                            rmv_punc=rmv_punc,
                                            sent_tokenizer=sent_tokenizer)
