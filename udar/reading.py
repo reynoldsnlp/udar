@@ -43,11 +43,10 @@ class Reading:
         self.most_likely = False
 
     def __contains__(self, key: Union[Tag, str]):
-        """Enable `in` Reading.
-
-        Fastest if `key` is a Tag, but can also be a str.
-        """
-        return key in self.tagset or tag_dict.get(key, None) in self.tagset
+        """Enable `in` Reading."""
+        return (key in self.tagset
+                or (key in tag_dict
+                    and tag_dict[key].ambig_alternative in self.tagset))
 
     def __iter__(self):
         return (t for t in self.tags)
@@ -143,7 +142,9 @@ class MultiReading(Reading):
         Fastest if `key` is a Tag, but it can also be a str.
         """
         if self.readings:
-            return any(key in r.tagset or tag_dict[key] in r.tagset
+            return any(key in r.tagset
+                       or (key in tag_dict
+                           and tag_dict[key].ambig_alternative in r.tagset)
                        for r in self.readings)
         else:
             return False

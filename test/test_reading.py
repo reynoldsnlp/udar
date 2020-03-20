@@ -87,9 +87,25 @@ def test_replace_tag_multi():
     assert mr.readings[0].tags == ['N'] and mr.readings[1].tags == ['N']
 
 
+def test_contains():
+    r = udar.reading._readify(('синий+A+Neu+AnIn+Sg+Gen', '5.173828'))
+    assert 'Gen' in r
+    assert 'AnIn' in r
+    assert 'Anim' in r
+    assert 'Inan' in r
+    r = udar.reading._readify(('синий+A+Neu+Anim+Sg+Acc', '5.173828'))
+    assert 'Gen' not in r
+    assert 'AnIn' not in r
+    assert 'Anim' in r
+    assert 'Inan' not in r
+
+
 def test_contains_multi():
-    mr = udar.reading._readify(('и т.д.+Abbr#.+SENT', '0.000000'))
+    mr = udar.reading._readify(('и т.д.+Abbr+AnIn#.+SENT', '0.000000'))
     assert 'Abbr' in mr
+    assert 'AnIn' in mr
+    assert 'Anim' in mr
+    assert 'Inan' in mr
     mr.readings = []
     assert 'Abbr' not in mr
 

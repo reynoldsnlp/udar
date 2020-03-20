@@ -1,24 +1,20 @@
 """Part-of-speech tag"""
 
-from collections import defaultdict
 from typing import Dict
 from typing import Union
 
 
-__all__ = ['Tag', 'tag_dict']
+__all__ = ['Tag', 'tag_dict', 'ambiguous_tag_dict']
 
 ambiguous_tag_dict = {'AnIn': {'Anim', 'Inan'},
-                      'IT': {'IV', 'TV'},
+                      # 'IT': {'IV', 'TV'},
                       }
-for ambig in list(ambiguous_tag_dict):
-    for unambig in ambiguous_tag_dict[ambig]:
-        ambiguous_tag_dict[unambig] = {ambig}
-ambiguous_tag_dict = defaultdict(set, ambiguous_tag_dict)
 
 
 class Tag:
     """Grammatical tag expressing a morphosyntactic or other value."""
-    __slots__ = ['name', 'ms_feat', 'detail', 'is_L2', 'is_Err']
+    __slots__ = ['ambig_alternative', 'name', 'ms_feat', 'detail', 'is_L2',
+                 'is_Err']
 
     def __init__(self, name: str, ms_feat: str, detail: str):
         self.name = name
@@ -26,6 +22,7 @@ class Tag:
         self.detail = detail
         self.is_L2 = name.startswith('Err/L2')
         self.is_Err = name.startswith('Err')
+        self.ambig_alternative: 'Union[None, Tag]' = None
 
     def __repr__(self):
         return f'Tag({self.name})'
@@ -43,9 +40,11 @@ class Tag:
         except AttributeError:
             return self.name == other
 
-    def is_congruent_with(self, other):
-        """Like __eq__, but allow loose matches, e.g. AnIn == Anim."""
-        return self == other or self.name in ambiguous_tag_dict[other]
+    def is_included_in(self, other):
+        """Like __eq__, but allow matches with ambiguous tags,
+        e.g. Anim is included in AnIn.
+        """
+        return self == other or self.name in ambiguous_tag_dict.get(other, ())
 
     def __hash__(self):
         """Use same hash as self.name to allow lookup in tag_dict by name (str)
@@ -205,6 +204,11 @@ for tag_name, ms_feat, detail in _tags:
         raise NameError(f'{tag_name} is listed twice in _tags.')  # pragma: no cover  # noqa: E501
     tag = Tag(tag_name, ms_feat, detail)
     tag_dict[tag_name] = tag
+
+# add ambiguous alternatives
+for ambig, unambigs in ambiguous_tag_dict.items():
+    for unambig in unambigs:
+        tag_dict[unambig].ambig_alternative = tag_dict[ambig]
 
 ANIMACIES = [tag.name for name, tag in tag_dict.items() if tag.ms_feat == 'ANIMACY']  # noqa: E501
 ASPECTS = [tag.name for name, tag in tag_dict.items() if tag.ms_feat == 'ASPECT']  # noqa: E501

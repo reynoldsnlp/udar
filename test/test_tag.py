@@ -23,11 +23,11 @@ def test_tag_dict():
     assert 'Gen' in udar.tag_dict
 
 
-def test_tag_is_congruent_with():
-    assert udar.tag_dict['A'].is_congruent_with('A')
-    assert not udar.tag_dict['A'].is_congruent_with('N')
-    assert udar.tag_dict['AnIn'].is_congruent_with('Inan')
-    assert udar.tag_dict['Inan'].is_congruent_with('AnIn')
+def test_tag_is_included_in():
+    assert udar.tag_dict['A'].is_included_in('A')
+    assert not udar.tag_dict['A'].is_included_in('N')
+    assert udar.tag_dict['Inan'].is_included_in('AnIn')
+    assert not udar.tag_dict['AnIn'].is_included_in('Inan')
 
 
 def test_tag_can_be_pickled():
