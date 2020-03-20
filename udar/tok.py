@@ -41,7 +41,7 @@ class Token:
         self.annotation = None
         self.update_lemmas_stress_and_phon()
 
-    def update_lemmas_stress_and_phon(self):
+    def update_lemmas_stress_and_phon(self):  # TODO worth the overhead?
         self.lemmas = set()
         for r in self.readings:
             try:
@@ -58,7 +58,7 @@ class Token:
     def __contains__(self, key: Union[str, Tag]):
         """Enable `in` Token. Checks both lemmas and tags."""
         if self.readings:
-            return key in self.lemmas or any(key in r for r in self.readings)
+            return any(key in r for r in self.readings)
         else:
             return False
 

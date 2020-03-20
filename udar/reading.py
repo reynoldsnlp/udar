@@ -44,7 +44,8 @@ class Reading:
 
     def __contains__(self, key: Union[Tag, str]):
         """Enable `in` Reading."""
-        return (key in self.tagset
+        return (key == self.lemma
+                or key in self.tagset
                 or (key in tag_dict
                     and tag_dict[key].ambig_alternative in self.tagset))
 
@@ -142,10 +143,7 @@ class MultiReading(Reading):
         Fastest if `key` is a Tag, but it can also be a str.
         """
         if self.readings:
-            return any(key in r.tagset
-                       or (key in tag_dict
-                           and tag_dict[key].ambig_alternative in r.tagset)
-                       for r in self.readings)
+            return any(key in r for r in self.readings)
         else:
             return False
 
