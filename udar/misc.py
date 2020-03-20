@@ -42,10 +42,6 @@ result_names = dict([(Result.TP, 'TP'), (Result.TN, 'TN'), (Result.FP, 'FP'),
                      (Result.UNK, 'UNK')])
 
 
-def destress(token: str):
-    return token.replace(ACUTE, '').replace(GRAVE, '').replace('ё', 'е').replace('Ё', 'Е')  # noqa: E501
-
-
 def compute_metrics(results: Dict[Result, int]):
     """Compute precision, recall and similar metrics."""
     N = sum((results[Result.FP], results[Result.FN],
@@ -70,6 +66,10 @@ def compute_metrics(results: Dict[Result, int]):
         out_dict[new] = results.get(old, 0)
     Metrics = namedtuple('Metrics', sorted(out_dict))  # type: ignore
     return Metrics(**out_dict)  # type: ignore
+
+
+def destress(token: str):
+    return token.replace(ACUTE, '').replace(GRAVE, '').replace('ё', 'е').replace('Ё', 'Е')  # noqa: E501
 
 
 def unspace_punct(in_str: str):

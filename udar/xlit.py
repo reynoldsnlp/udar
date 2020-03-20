@@ -70,8 +70,3 @@ def transliterate(text, system='scholarly'):
         iso9 -- ISO 9:1995 and GOST 7.79-2000
     """
     return text.translate(system_names[system.lower()])
-
-
-if __name__ == '__main__':
-    import sys
-    print(transliterate(sys.stdin.read()))
