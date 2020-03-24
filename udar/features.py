@@ -548,8 +548,13 @@ def words_per_sent(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
 @add_to_ALL('matskovskij', category='Readability formula')
 def matskovskij(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
                 zero_div_val=NaN) -> float:
-    """Calculate document readability according to Matskovskij's formula."""
-    # TODO add citation
+    """Calculate document readability according to Matskovskij's formula.
+
+    Мацковский, М. С. "Проблема понимания читателями печатных текстов
+    (социологический анализ)." М.: НИИ СИ АН СССР (1973).
+    (Mackovskiy, M.S., 1973. The problem of understanding of printed texts
+    by readers (sociological analysis). Moscow, Russia.)
+    """
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('matskovskij', 'lower')
@@ -567,8 +572,13 @@ def matskovskij(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
 @add_to_ALL('oborneva', category='Readability formula')
 def oborneva(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
              zero_div_val=NaN) -> float:
-    """Calculate document readability according to Oborneva's formula."""
-    # TODO add citation
+    """Calculate document readability according to Oborneva's formula.
+
+    Оборнева И.В. Автоматизированная оценка сложности учебных текстов на
+    основе статистических параметров: дис. … канд. пед. наук. М., 2006.
+    (Oborneva, I., 2006. Automatic assessment of the complexity of
+    educational texts on the basis of statistical parameters. Moscow, Russia.)
+    """
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('oborneva', 'lower')
@@ -587,8 +597,11 @@ def solnyshkina(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
                 zero_div_val=NaN) -> float:
     """Calculate document readability according to Solnyshkina et al.'s
     formula.
+
+    Solnyshkina, Marina, Vladimir Ivanov, and Valery Solovyev. "Readability
+    Formula for Russian Texts: A Modified Version." In Mexican International
+    Conference on Artificial Intelligence, pp. 132-145. Springer, Cham, 2018.
     """
-    # TODO add citation
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('solnyshkina', 'lower')
