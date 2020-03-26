@@ -3,6 +3,7 @@
 from pkg_resources import resource_filename
 from random import shuffle
 from typing import Dict
+from typing import Optional
 from typing import Union
 
 import hfst  # type: ignore
@@ -71,7 +72,7 @@ class Udar:
         self.fst = fst_stream.read()
         assert fst_stream.is_eof()  # be sure the hfstol file only had one fst
 
-    def generate(self, read: str) -> Union[str, None]:
+    def generate(self, read: str) -> Optional[str]:
         """Return str from a given lemma+Reading."""
         from .reading import Reading  # TODO is this a performance hit?
         if isinstance(read, Reading):

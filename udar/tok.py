@@ -4,6 +4,7 @@ from random import choice
 import re
 import sys
 from typing import Dict
+from typing import Optional
 from typing import Tuple
 from typing import Union
 
@@ -425,8 +426,8 @@ class Token:
         """
         tag_freq_dict: Dict[str, int] = {}  # TODO import this dict
         lem_tag_freq_dict: Dict[str, int] = {}  # TODO import this dict
-        read: Tuple[int, Union[str, None]] = (0, None)
-        tag: Tuple[int, Union[str, None]] = (0, None)
+        read: Tuple[int, Optional[str]] = (0, None)
+        tag: Tuple[int, Optional[str]] = (0, None)
         for r in self.readings:
             if '<' in r:
                 tag_seq = r[r.index('<'):]

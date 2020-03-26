@@ -1,6 +1,7 @@
 """Part-of-speech tag"""
 
 from typing import Dict
+from typing import Optional
 from typing import Union
 
 
@@ -22,7 +23,7 @@ class Tag:
         self.detail = detail
         self.is_L2 = name.startswith('Err/L2')
         self.is_Err = name.startswith('Err')
-        self.ambig_alternative: 'Union[None, Tag]' = None
+        self.ambig_alternative: 'Optional[Tag]' = None
 
     def __repr__(self):
         return f'Tag({self.name})'

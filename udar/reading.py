@@ -3,6 +3,7 @@
 from math import isclose
 import re
 from typing import List
+from typing import Optional
 from typing import Set
 from typing import Tuple
 from typing import Union
@@ -29,7 +30,7 @@ class Reading:
     tagset: Set[Tag]
     L2_tags: Set[Tag]
     weight: str
-    cg_rule: Union[str, None]
+    cg_rule: Optional[str]
     most_likely: bool
 
     def __init__(self, r: str, weight: str, cg_rule: str):
@@ -99,7 +100,7 @@ class Reading:
     def get_lemma(self):
         return self.lemma
 
-    def generate(self, fst=None) -> Union[str, None]:
+    def generate(self, fst=None) -> Optional[str]:
         """From Reading generate surface form."""
         if fst is None:
             fst = get_fst('generator')
