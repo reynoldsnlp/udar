@@ -4,7 +4,6 @@ from pkg_resources import resource_filename
 from random import shuffle
 from typing import Dict
 from typing import Optional
-from typing import Union
 
 import hfst  # type: ignore
 import pexpect  # type: ignore
