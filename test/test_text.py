@@ -1,4 +1,5 @@
 from pkg_resources import resource_filename
+from sys import stderr
 
 import udar
 
@@ -123,3 +124,27 @@ def test_transliterate():
     assert t.transliterate(system='loc') == 'My obʺi͡asnili emu, no on ne khochet.'  # noqa: E501
     assert t.transliterate() == 'My obʺjasnili emu, no on ne xočet.'
     assert t.transliterate(system='iso9') == 'My obʺâsnili emu, no on ne hočet.'  # noqa: E501
+
+
+def test_text_deepcopy():
+    t = udar.Text('Мы объяснили ему, но он не хочет.')
+    from copy import deepcopy
+    t_copy = deepcopy(t)
+    for slot in t.__slots__:
+        t_val = getattr(t, slot)
+        copy_val = getattr(t_copy, slot)
+        print(t_val, id(t_val), copy_val, id(copy_val), file=stderr)
+        if isinstance(t_val, int) and (-5 <= t_val <= 255):
+            pass
+        elif t_val is None:
+            pass
+        elif not hasattr(t_val, '__setitem__'):
+            pass
+        else:
+            assert getattr(t, slot) is not getattr(t_copy, slot)
+            try:
+                for x, y in zip(t, t_copy):
+                    assert x is not y
+            except ValueError:
+                print('could not iterate', t, file=stderr)
+                pass
