@@ -5,12 +5,15 @@ from functools import partial
 import inspect
 from math import log
 import re
+from statistics import mean
+from statistics import StatisticsError
 import sys
 from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Mapping
+from typing import Optional
 from typing import Tuple
 from typing import Union
 import warnings
@@ -128,7 +131,7 @@ class FeatureSetExtractor(OrderedDict):
     name: str
 
     def __init__(self, extractor_name=None,
-                 features: Union[Dict[str, Feature], None]=None):  # noqa: E252
+                 features: Optional[Dict[str, Feature]] = None):
         if extractor_name:
             self.name = extractor_name
         else:
@@ -267,13 +270,24 @@ def _filter_toks(text: Text, lower=False, rmv_punc=False) -> List[str]:
 
 
 @add_to_ALL('_filter_Toks', category='_prior')
-def _filter_Toks(text: Text, has_tag='', rmv_punc=False) -> List[Token]:
+def _filter_Toks(text: Text,
+                 has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',
+                 rmv_punc=False) -> List[Token]:
     """Filter Token objects according to whether each Token contains a given
     Tag or whether the original surface form is punctuation.
     """
     Toks = text.Toks
     if has_tag:
-        Toks = [t for t in Toks if t.has_tag_in_most_likely_reading(tag)]
+        if isinstance(has_tag, str) or isinstance(has_tag, Tag):
+            Toks = [t for t in Toks
+                    if t.has_tag_in_most_likely_reading(has_tag)]
+        elif isinstance(has_tag, tuple):
+            Toks = [t for t in Toks
+                    if any(t.has_tag_in_most_likely_reading(tag)
+                           for tag in has_tag)]
+        else:
+            raise NotImplementedError('has_tag argument must be a str or Tag, '
+                                      'or a list/tuple of strs or Tags.')
     if rmv_punc:
         Toks = [t for t in Toks if not re.match(punc_re, t.orig)]
     return Toks
@@ -398,7 +412,8 @@ for n in range(1, MAX_SYLL):  # noqa: E305
 def type_token_ratio(text: Text, lower=True, rmv_punc=False,
                      zero_div_val=NaN) -> float:
     """Compute the "type-token ratio", i.e. the number of unique tokens
-    ("types") divided by the number of tokens."""
+    ("types") divided by the number of tokens.
+    """
     num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
     # for num_tokens(), lower is irrelevant, so we use the default lower=False
     num_tokens = ALL['num_tokens'](text, lower=False, rmv_punc=rmv_punc)
@@ -412,14 +427,29 @@ def type_token_ratio(text: Text, lower=True, rmv_punc=False,
 def lemma_type_token_ratio(text: Text, has_tag='', lower=False, rmv_punc=False,
                            zero_div_val=NaN) -> float:
     """Compute the "lemma type-token ratio", i.e. the number of unique lemmas
-    divided by the number of lemmas."""
-    num_types = ALL['num_lemma_types'](text, has_tag=has_tag, lower=lower,
-                                       rmv_punc=rmv_punc)
+    divided by the number of tokens.
+    """
+    num_lemma_types = ALL['num_lemma_types'](text, has_tag=has_tag,
+                                             lower=lower, rmv_punc=rmv_punc)
     num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
     try:
-        return num_types / num_tokens
+        return num_lemma_types / num_tokens
     except ZeroDivisionError:
         return zero_div_val
+
+
+@add_to_ALL('content_lemma_type_token_ratio', category='Lexical variation')
+def content_lemma_type_token_ratio(text: Text, has_tag='', lower=False,
+                                   rmv_punc=False, zero_div_val=NaN) -> float:
+    """Compute the "content lemma type-token ratio".
+
+    More specifically, this is the number of unique content lemmas divided by
+    the number of tokens. Content words are limited to nouns, adjectives,
+    and verbs.
+    """
+    return ALL['lemma_type_token_ratio'](text, has_tag=('A', 'N', 'V'),
+                                         lower=lower, rmv_punc=rmv_punc,
+                                         zero_div_val=zero_div_val)
 
 
 @add_to_ALL('root_type_token_ratio', category='Lexical variation')
@@ -440,7 +470,8 @@ def root_type_token_ratio(text: Text, lower=True, rmv_punc=False,
 def corrected_type_token_ratio(text: Text, lower=True, rmv_punc=False,
                                zero_div_val=NaN) -> float:
     """Compute the "corrected type-token ratio", i.e. the number of unique
-    tokens divided by the square root of twice the number of tokens."""
+    tokens divided by the square root of twice the number of tokens.
+    """
     num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
     # for num_tokens(), lower is irrelevant, so we use the default lower=False
     num_tokens = ALL['num_tokens'](text, lower=False, rmv_punc=rmv_punc)
@@ -469,7 +500,8 @@ def uber_index(text: Text, lower=True, rmv_punc=False,
                zero_div_val=NaN) -> float:
     """Compute the "uber index", i.e. the log base 2 of the number of types
     divided by the log base 10 of the number of tokens divided by the number of
-    unique tokens."""
+    unique tokens.
+    """
     num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
     # for num_tokens(), lower is irrelevant, so we use the default lower=False
     num_tokens = ALL['num_tokens'](text, lower=False, rmv_punc=rmv_punc)
@@ -500,19 +532,30 @@ for tag in tag_dict:  # noqa: E305
 
 
 @add_to_ALL('chars_per_word', category='Normalized length')
-def chars_per_word(text: Text, lower=False, rmv_punc=True, rmv_whitespace=True,
-                   uniq=False, zero_div_val=NaN) -> float:
+def chars_per_word(text: Text, has_tag='', rmv_punc=True,
+                   rmv_whitespace=True, uniq=False, zero_div_val=NaN) -> float:
     """Calculate the average number of characters per word."""
-    # `lower` is irrelevant here, but included for hierarchical consistency
-    if lower:
-        warn_about_irrelevant_argument('chars_per_word', 'lower')
-    num_chars = ALL['num_chars'](text, lower=lower, rmv_punc=rmv_punc,
-                                 rmv_whitespace=rmv_whitespace, uniq=uniq)
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    if has_tag:
+        Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    else:
+        Toks = text.Toks
     try:
-        return num_chars / num_tokens
-    except ZeroDivisionError:
+        if not uniq:
+            return mean(len(tok.orig) for tok in Toks)
+        else:
+            return mean(len(orig) for orig in set(tok.orig for tok in Toks))
+    except StatisticsError:
         return zero_div_val
+
+
+@add_to_ALL('chars_per_content_word', category='Normalized length')
+def chars_per_content_word(text: Text, rmv_punc=True, rmv_whitespace=True,
+                           uniq=False, zero_div_val=NaN) -> float:
+    """Calculate the average number of characters per content word."""
+    return ALL['chars_per_word'](text, has_tag=('A', 'N', 'V'),
+                                 rmv_punc=rmv_punc,
+                                 rmv_whitespace=rmv_whitespace, uniq=uniq,
+                                 zero_div_val=NaN)
 
 
 @add_to_ALL('sylls_per_word', category='Normalized length')
@@ -640,3 +683,42 @@ def solnyshkina(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
             - 0.157 * UNAV ** 2
             - 0.079 * UNAV * NAV
             + 0.058 * NAV ** 2)
+
+
+@add_to_ALL('Flesch_Kincaid_rus', category='Readability formula')
+def Flesh_Kincaid_rus(text: Text, lower=False, rmv_punc=True,
+                      sent_tokenizer=None, zero_div_val=NaN):
+    """Flesh-Kincaid for Russian.
+
+    Adapted from cal_Flesh_Kincaid_rus() in ...
+    github.com/infoculture/plainrussian/blob/master/textmetric/metric.py
+    """
+    # TODO find original (academic/research) source?
+    words_per_sent = ALL['words_per_sent'](text, lower=lower,
+                                           rmv_punc=rmv_punc,
+                                           sent_tokenizer=sent_tokenizer,
+                                           zero_div_val=zero_div_val)
+    sylls_per_word = ALL['sylls_per_word'](text, lower=lower,
+                                           rmv_punc=rmv_punc,
+                                           zero_div_val=zero_div_val)
+    return 220.755 - 1.315 * words_per_sent - 50.1 * sylls_per_word
+
+
+@add_to_ALL('Flesch_Kincaid_Grade_rus', category='Readability formula')
+def Flesh_Kincaid_Grade_rus(text: Text, lower=False, rmv_punc=True,
+                            sent_tokenizer=None, zero_div_val=NaN):
+    """Flesh-Kincaid Grade for Russian.
+
+    Adapted from cal_Flesh_Kincaid_Grade_rus() in ...
+    github.com/infoculture/plainrussian/blob/master/textmetric/metric.py
+    """
+    # TODO find original (academic/research) source?
+    words_per_sent = ALL['words_per_sent'](text, lower=lower,
+                                           rmv_punc=rmv_punc,
+                                           sent_tokenizer=sent_tokenizer,
+                                           zero_div_val=zero_div_val)
+    sylls_per_word = ALL['sylls_per_word'](text, lower=lower,
+                                           rmv_punc=rmv_punc,
+                                           zero_div_val=zero_div_val)
+    # 0.59 * words_per_sent + 6.2 * sylls_per_word - 16.59  # TODO what this?
+    return 0.49 * words_per_sent + 7.3 * sylls_per_word - 16.59
