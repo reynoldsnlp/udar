@@ -82,4 +82,5 @@ def test_readability():
     r1 = convenience.readability_measures(Text('Анастасия сотрудничает со всякими корреспондентами.'))  # noqa: E501
     assert repr(r1) == "[['matskovskij', 'oborneva', 'solnyshkina', 'Flesch_Kincaid_rus', 'Flesch_Kincaid_Grade_rus'], Features(matskovskij=3.2248, oborneva=20.51, solnyshkina=nan, Flesch_Kincaid_rus=13.780000000000001, Flesch_Kincaid_Grade_rus=15.059999999999999)]"  # noqa: E501
     r2 = convenience.readability_measures(Text('Он идет с разными людьми.'))
+    # TODO the following test may be subject to chance (esp. solnyshkina)
     assert repr(r2) == "[['matskovskij', 'oborneva', 'solnyshkina', 'Flesch_Kincaid_rus', 'Flesch_Kincaid_Grade_rus'], Features(matskovskij=3.1510000000000002, oborneva=0.3500000000000014, solnyshkina=-0.24039999999999992, Flesch_Kincaid_rus=134.01999999999998, Flesch_Kincaid_Grade_rus=-2.460000000000001)]"  # noqa: E501
