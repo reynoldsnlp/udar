@@ -4,6 +4,8 @@ from pkg_resources import resource_filename
 from random import shuffle
 from typing import Dict
 from typing import Optional
+from typing import TYPE_CHECKING
+from typing import Union
 
 import hfst  # type: ignore
 import pexpect  # type: ignore
@@ -11,6 +13,8 @@ import pexpect  # type: ignore
 from .misc import destress
 from .tok import Token
 
+if TYPE_CHECKING:
+    from .reading import Reading
 
 __all__ = ['get_fst', 'get_g2p', 'Udar']
 
@@ -71,11 +75,17 @@ class Udar:
         self.fst = fst_stream.read()
         assert fst_stream.is_eof()  # be sure the hfstol file only had one fst
 
-    def generate(self, read: str) -> Optional[str]:
+    def generate(self, read: 'Union[Reading, str]') -> Optional[str]:
         """Return str from a given lemma+Reading."""
-        from .reading import Reading  # TODO is this a performance hit?
-        if isinstance(read, Reading):
-            read = read.hfst_noL2_str()
+        try:
+            if isinstance(read, Reading):
+                read = read.hfst_noL2_str()
+        except NameError:
+            # fancy stuff to import Reading as global variable
+            from importlib import import_module
+            globals()['Reading'] = import_module('.reading', 'udar').Reading
+            if isinstance(read, Reading):
+                read = read.hfst_noL2_str()
         try:
             return self.fst.lookup(read)[0][0]
         except IndexError:
