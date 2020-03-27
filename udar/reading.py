@@ -133,7 +133,7 @@ class MultiReading(Reading):
         """Convert HFST tuples to more user-friendly interface."""
         assert '#' in readings
         self.readings = [_readify((r, weight, cg_rule))
-                         for r in readings.split('#')]  # TODO make # robuster
+                         for r in re.findall(r'([^+]*[^#]+)#?', readings)]
         self.weight = weight
         self.cg_rule = cg_rule
         self.most_likely = False
