@@ -531,6 +531,18 @@ for tag in tag_dict:  # noqa: E305
                         category='Lexical variation')
 
 
+@add_to_ALL('nominal_verb_ratio', category='Lexical variation')
+def nominal_verb_ratio(text: Text, has_tag='', rmv_punc=False,
+                       zero_div_val=NaN) -> float:
+    """Compute ratio of nominal tokens to verbal tokens."""
+    AN_Toks = ALL['_filter_Toks'](text, has_tag=('A', 'N'), rmv_punc=rmv_punc)
+    V_Toks = ALL['_filter_Toks'](text, has_tag='V', rmv_punc=rmv_punc)
+    try:
+        return len(AN_Toks) / len(V_Toks)
+    except ZeroDivisionError:
+        return zero_div_val
+
+
 @add_to_ALL('chars_per_word', category='Normalized length')
 def chars_per_word(text: Text, has_tag='', rmv_punc=True, uniq=False,
                    zero_div_val=NaN) -> float:
@@ -700,7 +712,7 @@ def solnyshkina(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
 
 @add_to_ALL('Flesch_Kincaid_rus', category='Readability formula')
 def Flesh_Kincaid_rus(text: Text, lower=False, rmv_punc=True,
-                      sent_tokenizer=None, zero_div_val=NaN):
+                      sent_tokenizer=None, zero_div_val=NaN) -> float:
     """Flesh-Kincaid for Russian.
 
     Adapted from cal_Flesh_Kincaid_rus() in ...
@@ -719,7 +731,7 @@ def Flesh_Kincaid_rus(text: Text, lower=False, rmv_punc=True,
 
 @add_to_ALL('Flesch_Kincaid_Grade_rus', category='Readability formula')
 def Flesh_Kincaid_Grade_rus(text: Text, lower=False, rmv_punc=True,
-                            sent_tokenizer=None, zero_div_val=NaN):
+                            sent_tokenizer=None, zero_div_val=NaN) -> float:
     """Flesh-Kincaid Grade for Russian.
 
     Adapted from cal_Flesh_Kincaid_Grade_rus() in ...

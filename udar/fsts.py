@@ -83,7 +83,7 @@ class Udar:
         except NameError:
             # fancy stuff to import Reading as global variable
             from importlib import import_module
-            globals()['Reading'] = import_module('.reading', 'udar').Reading
+            globals()['Reading'] = import_module('.reading', 'udar').Reading  # type: ignore  # noqa: E501
             if isinstance(read, Reading):
                 read = read.hfst_noL2_str()
         try:

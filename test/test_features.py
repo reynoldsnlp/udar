@@ -61,7 +61,7 @@ def test_feature_calls_are_maximally_specified():
         src = inspect.getsource(feat.func.func
                                 if isinstance(feat.func, partial)
                                 else feat.func)
-        calls = re.findall(r''' = ALL\[['"](.+?)['"]\]\((.*?)\)''', src)
+        calls = re.findall(r''' = ALL\[['"](.+?)['"]\]\((.*?)\)\s''', src)
         for name, signature in calls:
             keywords = re.findall(r', (.+?)=', signature)
             assert (parent_name
@@ -79,3 +79,12 @@ def test_all_keyword_args_are_actually_used():
                                 else feat.func)
         for kwarg in feat.default_kwargs:
             assert (name, kwarg) and src.count(kwarg) > 1
+
+
+def test_output_type_annotation():
+    """Ensure that each function has output type annotation."""
+    for name, feat in ALL.items():
+        src = inspect.getsource(feat.func.func
+                                if isinstance(feat.func, partial)
+                                else feat.func)
+        assert src and ') -> ' in src
