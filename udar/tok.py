@@ -6,6 +6,7 @@ import sys
 from typing import Dict
 from typing import Optional
 from typing import Tuple
+from typing import TYPE_CHECKING
 from typing import Union
 
 from .misc import destress
@@ -16,6 +17,9 @@ from .misc import StressParams
 from .tag import Tag
 from .xlit import transliterate
 
+if TYPE_CHECKING:
+    from .reading import MultiReading
+    from .reading import Reading
 
 __all__ = ['Token']
 
@@ -110,7 +114,7 @@ class Token:
     def __len__(self):
         return len(self.readings)
 
-    def __getitem__(self, i: int):  # TODO -> Union[MultiReading, Reading]:
+    def __getitem__(self, i: int) -> 'Union[MultiReading, Reading]':
         # TODO tests
         return self.readings[i]
 
