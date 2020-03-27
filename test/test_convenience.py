@@ -1,3 +1,4 @@
+from math import isnan
 from pkg_resources import resource_filename
 
 import pytest
@@ -79,8 +80,21 @@ def test_noun_distractors_NotImplementedError():
 
 
 def test_readability():
-    r1 = convenience.readability_measures(Text('Анастасия сотрудничает со всякими корреспондентами.'))  # noqa: E501
-    assert repr(r1) == "[['matskovskij', 'oborneva', 'solnyshkina', 'Flesch_Kincaid_rus', 'Flesch_Kincaid_Grade_rus'], Features(matskovskij=3.2248, oborneva=20.51, solnyshkina=nan, Flesch_Kincaid_rus=13.780000000000001, Flesch_Kincaid_Grade_rus=15.059999999999999)]"  # noqa: E501
-    r2 = convenience.readability_measures(Text('Он идет с разными людьми.'))
-    # TODO the following test may be subject to chance (esp. solnyshkina)
-    assert repr(r2) == "[['matskovskij', 'oborneva', 'solnyshkina', 'Flesch_Kincaid_rus', 'Flesch_Kincaid_Grade_rus'], Features(matskovskij=3.1510000000000002, oborneva=0.3500000000000014, solnyshkina=-0.24039999999999992, Flesch_Kincaid_rus=134.01999999999998, Flesch_Kincaid_Grade_rus=-2.460000000000001)]"  # noqa: E501
+    r1 = convenience.readability_measures(Text('Анастасия сотрудничает со всякими корреспондентами.'))[1]  # noqa: E501
+    assert len(r1) == 6, r1
+    assert r1.matskovskij == 3.2248
+    assert r1.oborneva == 20.51
+    assert r1.solnyshkina_M3 == 13.420000000000002
+    assert isnan(r1.solnyshkina_Q)
+    assert r1.Flesch_Kincaid_rus == 13.780000000000001
+    assert r1.Flesch_Kincaid_Grade_rus == 15.059999999999999
+
+    r2 = convenience.readability_measures(Text('Он идет с разными людьми.'))[1]
+    assert len(r2) == 6, r2
+    assert r2.matskovskij == 3.1510000000000002
+    assert r2.oborneva == 0.3500000000000014
+    # TODO solnyshkina may be subject to chance in this sentence.
+    assert r2.solnyshkina_M3 == 2.3580000000000014
+    assert r2.solnyshkina_Q == -0.24039999999999992
+    assert r2.Flesch_Kincaid_rus == 134.01999999999998
+    assert r2.Flesch_Kincaid_Grade_rus == -2.460000000000001

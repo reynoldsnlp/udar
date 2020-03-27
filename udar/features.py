@@ -704,11 +704,38 @@ def oborneva(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
     return 0.5 * words_per_sent + 8.4 * sylls_per_word - 15.59
 
 
-@add_to_ALL('solnyshkina', category='Readability formula')
-def solnyshkina(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
-                zero_div_val=NaN) -> float:
+@add_to_ALL('solnyshkina_M3', category='Readability formula')
+def solnyshkina_M3(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
+                   zero_div_val=NaN) -> float:
     """Calculate document readability according to Solnyshkina et al.'s
-    formula.
+    linear model M3.
+
+    Solnyshkina, Marina, Vladimir Ivanov, and Valery Solovyev. "Readability
+    Formula for Russian Texts: A Modified Version." In Mexican International
+    Conference on Artificial Intelligence, pp. 132-145. Springer, Cham, 2018.
+    """
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('solnyshkina', 'lower')
+    words_per_sent = ALL['words_per_sent'](text, lower=lower,
+                                           rmv_punc=rmv_punc,
+                                           sent_tokenizer=sent_tokenizer)
+    sylls_per_word = ALL['sylls_per_word'](text, lower=lower,
+                                           rmv_punc=rmv_punc,
+                                           zero_div_val=zero_div_val)
+    UNAV = ALL['nominal_verb_type_ratio'](text, rmv_punc=rmv_punc,
+                                          zero_div_val=zero_div_val)
+    return (-9.53
+            + 0.25 * words_per_sent  # ASL  average sentence length (words)
+            + 4.98 * sylls_per_word  # ASW  average word length (syllables)
+            + 0.89 * UNAV)
+
+
+@add_to_ALL('solnyshkina_Q', category='Readability formula')
+def solnyshkina_Q(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
+                  zero_div_val=NaN) -> float:
+    """Calculate document readability according to Solnyshkina et al.'s
+    quadratic formula.
 
     Solnyshkina, Marina, Vladimir Ivanov, and Valery Solovyev. "Readability
     Formula for Russian Texts: A Modified Version." In Mexican International
