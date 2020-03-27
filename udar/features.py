@@ -531,14 +531,58 @@ for tag in tag_dict:  # noqa: E305
                         category='Lexical variation')
 
 
+@add_to_ALL('nominal_verb_type_token_ratio', category='Lexical variation')
+def nominal_verb_type_token_ratio(text: Text, lower=False, rmv_punc=False,
+                                  zero_div_val=NaN) -> float:
+    """Compute ratio of nominal type-token ratios to verb type-token ratio."""
+    TTR_N = ALL['type_token_ratio_N'](text, lower=lower, rmv_punc=rmv_punc,
+                                      zero_div_val=zero_div_val)
+    TTR_A = ALL['type_token_ratio_A'](text, lower=lower, rmv_punc=rmv_punc,
+                                      zero_div_val=zero_div_val)
+    TTR_V = ALL['type_token_ratio_V'](text, lower=lower, rmv_punc=rmv_punc,
+                                      zero_div_val=zero_div_val)
+    try:
+        return (TTR_N + TTR_A) / TTR_V
+    except ZeroDivisionError:
+        return zero_div_val
+
+
 @add_to_ALL('nominal_verb_ratio', category='Lexical variation')
-def nominal_verb_ratio(text: Text, has_tag='', rmv_punc=False,
-                       zero_div_val=NaN) -> float:
+def nominal_verb_ratio(text: Text, rmv_punc=False, zero_div_val=NaN) -> float:
     """Compute ratio of nominal tokens to verbal tokens."""
     AN_Toks = ALL['_filter_Toks'](text, has_tag=('A', 'N'), rmv_punc=rmv_punc)
     V_Toks = ALL['_filter_Toks'](text, has_tag='V', rmv_punc=rmv_punc)
     try:
         return len(AN_Toks) / len(V_Toks)
+    except ZeroDivisionError:
+        return zero_div_val
+
+
+@add_to_ALL('nominal_verb_type_ratio', category='Lexical variation')
+def nominal_verb_type_ratio(text: Text, lower=False, rmv_punc=False,
+                            zero_div_val=NaN) -> float:
+    """Compute ratio of nominal types to verbal types."""
+    num_types_N = ALL['num_types_N'](text, lower=lower, rmv_punc=rmv_punc)
+    num_types_A = ALL['num_types_A'](text, lower=lower, rmv_punc=rmv_punc)
+    num_types_V = ALL['num_types_V'](text, lower=lower, rmv_punc=rmv_punc)
+    try:
+        return (num_types_N + num_types_A) / num_types_V
+    except ZeroDivisionError:
+        return zero_div_val
+
+
+@add_to_ALL('nominal_verb_lemma_ratio', category='Lexical variation')
+def nominal_verb_lemma_ratio(text: Text, lower=False, rmv_punc=False,
+                             zero_div_val=NaN) -> float:
+    """Compute ratio of nominal lemma types to verbal lemma types."""
+    num_lemma_types_A = ALL['num_lemma_types'](text, has_tag='A', lower=lower,
+                                               rmv_punc=rmv_punc)
+    num_lemma_types_N = ALL['num_lemma_types'](text, has_tag='N', lower=lower,
+                                               rmv_punc=rmv_punc)
+    num_lemma_types_V = ALL['num_lemma_types'](text, has_tag='V', lower=lower,
+                                               rmv_punc=rmv_punc)
+    try:
+        return (num_lemma_types_A + num_lemma_types_N) / num_lemma_types_V
     except ZeroDivisionError:
         return zero_div_val
 
@@ -679,21 +723,10 @@ def solnyshkina(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
     sylls_per_word = ALL['sylls_per_word'](text, lower=lower,
                                            rmv_punc=rmv_punc,
                                            zero_div_val=zero_div_val)
-    num_types_N = ALL['num_types_N'](text, lower=lower, rmv_punc=rmv_punc)
-    num_types_A = ALL['num_types_A'](text, lower=lower, rmv_punc=rmv_punc)
-    num_types_V = ALL['num_types_V'](text, lower=lower, rmv_punc=rmv_punc)
-    TTR_N = ALL['type_token_ratio_N'](text, lower=lower, rmv_punc=rmv_punc,
-                                      zero_div_val=zero_div_val)
-    TTR_A = ALL['type_token_ratio_A'](text, lower=lower, rmv_punc=rmv_punc,
-                                      zero_div_val=zero_div_val)
-    TTR_V = ALL['type_token_ratio_V'](text, lower=lower, rmv_punc=rmv_punc,
-                                      zero_div_val=zero_div_val)
-    try:
-        # TODO make these their own features
-        UNAV = (num_types_N + num_types_A) / num_types_V
-        NAV = (TTR_N + TTR_A) / TTR_V
-    except ZeroDivisionError:
-        return zero_div_val
+    NAV = ALL['nominal_verb_type_token_ratio'](text, rmv_punc=rmv_punc,
+                                               zero_div_val=zero_div_val)
+    UNAV = ALL['nominal_verb_type_ratio'](text, rmv_punc=rmv_punc,
+                                          zero_div_val=zero_div_val)
     return (-0.124 * words_per_sent  # ASL  average sentence length (words)
             + 0.018 * sylls_per_word  # ASW  average word length (syllables)
             - 0.007 * UNAV
