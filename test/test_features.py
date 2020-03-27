@@ -64,4 +64,18 @@ def test_feature_calls_are_maximally_specified():
         calls = re.findall(r''' = ALL\[['"](.+?)['"]\]\((.*?)\)''', src)
         for name, signature in calls:
             keywords = re.findall(r', (.+?)=', signature)
-            assert parent_name and name and len(keywords) == len(ALL[name].default_kwargs)  # noqa: E501
+            assert (parent_name
+                    and name
+                    and len(keywords) == len(ALL[name].default_kwargs))
+
+
+def test_all_keyword_args_are_actually_used():
+    """Ensure that there are no leftover keyword arguments after
+    copy-pasting.
+    """
+    for name, feat in ALL.items():
+        src = inspect.getsource(feat.func.func
+                                if isinstance(feat.func, partial)
+                                else feat.func)
+        for kwarg in feat.default_kwargs:
+            assert (name, kwarg) and src.count(kwarg) > 1

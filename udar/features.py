@@ -298,7 +298,7 @@ def num_chars(text: Text, lower=False, rmv_punc=False,
               rmv_whitespace=True, uniq=False) -> int:
     """Count number of characters in original string of Text."""
     orig = ALL['_filter_str'](text, lower=lower, rmv_punc=rmv_punc,
-                              rmv_whitespace=rmv_whitespace)
+                              rmv_whitespace=rmv_whitespace, uniq=uniq)
     return len(orig)
 
 
@@ -532,8 +532,8 @@ for tag in tag_dict:  # noqa: E305
 
 
 @add_to_ALL('chars_per_word', category='Normalized length')
-def chars_per_word(text: Text, has_tag='', rmv_punc=True,
-                   rmv_whitespace=True, uniq=False, zero_div_val=NaN) -> float:
+def chars_per_word(text: Text, has_tag='', rmv_punc=True, uniq=False,
+                   zero_div_val=NaN) -> float:
     """Calculate the average number of characters per word."""
     if has_tag:
         Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
@@ -548,13 +548,26 @@ def chars_per_word(text: Text, has_tag='', rmv_punc=True,
         return zero_div_val
 
 
+@add_to_ALL('max_chars_per_word', category='Normalized length')
+def max_chars_per_word(text: Text, has_tag='', rmv_punc=True,
+                       zero_div_val=NaN) -> float:
+    """Calculate the average number of characters per word."""
+    if has_tag:
+        Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    else:
+        Toks = text.Toks
+    try:
+        return max(len(tok.orig) for tok in Toks)
+    except ValueError:
+        return zero_div_val
+
+
 @add_to_ALL('chars_per_content_word', category='Normalized length')
-def chars_per_content_word(text: Text, rmv_punc=True, rmv_whitespace=True,
-                           uniq=False, zero_div_val=NaN) -> float:
+def chars_per_content_word(text: Text, rmv_punc=True, uniq=False,
+                           zero_div_val=NaN) -> float:
     """Calculate the average number of characters per content word."""
     return ALL['chars_per_word'](text, has_tag=('A', 'N', 'V'),
-                                 rmv_punc=rmv_punc,
-                                 rmv_whitespace=rmv_whitespace, uniq=uniq,
+                                 rmv_punc=rmv_punc, uniq=uniq,
                                  zero_div_val=NaN)
 
 
