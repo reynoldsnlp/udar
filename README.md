@@ -28,7 +28,8 @@ $ python3 -m pip install --user git+https://github.com/reynoldsnlp/udar
 ## Introduction
 
 The most common use-case is to use the `Text` constructor to automatically
-tokenize and analyze a text. The `repr` is an `xfst`/`hfst` stream:
+tokenize and analyze a text. If you `print()` a `Text` object, the result is
+an `xfst`/`hfst` stream:
 
 ```python
 import udar
