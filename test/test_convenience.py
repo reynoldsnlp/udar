@@ -83,18 +83,18 @@ def test_readability():
     r1 = convenience.readability_measures(Text('Анастасия сотрудничает со всякими корреспондентами.'))[1]  # noqa: E501
     assert len(r1) == 6, r1
     assert r1.matskovskij == 3.2248
-    assert r1.oborneva == 20.51
-    assert r1.solnyshkina_M3 == 13.420000000000002
+    assert r1.oborneva == 14.910000000000004
+    assert r1.solnyshkina_M3 == 10.100000000000001
     assert isnan(r1.solnyshkina_Q)
-    assert r1.Flesch_Kincaid_rus == 13.780000000000001
-    assert r1.Flesch_Kincaid_Grade_rus == 15.059999999999999
+    assert r1.Flesch_Kincaid_rus == 47.18000000000001
+    assert r1.Flesch_Kincaid_Grade_rus == 10.193333333333332
 
     r2 = convenience.readability_measures(Text('Он идет с разными людьми.'))[1]
     assert len(r2) == 6, r2
     assert r2.matskovskij == 3.1510000000000002
-    assert r2.oborneva == 0.3500000000000014
+    assert r2.oborneva == -1.8900000000000006
     # TODO solnyshkina may be subject to chance in this sentence.
-    assert r2.solnyshkina_M3 == 2.3580000000000014
-    assert r2.solnyshkina_Q == -0.24039999999999992
-    assert r2.Flesch_Kincaid_rus == 134.01999999999998
-    assert r2.Flesch_Kincaid_Grade_rus == -2.460000000000001
+    # assert r2.solnyshkina_M3 == 1.0300000000000011
+    assert r2.solnyshkina_Q == -0.6460000000000001
+    assert r2.Flesch_Kincaid_rus == 147.38
+    assert r2.Flesch_Kincaid_Grade_rus == -4.406666666666666

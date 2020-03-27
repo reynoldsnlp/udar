@@ -447,7 +447,7 @@ def content_lemma_type_token_ratio(text: Text, has_tag='', lower=False,
     the number of tokens. Content words are limited to nouns, adjectives,
     and verbs.
     """
-    return ALL['lemma_type_token_ratio'](text, has_tag=('A', 'N', 'V'),
+    return ALL['lemma_type_token_ratio'](text, has_tag=('A', 'Adv', 'N', 'V'),
                                          lower=lower, rmv_punc=rmv_punc,
                                          zero_div_val=zero_div_val)
 
@@ -607,7 +607,7 @@ def chars_per_word(text: Text, has_tag='', rmv_punc=True, uniq=False,
 @add_to_ALL('max_chars_per_word', category='Normalized length')
 def max_chars_per_word(text: Text, has_tag='', rmv_punc=True,
                        zero_div_val=NaN) -> float:
-    """Calculate the average number of characters per word."""
+    """Calculate the maximum number of characters per word."""
     if has_tag:
         Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
     else:
@@ -622,23 +622,83 @@ def max_chars_per_word(text: Text, has_tag='', rmv_punc=True,
 def chars_per_content_word(text: Text, rmv_punc=True, uniq=False,
                            zero_div_val=NaN) -> float:
     """Calculate the average number of characters per content word."""
-    return ALL['chars_per_word'](text, has_tag=('A', 'N', 'V'),
+    return ALL['chars_per_word'](text, has_tag=('A', 'Adv', 'N', 'V'),
                                  rmv_punc=rmv_punc, uniq=uniq,
                                  zero_div_val=NaN)
 
 
+@add_to_ALL('max_chars_per_content_word', category='Normalized length')
+def max_chars_per_content_word(text: Text, rmv_punc=True,
+                               zero_div_val=NaN) -> float:
+    """Calculate the maximum number of characters per content word."""
+    return ALL['max_chars_per_word'](text, has_tag=('A', 'Adv', 'N', 'V'),
+                                     rmv_punc=rmv_punc, zero_div_val=NaN)
+
+
 @add_to_ALL('sylls_per_word', category='Normalized length')
-def sylls_per_word(text: Text, lower=False, rmv_punc=True,
+def sylls_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
                    zero_div_val=NaN) -> float:
     """Calculate the average number of syllables per word."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('sylls_per_word', 'lower')
-    num_sylls = ALL['num_sylls'](text)
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    if has_tag:
+        Toks = ALL['_filter_Toks'](text, has_tag=has_tag, lower=lower,
+                                   rmv_punc=rmv_punc)
+    else:
+        Toks = text.Toks
     try:
-        return num_sylls / num_tokens
-    except ZeroDivisionError:
+        return mean(len(re.findall(vowel_re, tok.orig, flags=re.I))
+                    for tok in Toks)
+    except StatisticsError:
+        return zero_div_val
+
+
+@add_to_ALL('max_sylls_per_word', category='Normalized length')
+def max_sylls_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
+                       zero_div_val=NaN) -> float:
+    """Calculate the maximum number of syllables per word."""
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('sylls_per_word', 'lower')
+    if has_tag:
+        Toks = ALL['_filter_Toks'](text, has_tag=has_tag, lower=lower,
+                                   rmv_punc=rmv_punc)
+    else:
+        Toks = text.Toks
+    try:
+        return max(len(re.findall(vowel_re, tok.orig, flags=re.I))
+                   for tok in Toks)
+    except (StatisticsError, ValueError):
+        return zero_div_val
+
+
+@add_to_ALL('max_sylls_per_content_word', category='Normalized length')
+def max_sylls_per_content_word(text: Text, lower=False, rmv_punc=True,
+                               zero_div_val=NaN) -> float:
+    """Calculate the maximum number of syllables per content word."""
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('sylls_per_word', 'lower')
+    Toks = ALL['_filter_Toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
+                               rmv_punc=rmv_punc)
+    try:
+        return max(len(re.findall(vowel_re, tok.orig, flags=re.I))
+                   for tok in Toks)
+    except (StatisticsError, ValueError):
+        return zero_div_val
+
+
+@add_to_ALL('sylls_per_content_word', category='Normalized length')
+def sylls_per_content_word(text: Text, rmv_punc=True,
+                           zero_div_val=NaN) -> float:
+    """Calculate the average number of syllables per content word."""
+    Toks = ALL['_filter_Toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
+                               rmv_punc=rmv_punc)
+    try:
+        return mean(len(re.findall(vowel_re, tok.orig, flags=re.I))
+                    for tok in Toks)
+    except StatisticsError:
         return zero_div_val
 
 
