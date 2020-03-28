@@ -4,6 +4,8 @@ from datetime import datetime
 from functools import partial
 import inspect
 from math import log
+import pickle
+from pkg_resources import resource_filename
 import re
 from statistics import mean
 from statistics import StatisticsError
@@ -25,12 +27,17 @@ from .tag import tag_dict
 from .text import Text
 from .tok import Token
 
+RSRC_PATH = resource_filename('udar', 'resources/')
+
 __all__ = ['ALL']
 
 MAX_SYLL = 8
 NaN = float('nan')
 punc_re = r'[\\!"#$%&\'()*+,\-./:;<=>?@[\]^_`{|}~]+'
 vowel_re = r'[аэоуыяеёюиaeiou]'  # TODO make latin vowels optional?
+
+with open(RSRC_PATH + 'Tix_morph_count_dict.pkl', 'rb') as f:
+    tix_morph_count_dict = pickle.load(f)
 
 
 def safe_name(tag: Union[str, Tag]) -> str:
@@ -867,3 +874,72 @@ def Flesh_Kincaid_Grade_rus(text: Text, lower=False, rmv_punc=True,
                                            zero_div_val=zero_div_val)
     # 0.59 * words_per_sent + 6.2 * sylls_per_word - 16.59  # TODO what this?
     return 0.49 * words_per_sent + 7.3 * sylls_per_word - 16.59
+
+
+@add_to_ALL('morphs_per_word', category='Normalized length')
+def morphs_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
+                    zero_div_val=NaN) -> float:
+    """Calculate the average number of morphemes per word."""
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('morphs_per_word', 'lower')
+    if has_tag:
+        Toks = ALL['_filter_Toks'](text, has_tag=has_tag, lower=lower,
+                                   rmv_punc=rmv_punc)
+    else:
+        Toks = text.Toks
+    try:
+        return mean(tix_morph_count_dict[tok.get_most_likely_lemma()]
+                    for tok in Toks
+                    if tok.get_most_likely_lemma() in tix_morph_count_dict)
+    except StatisticsError:
+        return zero_div_val
+
+
+@add_to_ALL('max_morphs_per_word', category='Normalized length')
+def max_morphs_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
+                        zero_div_val=NaN) -> float:
+    """Calculate the maximum number of morphemes per word."""
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('max_morphs_per_word', 'lower')
+    if has_tag:
+        Toks = ALL['_filter_Toks'](text, has_tag=has_tag, lower=lower,
+                                   rmv_punc=rmv_punc)
+    else:
+        Toks = text.Toks
+    try:
+        return max(tix_morph_count_dict[tok.get_most_likely_lemma()]
+                   for tok in Toks
+                   if tok.get_most_likely_lemma() in tix_morph_count_dict)
+    except (StatisticsError, ValueError):
+        return zero_div_val
+
+
+@add_to_ALL('max_morphs_per_content_word', category='Normalized length')
+def max_morphs_per_content_word(text: Text, lower=False, rmv_punc=True,
+                                zero_div_val=NaN) -> float:
+    """Calculate the maximum number of morphemes per content word."""
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('max_morphs_per_content_word', 'lower')
+    Toks = ALL['_filter_Toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
+                               rmv_punc=rmv_punc)
+    try:
+        return max(len(re.findall(vowel_re, tok.orig, flags=re.I))
+                   for tok in Toks)
+    except (StatisticsError, ValueError):
+        return zero_div_val
+
+
+@add_to_ALL('morphs_per_content_word', category='Normalized length')
+def morphs_per_content_word(text: Text, rmv_punc=True,
+                            zero_div_val=NaN) -> float:
+    """Calculate the average number of morphemes per content word."""
+    Toks = ALL['_filter_Toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
+                               rmv_punc=rmv_punc)
+    try:
+        return mean(len(re.findall(vowel_re, tok.orig, flags=re.I))
+                    for tok in Toks)
+    except StatisticsError:
+        return zero_div_val
