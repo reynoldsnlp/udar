@@ -352,6 +352,21 @@ for n in range(1, MAX_SYLL):  # noqa: E305
                         category='Absolute length')
 
 
+def num_tokens_over_n_chars(n, text: Text, lower=False, rmv_punc=True) -> int:
+    """Count the number of tokens with more than n characters."""
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('num_tokens_over_n_chars', 'lower')
+    toks = ALL['_filter_toks'](text, lower=lower, rmv_punc=rmv_punc)
+    return len([t for t in toks if len(t) > n])
+for n in range(1, MAX_SYLL):  # noqa: E305
+    name = f'num_tokens_over_{n}_chars'
+    this_partial = partial(num_tokens_over_n_chars, n)
+    doc = num_tokens_over_n_chars.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
+    ALL[name] = Feature(name, this_partial, doc=doc,
+                        category='Absolute length')
+
+
 def num_content_tokens_over_n_sylls(n, text: Text, lower=False,
                                     rmv_punc=True) -> int:
     """Count the number of content tokens with more than n syllables."""
@@ -367,6 +382,24 @@ for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'num_content_tokens_over_{n}_sylls'
     this_partial = partial(num_content_tokens_over_n_sylls, n)
     doc = num_content_tokens_over_n_sylls.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
+    ALL[name] = Feature(name, this_partial, doc=doc,
+                        category='Absolute length')
+
+
+def num_content_tokens_over_n_chars(n, text: Text, lower=False,
+                                    rmv_punc=True) -> int:
+    """Count the number of content tokens with more than n characters."""
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('num_content_tokens_over_n_chars',
+                                       'lower')
+    Toks = ALL['_filter_Toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
+                               rmv_punc=rmv_punc)
+    return len([t for t in Toks if len(t.orig) > n])
+for n in range(1, MAX_SYLL):  # noqa: E305
+    name = f'num_content_tokens_over_{n}_chars'
+    this_partial = partial(num_content_tokens_over_n_chars, n)
+    doc = num_content_tokens_over_n_chars.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Absolute length')
 
@@ -983,3 +1016,46 @@ def morphs_per_content_word(text: Text, rmv_punc=True,
                     for tok in Toks)
     except StatisticsError:
         return zero_div_val
+
+
+def prcnt_words_over_n_chars(n, text: Text, lower=False, rmv_punc=True,
+                             zero_div_val=NaN) -> float:
+    """Compute the percentage of words over n characters in a Text."""
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('prcnt_words_over_n_chars', 'lower')
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    num_tokens_over_n_chars = ALL[f'num_tokens_over_{n}_chars'](text,
+                                                                lower=lower,
+                                                                rmv_punc=rmv_punc)  # noqa: E501
+    try:
+        return num_tokens_over_n_chars / num_tokens
+    except ZeroDivisionError:
+        return zero_div_val
+for n in range(1, MAX_SYLL):  # noqa: E305
+    name = f'prcnt_words_over_{n}_chars'
+    this_partial = partial(prcnt_words_over_n_chars, n)  # type: ignore
+    doc = prcnt_words_over_n_chars.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
+    ALL[name] = Feature(name, this_partial, doc=doc,
+                        category='Lexical variation')
+
+
+def prcnt_content_words_over_n_chars(n, text: Text, lower=False, rmv_punc=True,
+                                     zero_div_val=NaN) -> float:
+    """Compute the percentage of content words over n characters in a Text."""
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('prcnt_content_words_over_n_chars',
+                                       'lower')
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    num_content_tokens_over_n_chars = ALL[f'num_content_tokens_over_{n}_chars'](text, lower=lower, rmv_punc=rmv_punc)  # noqa: E501
+    try:  # TODO normalize over content tokens?
+        return num_content_tokens_over_n_chars / num_tokens
+    except ZeroDivisionError:
+        return zero_div_val
+for n in range(1, MAX_SYLL):  # noqa: E305
+    name = f'prcnt_content_words_over_{n}_chars'
+    this_partial = partial(prcnt_content_words_over_n_chars, n)  # type: ignore
+    doc = prcnt_content_words_over_n_chars.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
+    ALL[name] = Feature(name, this_partial, doc=doc,
+                        category='Lexical variation')
