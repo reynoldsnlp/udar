@@ -68,3 +68,60 @@ with open('KellyProject_Russian_M3.txt') as f:
 
 with open('../kelly_dict.pkl', 'wb') as f:
     pickle.dump(kelly_dict, f)
+
+
+###############################################################################
+print('making RNC_tok_freq_dict.pkl and RNC_tok_freq_rank_dict.pkl ...',
+      file=stderr)
+
+# Token frequency data from Russian National Corpus 1-gram data.
+# taken from: http://ruscorpora.ru/corpora-freq.html
+
+RNC_tok_freq_dict = {}
+RNC_tok_freq_rank_dict = {}
+with open('RNC_1grams-3.txt') as f:
+    rank = 0
+    last_freq = None
+    for i, line in enumerate(f, start=1):
+        tok_freq, tok = line.split()
+        if tok_freq != last_freq:
+            rank = i
+        if tok in RNC_tok_freq_dict:
+            print(f'\t{tok} already in RNC_tok_freq_dict '
+                  f'({tok_freq} vs {RNC_tok_freq_dict[tok]})', file=stderr)
+        RNC_tok_freq_dict[tok] = float(tok_freq)
+        RNC_tok_freq_rank_dict[tok] = rank
+with open('../RNC_tok_freq_dict.pkl', 'wb') as f:
+    pickle.dump(RNC_tok_freq_dict, f)
+with open('../RNC_tok_freq_rank_dict.pkl', 'wb') as f:
+    pickle.dump(RNC_tok_freq_rank_dict, f)
+
+
+###############################################################################
+print('making Sharoff_lem_freq_dict.pkl and Sharoff_lem_freq_rank_dict.pkl...',
+      file=stderr)
+
+# Lemma freq data from Serge Sharoff.
+# Taken from: http://www.artint.ru/projects/frqlist/frqlist-en.php
+
+# TODO what about http://dict.ruslang.ru/freq.php ?
+
+Sharoff_lem_freq_dict = {}
+Sharoff_lem_freq_rank_dict = {}
+with open('Sharoff_lemmaFreq.txt') as f:
+    rank = None
+    last_freq = None
+    for i, line in enumerate(f, start=1):
+        line_num, freq, lemma, pos = line.split()
+        if freq != last_freq:
+            rank = i
+        if lemma in Sharoff_lem_freq_dict:
+            print(f'{lemma} already in Sharoff_lem_freq_dict. '
+                  f'old: {Sharoff_lem_freq_dict[lemma]} '
+                  f'new: {(freq, line_num, pos)}', file=stderr)
+        Sharoff_lem_freq_dict[lemma] = float(freq)
+        Sharoff_lem_freq_rank_dict[lemma] = rank
+with open('../Sharoff_lem_freq_dict.pkl', 'wb') as f:
+    pickle.dump(Sharoff_lem_freq_dict, f)
+with open('../Sharoff_lem_freq_rank_dict.pkl', 'wb') as f:
+    pickle.dump(Sharoff_lem_freq_rank_dict, f)

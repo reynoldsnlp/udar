@@ -8,6 +8,8 @@ import pickle
 from pkg_resources import resource_filename
 import re
 from statistics import mean
+from statistics import median
+from statistics import stdev
 from statistics import StatisticsError
 import sys
 from typing import Any
@@ -36,6 +38,21 @@ NaN = float('nan')
 punc_re = r'[\\!"#$%&\'()*+,\-./:;<=>?@[\]^_`{|}~]+'
 vowel_re = r'[аэоуыяеёюиaeiou]'  # TODO make latin vowels optional?
 
+# The Great Unpickling
+with open(RSRC_PATH + 'kelly_dict.pkl', 'rb') as f:
+    kelly_dict = pickle.load(f)
+kelly_levels = sorted(set(kelly_dict.values()))
+with open(RSRC_PATH + 'lexmin_dict.pkl', 'rb') as f:
+    lexmin_dict = pickle.load(f)
+lexmin_levels = sorted(set(lexmin_dict.values()))
+with open(RSRC_PATH + 'RNC_tok_freq_dict.pkl', 'rb') as f:
+    RNC_tok_freq_dict = pickle.load(f)
+with open(RSRC_PATH + 'RNC_tok_freq_rank_dict.pkl', 'rb') as f:
+    RNC_tok_freq_rank_dict = pickle.load(f)
+with open(RSRC_PATH + 'Sharoff_lem_freq_dict.pkl', 'rb') as f:
+    Sharoff_lem_freq_dict = pickle.load(f)
+with open(RSRC_PATH + 'Sharoff_lem_freq_rank_dict.pkl', 'rb') as f:
+    Sharoff_lem_freq_rank_dict = pickle.load(f)
 with open(RSRC_PATH + 'Tix_morph_count_dict.pkl', 'rb') as f:
     tix_morph_count_dict = pickle.load(f)
 
@@ -332,6 +349,7 @@ def num_tokens_Tag(has_tag: str, text: Text, rmv_punc=False) -> int:
 for tag in tag_dict:  # noqa: E305
     name = f'num_tokens_{safe_name(tag)}'
     this_partial = partial(num_tokens_Tag, tag)
+    this_partial.__name__ = name
     doc = num_tokens_Tag.__doc__.replace('a given', f'the `{tag}`')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Absolute length')
@@ -347,6 +365,7 @@ def num_tokens_over_n_sylls(n, text: Text, lower=False, rmv_punc=True) -> int:
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'num_tokens_over_{n}_sylls'
     this_partial = partial(num_tokens_over_n_sylls, n)
+    this_partial.__name__ = name
     doc = num_tokens_over_n_sylls.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Absolute length')
@@ -362,6 +381,7 @@ def num_tokens_over_n_chars(n, text: Text, lower=False, rmv_punc=True) -> int:
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'num_tokens_over_{n}_chars'
     this_partial = partial(num_tokens_over_n_chars, n)
+    this_partial.__name__ = name
     doc = num_tokens_over_n_chars.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Absolute length')
@@ -381,6 +401,7 @@ def num_content_tokens_over_n_sylls(n, text: Text, lower=False,
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'num_content_tokens_over_{n}_sylls'
     this_partial = partial(num_content_tokens_over_n_sylls, n)
+    this_partial.__name__ = name
     doc = num_content_tokens_over_n_sylls.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Absolute length')
@@ -399,6 +420,7 @@ def num_content_tokens_over_n_chars(n, text: Text, lower=False,
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'num_content_tokens_over_{n}_chars'
     this_partial = partial(num_content_tokens_over_n_chars, n)
+    this_partial.__name__ = name
     doc = num_content_tokens_over_n_chars.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Absolute length')
@@ -432,6 +454,7 @@ def num_types_Tag(tag: str, text: Text, lower=True, rmv_punc=False) -> int:
 for tag in tag_dict:  # noqa: E305
     name = f'num_types_{safe_name(tag)}'
     this_partial = partial(num_types_Tag, tag)
+    this_partial.__name__ = name
     doc = num_types_Tag.__doc__.replace('a given', f'the `{tag}`')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Absolute length')
@@ -462,6 +485,7 @@ def prcnt_words_over_n_sylls(n, text: Text, lower=False, rmv_punc=True,
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'prcnt_words_over_{n}_sylls'
     this_partial = partial(prcnt_words_over_n_sylls, n)  # type: ignore
+    this_partial.__name__ = name
     doc = prcnt_words_over_n_sylls.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Lexical variation')
@@ -483,6 +507,7 @@ def prcnt_content_words_over_n_sylls(n, text: Text, lower=False, rmv_punc=True,
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'prcnt_content_words_over_{n}_sylls'
     this_partial = partial(prcnt_content_words_over_n_sylls, n)  # type: ignore
+    this_partial.__name__ = name
     doc = prcnt_content_words_over_n_sylls.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Lexical variation')
@@ -606,6 +631,7 @@ def type_token_ratio_Tag(tag: str, text: Text, lower=True, rmv_punc=False,
 for tag in tag_dict:  # noqa: E305
     name = f'type_token_ratio_{safe_name(tag)}'
     this_partial = partial(type_token_ratio_Tag, tag)  # type: ignore
+    this_partial.__name__ = name
     doc = this_partial.func.__doc__.replace('a given', f'the `{tag}`')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Lexical variation')
@@ -911,9 +937,9 @@ def solnyshkina_Q(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
 
 
 @add_to_ALL('Flesch_Kincaid_rus', category='Readability formula')
-def Flesh_Kincaid_rus(text: Text, lower=False, rmv_punc=True,
-                      sent_tokenizer=None, zero_div_val=NaN) -> float:
-    """Flesh-Kincaid for Russian.
+def Flesch_Kincaid_rus(text: Text, lower=False, rmv_punc=True,
+                       sent_tokenizer=None, zero_div_val=NaN) -> float:
+    """Flesch-Kincaid for Russian.
 
     Adapted from cal_Flesh_Kincaid_rus() in ...
     github.com/infoculture/plainrussian/blob/master/textmetric/metric.py
@@ -930,9 +956,9 @@ def Flesh_Kincaid_rus(text: Text, lower=False, rmv_punc=True,
 
 
 @add_to_ALL('Flesch_Kincaid_Grade_rus', category='Readability formula')
-def Flesh_Kincaid_Grade_rus(text: Text, lower=False, rmv_punc=True,
+def Flesch_Kincaid_Grade_rus(text: Text, lower=False, rmv_punc=True,
                             sent_tokenizer=None, zero_div_val=NaN) -> float:
-    """Flesh-Kincaid Grade for Russian.
+    """Flesch-Kincaid Grade for Russian.
 
     Adapted from cal_Flesh_Kincaid_Grade_rus() in ...
     github.com/infoculture/plainrussian/blob/master/textmetric/metric.py
@@ -971,7 +997,7 @@ def morphs_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
 
 @add_to_ALL('max_morphs_per_word', category='Normalized length')
 def max_morphs_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
-                        zero_div_val=NaN) -> float:
+                        zero_div_val=NaN) -> int:
     """Calculate the maximum number of morphemes per word."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
@@ -991,7 +1017,7 @@ def max_morphs_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
 
 @add_to_ALL('max_morphs_per_content_word', category='Normalized length')
 def max_morphs_per_content_word(text: Text, lower=False, rmv_punc=True,
-                                zero_div_val=NaN) -> float:
+                                zero_div_val=NaN) -> int:
     """Calculate the maximum number of morphemes per content word."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
@@ -1035,6 +1061,7 @@ def prcnt_words_over_n_chars(n, text: Text, lower=False, rmv_punc=True,
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'prcnt_words_over_{n}_chars'
     this_partial = partial(prcnt_words_over_n_chars, n)  # type: ignore
+    this_partial.__name__ = name
     doc = prcnt_words_over_n_chars.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Lexical variation')
@@ -1056,6 +1083,240 @@ def prcnt_content_words_over_n_chars(n, text: Text, lower=False, rmv_punc=True,
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'prcnt_content_words_over_{n}_chars'
     this_partial = partial(prcnt_content_words_over_n_chars, n)  # type: ignore
+    this_partial.__name__ = name
     doc = prcnt_content_words_over_n_chars.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Lexical variation')
+
+
+def num_words_at_lexmin_level(level, text: Text) -> int:
+    """Count number of words in a Text at LEVEL in the
+    "lexical minimum" (лексический минимум) of the TORFL (ТРКИ) test.
+    """
+    return len([1 for tok in text.Toks
+                if lexmin_dict.get(tok.get_most_likely_lemma()) == level])
+for level in lexmin_levels:  # A1, A2, B1, B2  # noqa: E305
+    name = f'num_words_at_lexmin_{level}'
+    this_partial = partial(num_words_at_lexmin_level, level)  # type: ignore
+    this_partial.__name__ = name
+    doc = num_words_at_lexmin_level.__doc__.replace('LEVEL', level)  # type: ignore  # noqa: E501
+    ALL[name] = Feature(name, this_partial, doc=doc,
+                        category='Lexical familiarity')
+
+
+def prcnt_words_over_lexmin_level(level, text: Text, lower=False,
+                                  rmv_punc=True, zero_div_val=NaN) -> float:
+    """Compute the percentage of words in a Text over LEVEL in the
+    "lexical minimum" (лексический минимум) of the TORFL (ТРКИ) test.
+    """
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('prcnt_words_over_n_chars', 'lower')
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    num_tokens_at_or_below = 0
+    for each_level in lexmin_levels:
+        if each_level <= level:
+            num_tokens_at_or_below += ALL[f'num_words_at_lexmin_{level}'](text)
+    try:
+        return (num_tokens - num_tokens_at_or_below) / num_tokens
+    except ZeroDivisionError:
+        return zero_div_val
+for level in lexmin_levels:  # A1, A2, B1, B2  # noqa: E305
+    name = f'prcnt_words_over_lexmin_{level}'
+    this_partial = partial(prcnt_words_over_lexmin_level, level)  # type: ignore  # noqa: E501
+    this_partial.__name__ = name
+    doc = prcnt_words_over_lexmin_level.__doc__.replace('LEVEL', level)  # type: ignore  # noqa: E501
+    ALL[name] = Feature(name, this_partial, doc=doc,
+                        category='Lexical familiarity')
+
+
+def num_words_at_kelly_level(level, text: Text) -> int:
+    """Count number of words in a Text at LEVEL in the
+    Kelly Project (Kilgarriff et al., 2014).
+    """
+    return len([1 for tok in text.Toks
+                if kelly_dict.get(tok.get_most_likely_lemma()) == level])
+for level in kelly_levels:  # A1, A2, B1, B2, C1, C2  # noqa: E305
+    name = f'num_words_at_kelly_{level}'
+    this_partial = partial(num_words_at_kelly_level, level)  # type: ignore
+    this_partial.__name__ = name
+    doc = num_words_at_kelly_level.__doc__.replace('LEVEL', level)  # type: ignore  # noqa: E501
+    ALL[name] = Feature(name, this_partial, doc=doc,
+                        category='Lexical familiarity')
+
+
+def prcnt_words_over_kelly_level(level, text: Text, lower=False,
+                                 rmv_punc=True, zero_div_val=NaN) -> float:
+    """Compute the percentage of words in a Text over LEVEL in the
+    Kelly Project (Kilgarriff et al., 2014).
+    """
+    # `lower` is irrelevant here, but included for hierarchical consistency
+    if lower:
+        warn_about_irrelevant_argument('prcnt_words_over_n_chars', 'lower')
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    num_tokens_at_or_below = 0
+    for each_level in kelly_levels:
+        if each_level <= level:
+            num_tokens_at_or_below += ALL[f'num_words_at_kelly_{level}'](text)
+    try:
+        return (num_tokens - num_tokens_at_or_below) / num_tokens
+    except ZeroDivisionError:
+        return zero_div_val
+for level in kelly_levels:  # A1, A2, B1, B2, C1, C2  # noqa: E305
+    name = f'prcnt_words_over_kelly_{level}'
+    this_partial = partial(prcnt_words_over_kelly_level, level)  # type: ignore  # noqa: E501
+    this_partial.__name__ = name
+    doc = prcnt_words_over_kelly_level.__doc__.replace('LEVEL', level)  # type: ignore  # noqa: E501
+    ALL[name] = Feature(name, this_partial, doc=doc,
+                        category='Lexical familiarity')
+
+
+@add_to_ALL('_lemma_frequencies', category='_prior')
+def _lemma_frequencies(text: Text,
+                       has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',
+                       rmv_punc=True) -> List[float]:
+    """Make list of lemma frequencies."""
+    Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    return [Sharoff_lem_freq_dict.get(t.get_most_likely_lemma(), 0)
+            for t in Toks]
+
+
+@add_to_ALL('_lemma_frequency_ranks', category='_prior')
+def _lemma_frequency_ranks(text: Text,
+                          has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',  # noqa: E501
+                          rmv_punc=True) -> List[float]:
+    """Make list of lemma frequency ranks."""
+    Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    return [Sharoff_lem_freq_rank_dict.get(t.get_most_likely_lemma(), 0)
+            for t in Toks]
+
+
+@add_to_ALL('mean_lemma_frequency', category='Lexical familiarity')
+def mean_lemma_frequency(text: Text,
+                         has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',
+                         rmv_punc=True, zero_div_val=NaN) -> float:
+    """Return mean lemma frequency of the given text."""
+    freqs = ALL['_lemma_frequencies'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    try:
+        return mean(freqs)
+    except StatisticsError:
+        return zero_div_val
+
+
+@add_to_ALL('mean_lemma_frequency_rank', category='Lexical familiarity')
+def mean_lemma_frequency_rank(text: Text,
+                              has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',  # noqa: E501
+                              rmv_punc=True, zero_div_val=NaN) -> float:
+    """Return mean lemma frequency of the given text."""
+    ranks = ALL['_lemma_frequency_ranks'](text, has_tag=has_tag,
+                                          rmv_punc=rmv_punc)
+    try:
+        return mean(ranks)
+    except StatisticsError:
+        return zero_div_val
+
+
+@add_to_ALL('med_lemma_frequency', category='Lexical familiarity')
+def med_lemma_frequency(text: Text,
+                        has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',
+                        rmv_punc=True, zero_div_val=NaN) -> float:
+    """Return median lemma frequency of the given text."""
+    freqs = ALL['_lemma_frequencies'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    try:
+        return median(freqs)
+    except StatisticsError:
+        return zero_div_val
+
+
+@add_to_ALL('min_lemma_frequency', category='Lexical familiarity')
+def min_lemma_frequency(text: Text,
+                        has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',
+                        rmv_punc=True, zero_div_val=NaN) -> float:
+    """Return minimum lemma frequency of the given text."""
+    freqs = ALL['_lemma_frequencies'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    try:
+        return min(freqs)
+    except ValueError:
+        return zero_div_val
+
+
+@add_to_ALL('stdev_lemma_frequency', category='Lexical familiarity')
+def stdev_lemma_frequency(text: Text,
+                          has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',  # noqa: E501
+                          rmv_punc=True, zero_div_val=NaN) -> float:
+    """Return standard deviation of the lemma frequencies of the given text."""
+    freqs = ALL['_lemma_frequencies'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    try:
+        return stdev(freqs)
+    except StatisticsError:
+        return zero_div_val
+
+
+@add_to_ALL('_token_frequencies', category='_prior')
+def _token_frequencies(text: Text, lower=True,
+                       rmv_punc=True) -> List[float]:
+    """Make list of token frequencies."""
+    toks = ALL['_filter_toks'](text, lower=lower, rmv_punc=rmv_punc)
+    return [RNC_tok_freq_dict.get(tok, 0) for tok in toks]
+
+
+@add_to_ALL('_token_frequency_ranks', category='_prior')
+def _token_frequency_ranks(text: Text, lower=True, rmv_punc=True) -> List[int]:
+    """Make list of token frequency ranks."""
+    toks = ALL['_filter_toks'](text, lower=lower, rmv_punc=rmv_punc)
+    return [RNC_tok_freq_rank_dict.get(tok, 0) for tok in toks]
+
+
+@add_to_ALL('mean_token_frequency', category='Lexical familiarity')
+def mean_token_frequency(text: Text, lower=True, rmv_punc=True,
+                         zero_div_val=NaN) -> float:
+    """Return mean token frequency of the given text."""
+    freqs = ALL['_token_frequencies'](text, lower=lower, rmv_punc=rmv_punc)
+    try:
+        return mean(freqs)
+    except StatisticsError:
+        return zero_div_val
+
+
+@add_to_ALL('mean_token_frequency_rank', category='Lexical familiarity')
+def mean_token_frequency_rank(text: Text, lower=True, rmv_punc=True,
+                              zero_div_val=NaN) -> float:
+    """Return mean token frequency rank of the given text."""
+    ranks = ALL['_token_frequency_ranks'](text, lower=lower, rmv_punc=rmv_punc)
+    try:
+        return mean(ranks)
+    except StatisticsError:
+        return zero_div_val
+
+
+@add_to_ALL('med_token_frequency', category='Lexical familiarity')
+def med_token_frequency(text: Text, lower=True, rmv_punc=True,
+                        zero_div_val=NaN) -> float:
+    """Return median token frequency of the given text."""
+    freqs = ALL['_token_frequencies'](text, lower=lower, rmv_punc=rmv_punc)
+    try:
+        return median(freqs)
+    except StatisticsError:
+        return zero_div_val
+
+
+@add_to_ALL('min_token_frequency', category='Lexical familiarity')
+def min_token_frequency(text: Text, lower=True, rmv_punc=True,
+                        zero_div_val=NaN) -> float:
+    """Return minimum token frequency of the given text."""
+    freqs = ALL['_token_frequencies'](text, lower=lower, rmv_punc=rmv_punc)
+    try:
+        return min(freqs)
+    except StatisticsError:
+        return zero_div_val
+
+
+@add_to_ALL('stdev_token_frequency', category='Lexical familiarity')
+def stdev_token_frequency(text: Text, lower=True, rmv_punc=True,
+                          zero_div_val=NaN) -> float:
+    """Return standard deviation of token frequencies of the given text."""
+    freqs = ALL['_token_frequencies'](text, lower=lower, rmv_punc=rmv_punc)
+    try:
+        return min(freqs)
+    except StatisticsError:
+        return zero_div_val
