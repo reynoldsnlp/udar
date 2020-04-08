@@ -1253,7 +1253,7 @@ def stdev_lemma_frequency(text: Text,
 
 
 @add_to_ALL('_token_frequencies', category='_prior')
-def _token_frequencies(text: Text, lower=True,
+def _token_frequencies(text: Text, lower=False,
                        rmv_punc=True) -> List[float]:
     """Make list of token frequencies."""
     toks = ALL['_filter_toks'](text, lower=lower, rmv_punc=rmv_punc)
@@ -1261,14 +1261,15 @@ def _token_frequencies(text: Text, lower=True,
 
 
 @add_to_ALL('_token_frequency_ranks', category='_prior')
-def _token_frequency_ranks(text: Text, lower=True, rmv_punc=True) -> List[int]:
+def _token_frequency_ranks(text: Text, lower=False,
+                           rmv_punc=True) -> List[int]:
     """Make list of token frequency ranks."""
     toks = ALL['_filter_toks'](text, lower=lower, rmv_punc=rmv_punc)
     return [RNC_tok_freq_rank_dict.get(tok, 0) for tok in toks]
 
 
 @add_to_ALL('mean_token_frequency', category='Lexical familiarity')
-def mean_token_frequency(text: Text, lower=True, rmv_punc=True,
+def mean_token_frequency(text: Text, lower=False, rmv_punc=True,
                          zero_div_val=NaN) -> float:
     """Return mean token frequency of the given text."""
     freqs = ALL['_token_frequencies'](text, lower=lower, rmv_punc=rmv_punc)
@@ -1279,7 +1280,7 @@ def mean_token_frequency(text: Text, lower=True, rmv_punc=True,
 
 
 @add_to_ALL('mean_token_frequency_rank', category='Lexical familiarity')
-def mean_token_frequency_rank(text: Text, lower=True, rmv_punc=True,
+def mean_token_frequency_rank(text: Text, lower=False, rmv_punc=True,
                               zero_div_val=NaN) -> float:
     """Return mean token frequency rank of the given text."""
     ranks = ALL['_token_frequency_ranks'](text, lower=lower, rmv_punc=rmv_punc)
@@ -1290,7 +1291,7 @@ def mean_token_frequency_rank(text: Text, lower=True, rmv_punc=True,
 
 
 @add_to_ALL('med_token_frequency', category='Lexical familiarity')
-def med_token_frequency(text: Text, lower=True, rmv_punc=True,
+def med_token_frequency(text: Text, lower=False, rmv_punc=True,
                         zero_div_val=NaN) -> float:
     """Return median token frequency of the given text."""
     freqs = ALL['_token_frequencies'](text, lower=lower, rmv_punc=rmv_punc)
@@ -1301,7 +1302,7 @@ def med_token_frequency(text: Text, lower=True, rmv_punc=True,
 
 
 @add_to_ALL('min_token_frequency', category='Lexical familiarity')
-def min_token_frequency(text: Text, lower=True, rmv_punc=True,
+def min_token_frequency(text: Text, lower=False, rmv_punc=True,
                         zero_div_val=NaN) -> float:
     """Return minimum token frequency of the given text."""
     freqs = ALL['_token_frequencies'](text, lower=lower, rmv_punc=rmv_punc)
@@ -1312,7 +1313,7 @@ def min_token_frequency(text: Text, lower=True, rmv_punc=True,
 
 
 @add_to_ALL('stdev_token_frequency', category='Lexical familiarity')
-def stdev_token_frequency(text: Text, lower=True, rmv_punc=True,
+def stdev_token_frequency(text: Text, lower=False, rmv_punc=True,
                           zero_div_val=NaN) -> float:
     """Return standard deviation of token frequencies of the given text."""
     freqs = ALL['_token_frequencies'](text, lower=lower, rmv_punc=rmv_punc)
