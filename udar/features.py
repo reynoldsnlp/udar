@@ -242,6 +242,7 @@ class FeatureSetExtractor(OrderedDict):
         for name in feat_names:
             feature = self[name]
             row.append(feature(text, **kwargs))
+        text._feat_cache = {}  # delete cache to save memory
         try:
             return tuple_constructor(*row)
         except TypeError:
