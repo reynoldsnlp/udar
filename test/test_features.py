@@ -89,6 +89,7 @@ def test_output_type_annotation():
                                 else feat.func)
         assert src and ') -> ' in src
 
+
 def test_name_of_func_matches_name_in_extractor():
     """Ensure that the function's name matches the key in the extractor."""
     for feat_name, feat in ALL.items():

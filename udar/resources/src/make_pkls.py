@@ -89,6 +89,7 @@ with open('RNC_1grams-3.txt') as f:
         if tok in RNC_tok_freq_dict:
             print(f'\t{tok} already in RNC_tok_freq_dict '
                   f'({tok_freq} vs {RNC_tok_freq_dict[tok]})', file=stderr)
+            continue
         RNC_tok_freq_dict[tok] = float(tok_freq)
         RNC_tok_freq_rank_dict[tok] = rank
 with open('../RNC_tok_freq_dict.pkl', 'wb') as f:
@@ -119,6 +120,7 @@ with open('Sharoff_lemmaFreq.txt') as f:
             print(f'{lemma} already in Sharoff_lem_freq_dict. '
                   f'old: {Sharoff_lem_freq_dict[lemma]} '
                   f'new: {(freq, line_num, pos)}', file=stderr)
+            continue
         Sharoff_lem_freq_dict[lemma] = float(freq)
         Sharoff_lem_freq_rank_dict[lemma] = rank
 with open('../Sharoff_lem_freq_dict.pkl', 'wb') as f:
