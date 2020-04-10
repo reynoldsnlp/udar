@@ -56,6 +56,12 @@ with open(RSRC_PATH + 'Sharoff_lem_freq_rank_dict.pkl', 'rb') as f:
 with open(RSRC_PATH + 'Tix_morph_count_dict.pkl', 'rb') as f:
     tix_morph_count_dict = pickle.load(f)
 
+ms_feats = set(tag.ms_feat for tag in tag_dict.values())
+tags_by_ms_feat = {ms_feat: tuple(tag_name
+                                  for tag_name, tag in tag_dict.items()
+                                  if tag.ms_feat == ms_feat)
+                   for ms_feat in ms_feats}
+
 
 def safe_name(tag: Union[str, Tag]) -> str:
     """Convert tag name to valid python variable name."""
@@ -363,18 +369,54 @@ for tag in tag_dict:  # noqa: E305
 
 def num_tokens_ms_feat(ms_feat: str, text: Text, rmv_punc=False) -> int:
     """Count number of tokens with a given tag category."""
-    has_tag = tuple(tag_name for tag_name, tag in tag_dict.items()
-                    if tag.ms_feat == ms_feat)
+    has_tag = tags_by_ms_feat[ms_feat]
     Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
     return len(Toks)
-ms_feats = set(tag.ms_feat for tag in tag_dict.values()) - {'POS'}  # noqa: E305,E501
-for ms_feat in ms_feats:
+for ms_feat in ms_feats - {'POS'}:  # noqa: E305
     name = f'num_tokens_ms_feat_{safe_ms_feat_name(ms_feat)}'
     this_partial = partial(num_tokens_ms_feat, ms_feat)
     this_partial.__name__ = name  # type: ignore
     doc = num_tokens_Tag.__doc__.replace('a given', f'the `{ms_feat}`')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Absolute length')
+
+
+def num_types_ms_feat(ms_feat: str, text: Text, rmv_punc=False) -> int:
+    """Count number of attested tag types within the MS_FEAT morphosyntactic
+    feature.
+    """
+    has_tag = tags_by_ms_feat[ms_feat]
+    Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    counter = 0
+    for Tok in Toks:
+        try:
+            for tag in Tok.get_most_likely_reading().tagset:
+                if tag.ms_feat == ms_feat:
+                    counter += 1
+                    break
+        except AttributeError:
+            for r in Tok.get_most_likely_reading().readings:
+                for tag in r.tagset:
+                    if tag.ms_feat == ms_feat:
+                        counter += 1
+                        break
+    return counter
+for ms_feat in ms_feats - {'POS'}:  # noqa: E305
+    name = f'num_types_ms_feat_{safe_ms_feat_name(ms_feat)}'
+    this_partial = partial(num_types_ms_feat, ms_feat)
+    this_partial.__name__ = name  # type: ignore
+    doc = num_tokens_Tag.__doc__.replace('MS_FEAT', ms_feat)  # type: ignore
+    ALL[name] = Feature(name, this_partial, doc=doc,
+                        category='Morphology')
+
+
+@add_to_ALL('num_abstract_nouns', category='Morphology')
+def num_abstract_nouns(text: Text, rmv_punc=True) -> int:
+    """Count the number of abstract tokens on the basis of endings."""
+    Toks = ALL['_filter_Toks'](text, has_tag='N', rmv_punc=rmv_punc)
+    abstract_re = r'(?:ье|ие|ство|ация|ость|изм|изна|ота|ина|ика|ива)[¹²³⁴⁵⁶⁷⁸⁹⁰⁻]*$'  # noqa: E501
+    return len([t for t in Toks if re.search(abstract_re,
+                                             t.get_most_likely_lemma())])
 
 
 def num_tokens_over_n_sylls(n, text: Text, lower=False, rmv_punc=True) -> int:
@@ -488,6 +530,18 @@ def num_sents(text: Text, sent_tokenizer=None) -> int:
     if sent_tokenizer is None:
         sent_tokenizer = nltk.sent_tokenize
     return len(sent_tokenizer(text.orig))
+
+
+@add_to_ALL('prcnt_abstract_nouns', category='Absolute length')
+def prcnt_abstract_nouns(text: Text, lower=False, rmv_punc=True,
+                         zero_div_val=NaN) -> float:
+    """Compute the percentage of nouns that are abstract."""
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    num_abstract_nouns = ALL[f'num_abstract_nouns'](text, rmv_punc=rmv_punc)
+    try:
+        return num_abstract_nouns / num_tokens
+    except ZeroDivisionError:
+        return zero_div_val
 
 
 def prcnt_words_over_n_sylls(n, text: Text, lower=False, rmv_punc=True,
