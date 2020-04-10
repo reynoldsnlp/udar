@@ -67,7 +67,7 @@ print(phonetic_text1)
 ### Convenience functions
 
 A number of functions are included, both for convenience, and to give concrete
-examples for using the API. They can be found in the `convenience.py` file.
+examples for using the API.
 
 #### noun\_distractors()
 
