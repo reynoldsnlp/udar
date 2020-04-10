@@ -205,7 +205,7 @@ class FeatureSetExtractor(OrderedDict):
         feat_names = self._get_cat_and_feat_names(feat_names=feat_names,
                                                   category_names=category_names)  # noqa: E501
         if return_named_tuples:
-            if sys.version_info <= (3, 6) and len(feat_names) > 255:
+            if sys.version_info < (3, 7) and len(feat_names) > 255:
                 tuple_constructor = tuple
             else:
                 tuple_constructor = namedtuple('Features', feat_names)  # type: ignore  # noqa: E501
@@ -1374,3 +1374,15 @@ def stdev_token_frequency(text: Text,
         return min(freqs)
     except StatisticsError:
         return zero_div_val
+
+
+def Tag_present(tag: Tag, text: Text) -> bool:
+    """Determine whether a given tag is in `text`."""
+    return tag in text
+for tag in tag_dict:  # noqa: E305
+    name = f'{safe_name(tag)}_present'
+    this_partial = partial(Tag_present, tag)
+    this_partial.__name__ = name  # type: ignore
+    doc = num_tokens_Tag.__doc__.replace('a given', f'the `{tag}`')  # type: ignore  # noqa: E501
+    ALL[name] = Feature(name, this_partial, doc=doc,
+                        category='Morphological')
