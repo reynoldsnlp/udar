@@ -62,6 +62,11 @@ def safe_name(tag: Union[str, Tag]) -> str:
     return str(tag).replace('/', '_')
 
 
+def safe_ms_feat_name(cat: str) -> str:
+    """Convert tag category name to valid python variable name."""
+    return cat.replace('?', '？')  # full-width question mark
+
+
 def warn_about_irrelevant_argument(func_name, arg_name):
     warnings.warn(f'In {func_name}(), the `{arg_name}` keyword argument is '
                   'irrelevant (but included for hierarchical consistency). '
@@ -312,7 +317,7 @@ def _filter_Toks(text: Text,
                            for tag in has_tag)]
         else:
             raise NotImplementedError('has_tag argument must be a str or Tag, '
-                                      'or a list/tuple of strs or Tags.')
+                                      'or a tuple of strs or Tags.')
     if rmv_punc:
         Toks = [t for t in Toks if not re.match(punc_re, t.orig)]
     return Toks
@@ -352,6 +357,22 @@ for tag in tag_dict:  # noqa: E305
     this_partial = partial(num_tokens_Tag, tag)
     this_partial.__name__ = name  # type: ignore
     doc = num_tokens_Tag.__doc__.replace('a given', f'the `{tag}`')  # type: ignore  # noqa: E501
+    ALL[name] = Feature(name, this_partial, doc=doc,
+                        category='Absolute length')
+
+
+def num_tokens_ms_feat(ms_feat: str, text: Text, rmv_punc=False) -> int:
+    """Count number of tokens with a given tag category."""
+    has_tag = tuple(tag_name for tag_name, tag in tag_dict.items()
+                    if tag.ms_feat == ms_feat)
+    Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    return len(Toks)
+ms_feats = set(tag.ms_feat for tag in tag_dict.values()) - {'POS'}  # noqa: E305,E501
+for ms_feat in ms_feats:
+    name = f'num_tokens_ms_feat_{safe_ms_feat_name(ms_feat)}'
+    this_partial = partial(num_tokens_ms_feat, ms_feat)
+    this_partial.__name__ = name  # type: ignore
+    doc = num_tokens_Tag.__doc__.replace('a given', f'the `{ms_feat}`')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Absolute length')
 
@@ -636,6 +657,30 @@ for tag in tag_dict:  # noqa: E305
     doc = this_partial.func.__doc__.replace('a given', f'the `{tag}`')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Lexical variation')
+
+
+def tag_ms_feat_ratio_Tag(tag: str, text: Text, rmv_punc=False,
+                          zero_div_val=NaN) -> float:
+    """Compute tag-to-morphosyntactic-feature ratio for Tag, i.e. what
+    proportion of MS_FEAT tags are Tag.
+    """
+    ms_feat = safe_ms_feat_name(tag_dict[tag].ms_feat)
+    num_tokens_tag = ALL[f'num_tokens_{safe_name(tag)}'](text,
+                                                         rmv_punc=rmv_punc)
+    num_tokens_ms_feat = ALL[f'num_tokens_ms_feat_{ms_feat}'](text,
+                                                              rmv_punc=rmv_punc)  # noqa: E501
+    try:
+        return num_tokens_tag / num_tokens_ms_feat
+    except ZeroDivisionError:
+        return zero_div_val
+for tag in tag_dict:  # noqa: E305
+    if tag_dict[tag].ms_feat != 'POS':
+        name = f'tag_ms_feat_ratio_{safe_name(tag)}'
+        this_partial = partial(tag_ms_feat_ratio_Tag, tag)  # type: ignore
+        this_partial.__name__ = name  # type: ignore
+        doc = this_partial.func.__doc__.replace('Tag', f'`{tag}`').replace('MS_FEAT', tag_dict[tag].ms_feat)  # type: ignore  # noqa: E501
+        ALL[name] = Feature(name, this_partial, doc=doc,
+                            category='Morphology')
 
 
 @add_to_ALL('nominal_verb_type_token_ratio', category='Lexical variation')
@@ -1385,4 +1430,4 @@ for tag in tag_dict:  # noqa: E305
     this_partial.__name__ = name  # type: ignore
     doc = num_tokens_Tag.__doc__.replace('a given', f'the `{tag}`')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
-                        category='Morphological')
+                        category='Morphology')
