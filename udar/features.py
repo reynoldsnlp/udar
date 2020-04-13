@@ -22,8 +22,6 @@ from typing import Tuple
 from typing import Union
 import warnings
 
-import nltk  # type: ignore
-
 from .tag import Tag
 from .tag import tag_dict
 from .text import Text
@@ -38,29 +36,41 @@ NaN = float('nan')
 punc_re = r'[\\!"#$%&\'()*+,\-./:;<=>?@[\]^_`{|}~]+'
 vowel_re = r'[аэоуыяеёюиaeiou]'  # TODO make latin vowels optional?
 
-# The Great Unpickling
-with open(RSRC_PATH + 'kelly_dict.pkl', 'rb') as f:
-    kelly_dict = pickle.load(f)
-kelly_levels = sorted(set(kelly_dict.values()))
-with open(RSRC_PATH + 'lexmin_dict.pkl', 'rb') as f:
-    lexmin_dict = pickle.load(f)
-lexmin_levels = sorted(set(lexmin_dict.values()))
-with open(RSRC_PATH + 'RNC_tok_freq_dict.pkl', 'rb') as f:
-    RNC_tok_freq_dict = pickle.load(f)
-with open(RSRC_PATH + 'RNC_tok_freq_rank_dict.pkl', 'rb') as f:
-    RNC_tok_freq_rank_dict = pickle.load(f)
-with open(RSRC_PATH + 'Sharoff_lem_freq_dict.pkl', 'rb') as f:
-    Sharoff_lem_freq_dict = pickle.load(f)
-with open(RSRC_PATH + 'Sharoff_lem_freq_rank_dict.pkl', 'rb') as f:
-    Sharoff_lem_freq_rank_dict = pickle.load(f)
-with open(RSRC_PATH + 'Tix_morph_count_dict.pkl', 'rb') as f:
-    tix_morph_count_dict = pickle.load(f)
-
 ms_feats = set(tag.ms_feat for tag in tag_dict.values())
 tags_by_ms_feat = {ms_feat: tuple(tag_name
                                   for tag_name, tag in tag_dict.items()
                                   if tag.ms_feat == ms_feat)
                    for ms_feat in ms_feats}
+
+PICKLE_JAR_UNOPENED = True
+
+
+def open_the_pickle_jar():
+    global kelly_dict
+    with open(RSRC_PATH + 'kelly_dict.pkl', 'rb') as f:
+        kelly_dict = pickle.load(f)
+
+    global lexmin_dict
+    with open(RSRC_PATH + 'lexmin_dict.pkl', 'rb') as f:
+        lexmin_dict = pickle.load(f)
+
+    global RNC_tok_freq_dict
+    global RNC_tok_freq_rank_dict
+    with open(RSRC_PATH + 'RNC_tok_freq_dict.pkl', 'rb') as f:
+        RNC_tok_freq_dict = pickle.load(f)
+    with open(RSRC_PATH + 'RNC_tok_freq_rank_dict.pkl', 'rb') as f:
+        RNC_tok_freq_rank_dict = pickle.load(f)
+
+    global Sharoff_lem_freq_dict
+    global Sharoff_lem_freq_rank_dict
+    with open(RSRC_PATH + 'Sharoff_lem_freq_dict.pkl', 'rb') as f:
+        Sharoff_lem_freq_dict = pickle.load(f)
+    with open(RSRC_PATH + 'Sharoff_lem_freq_rank_dict.pkl', 'rb') as f:
+        Sharoff_lem_freq_rank_dict = pickle.load(f)
+
+    global tix_morph_count_dict
+    with open(RSRC_PATH + 'Tix_morph_count_dict.pkl', 'rb') as f:
+        tix_morph_count_dict = pickle.load(f)
 
 
 def safe_name(tag: Union[str, Tag]) -> str:
@@ -213,6 +223,10 @@ class FeatureSetExtractor(OrderedDict):
                  category_names: List[str] = None, header=True,
                  return_named_tuples=True, tsv=False,
                  **kwargs) -> Union[List[Tuple[Any, ...]], str]:
+        global PICKLE_JAR_UNOPENED
+        if PICKLE_JAR_UNOPENED:
+            open_the_pickle_jar()
+            PICKLE_JAR_UNOPENED = False
         feat_names = self._get_cat_and_feat_names(feat_names=feat_names,
                                                   category_names=category_names)  # noqa: E501
         if return_named_tuples:
@@ -1082,9 +1096,9 @@ def morphs_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
     else:
         Toks = text.Toks
     try:
-        return mean(tix_morph_count_dict[tok.get_most_likely_lemma()]
+        return mean(tix_morph_count_dict[tok.get_most_likely_lemma()]  # type: ignore  # noqa: E501
                     for tok in Toks
-                    if tok.get_most_likely_lemma() in tix_morph_count_dict)
+                    if tok.get_most_likely_lemma() in tix_morph_count_dict)  # type: ignore  # noqa: E501
     except StatisticsError:
         return zero_div_val
 
@@ -1102,9 +1116,9 @@ def max_morphs_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
     else:
         Toks = text.Toks
     try:
-        return max(tix_morph_count_dict[tok.get_most_likely_lemma()]
+        return max(tix_morph_count_dict[tok.get_most_likely_lemma()]  # type: ignore  # noqa: E501
                    for tok in Toks
-                   if tok.get_most_likely_lemma() in tix_morph_count_dict)
+                   if tok.get_most_likely_lemma() in tix_morph_count_dict)  # type: ignore  # noqa: E501
     except (StatisticsError, ValueError):
         return zero_div_val
 
@@ -1188,8 +1202,8 @@ def num_words_at_lexmin_level(level, text: Text) -> int:
     "lexical minimum" (лексический минимум) of the TORFL (ТРКИ) test.
     """
     return len([1 for tok in text.Toks
-                if lexmin_dict.get(tok.get_most_likely_lemma()) == level])
-for level in lexmin_levels:  # A1, A2, B1, B2  # noqa: E305
+                if lexmin_dict.get(tok.get_most_likely_lemma()) == level])  # type: ignore  # noqa: E501
+for level in ['A1', 'A2', 'B1', 'B2']:  # noqa: E305
     name = f'num_words_at_lexmin_{level}'
     this_partial = partial(num_words_at_lexmin_level, level)  # type: ignore
     this_partial.__name__ = name  # type: ignore
@@ -1208,14 +1222,14 @@ def prcnt_words_over_lexmin_level(level, text: Text, lower=False,
         warn_about_irrelevant_argument('prcnt_words_over_n_chars', 'lower')
     num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
     num_tokens_at_or_below = 0
-    for each_level in lexmin_levels:
+    for each_level in ['A1', 'A2', 'B1', 'B2']:
         if each_level <= level:
             num_tokens_at_or_below += ALL[f'num_words_at_lexmin_{level}'](text)
     try:
         return (num_tokens - num_tokens_at_or_below) / num_tokens
     except ZeroDivisionError:
         return zero_div_val
-for level in lexmin_levels:  # A1, A2, B1, B2  # noqa: E305
+for level in ['A1', 'A2', 'B1', 'B2']:  # noqa: E305
     name = f'prcnt_words_over_lexmin_{level}'
     this_partial = partial(prcnt_words_over_lexmin_level, level)  # type: ignore  # noqa: E501
     this_partial.__name__ = name  # type: ignore
@@ -1229,8 +1243,8 @@ def num_words_at_kelly_level(level, text: Text) -> int:
     Kelly Project (Kilgarriff et al., 2014).
     """
     return len([1 for tok in text.Toks
-                if kelly_dict.get(tok.get_most_likely_lemma()) == level])
-for level in kelly_levels:  # A1, A2, B1, B2, C1, C2  # noqa: E305
+                if kelly_dict.get(tok.get_most_likely_lemma()) == level])  # type: ignore  # noqa: E501
+for level in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']:  # noqa: E305
     name = f'num_words_at_kelly_{level}'
     this_partial = partial(num_words_at_kelly_level, level)  # type: ignore
     this_partial.__name__ = name  # type: ignore
@@ -1249,14 +1263,14 @@ def prcnt_words_over_kelly_level(level, text: Text, lower=False,
         warn_about_irrelevant_argument('prcnt_words_over_n_chars', 'lower')
     num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
     num_tokens_at_or_below = 0
-    for each_level in kelly_levels:
+    for each_level in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']:
         if each_level <= level:
             num_tokens_at_or_below += ALL[f'num_words_at_kelly_{level}'](text)
     try:
         return (num_tokens - num_tokens_at_or_below) / num_tokens
     except ZeroDivisionError:
         return zero_div_val
-for level in kelly_levels:  # A1, A2, B1, B2, C1, C2  # noqa: E305
+for level in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']:  # noqa: E305
     name = f'prcnt_words_over_kelly_{level}'
     this_partial = partial(prcnt_words_over_kelly_level, level)  # type: ignore  # noqa: E501
     this_partial.__name__ = name  # type: ignore
@@ -1271,7 +1285,7 @@ def _lemma_frequencies(text: Text,
                        rmv_punc=True) -> List[float]:
     """Make list of lemma frequencies."""
     Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
-    return [Sharoff_lem_freq_dict.get(t.get_most_likely_lemma(), 0)
+    return [Sharoff_lem_freq_dict.get(t.get_most_likely_lemma(), 0)  # type: ignore  # noqa: E501
             for t in Toks]
 
 
@@ -1281,7 +1295,7 @@ def _lemma_frequency_ranks(text: Text,
                           rmv_punc=True) -> List[float]:
     """Make list of lemma frequency ranks."""
     Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
-    return [Sharoff_lem_freq_rank_dict.get(t.get_most_likely_lemma(), 0)
+    return [Sharoff_lem_freq_rank_dict.get(t.get_most_likely_lemma(), 0)  # type: ignore  # noqa: E501
             for t in Toks]
 
 
@@ -1396,7 +1410,7 @@ def _token_frequencies(text: Text,
                        rmv_punc=True) -> List[float]:
     """Make list of token frequencies."""
     Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
-    return [RNC_tok_freq_dict.get(Tok.orig, 0) for Tok in Toks]
+    return [RNC_tok_freq_dict.get(Tok.orig, 0) for Tok in Toks]  # type: ignore
 
 
 @add_to_ALL('_token_frequency_ranks', category='_prior')
@@ -1405,7 +1419,7 @@ def _token_frequency_ranks(text: Text,
                            rmv_punc=True) -> List[int]:
     """Make list of token frequency ranks."""
     Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
-    return [RNC_tok_freq_rank_dict.get(Tok.orig, 0) for Tok in Toks]
+    return [RNC_tok_freq_rank_dict.get(Tok.orig, 0) for Tok in Toks]  # type: ignore  # noqa: E501
 
 
 @add_to_ALL('mean_token_frequency', category='Lexical familiarity')
