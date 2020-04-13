@@ -3,6 +3,7 @@
 from collections import Counter
 import os
 from pathlib import Path
+import pickle
 from pkg_resources import resource_filename
 import re
 from subprocess import PIPE
@@ -10,6 +11,7 @@ from subprocess import Popen
 import sys
 from time import strftime
 from typing import Callable
+from typing import Iterator
 from typing import List
 from typing import Tuple
 from typing import Type
@@ -30,6 +32,7 @@ __all__ = ['Text', 'hfst_tokenize']
 
 RSRC_PATH = resource_filename('udar', 'resources/')
 NEWLINE = '\n'
+
 
 Tokenizer = Callable[[str], List[str]]
 
@@ -91,6 +94,16 @@ def get_tokenizer(use_pexpect=True) -> Tokenizer:
             return nltk.word_tokenize
 
 
+def get_sent_tokenizer():
+    global nltk_sent_tokenizer
+    try:
+        return nltk_sent_tokenizer
+    except NameError:
+        with open(RSRC_PATH + 'nltk_punkt_russian.pkl', 'rb') as f:
+            nltk_sent_tokenizer = pickle.load(f)
+        return nltk_sent_tokenizer
+
+
 class Text:
     """Sequence of `Token`s.
 
@@ -103,8 +116,8 @@ class Text:
     "Text('Мы хотим', 7 tokens)"
     """
     __slots__ = ['_tokenized', '_analyzed', '_disambiguated', '_from_str',
-                 'orig', 'toks', 'Toks', 'text_name', 'experiment',
-                 'annotation', 'features', '_feat_cache']
+                 'orig', 'toks', 'Toks', 'sent_tok_indices', 'text_name',
+                 'experiment', 'annotation', 'features', '_feat_cache']
     _tokenized: bool
     _analyzed: bool
     _disambiguated: bool
@@ -112,23 +125,25 @@ class Text:
     orig: str
     toks: List[str]
     Toks: List[Token]
+    sent_tok_indices: List[Tuple[int, int]]
     text_name: str
     experiment: bool
     annotation: str
     features: Tuple
     _feat_cache: dict
 
-    def __init__(self, input_text, tokenize=True, analyze=True,
-                 disambiguate=False, tokenizer=None, analyzer=None,
-                 gram_path=None, text_name=None, experiment=False,
-                 annotation='', features=None, feat_cache=None,
-                 from_file=False):
+    def __init__(self, input_text, tokenize=True, sent_tokenize=True,
+                 analyze=True, disambiguate=False, tokenizer=None,
+                 sent_tokenizer=None, analyzer=None, gram_path=None,
+                 text_name=None, experiment=False, annotation='',
+                 features=None, feat_cache=None, from_file=False):
         """Note the difference between self.toks and self.Toks, where the
         latter is a list of Token objects, the former a list of strings.
         """
         self._analyzed = False
         self._disambiguated = False
         self._from_str = False
+        self.sent_tok_indices = []
         self.Toks = []
         self.text_name = text_name
         self.experiment = experiment
@@ -183,6 +198,8 @@ class Text:
                                       f'{repr(input_text)[:50]}...')
         if tokenize and not self.toks:
             self.tokenize(tokenizer=tokenizer)
+        if sent_tokenize:
+            self.sent_tokenize(sent_tokenizer=sent_tokenizer)
         if analyze:
             self.analyze(analyzer=analyzer)
         if disambiguate:
@@ -269,6 +286,33 @@ class Text:
             tokenizer = get_tokenizer()
         self.toks = tokenizer(self.orig)
         self._tokenized = True
+
+    def sent_tokenize(self, sent_tokenizer=None) -> None:
+        """Put a list of (start, end) indices for each sentence in
+        self.sent_tok_indices.
+        """
+        if sent_tokenizer is None:
+            sent_tokenizer = get_sent_tokenizer()
+        sents = sent_tokenizer.sentences_from_tokens(self.toks)
+        self.sent_tok_indices = []
+        i = 0
+        for s in sents:
+            length = len(s)
+            self.sent_tok_indices.append((i, i + length - 1))
+            i += length
+
+    def get_sents(self, strings=False) -> Iterator[Union[List[Token], List[str]]]:  # noqa: E501
+        """Yield a sequence of sentences, where each sentence is a list of
+        Tokens.
+
+        strings -- whether to return strings, as opposed to Tokens (default)
+        """
+        if strings:
+            for start, end in self.sent_tok_indices:
+                yield self.toks[start:end + 1]
+        else:
+            for start, end in self.sent_tok_indices:
+                yield self.Toks[start:end + 1]
 
     def analyze(self, analyzer=None, experiment=None) -> None:
         """Analyze Text's self.toks."""

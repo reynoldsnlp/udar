@@ -33,6 +33,14 @@ def test_hfst_tokenize():
     assert toks == ['Мы', 'нашли', 'все', 'проблемы', ',', 'и', 'т.д.']
 
 
+def test_sent_tokenize():
+    s = 'Мы все говорили об этом с тобой. Он стоял в парке и. Ленина.'
+    text1 = udar.Text(s, sent_tokenize=True)
+    sents = [['Мы', 'все', 'говорили', 'об', 'этом', 'с', 'тобой', '.'],
+             ['Он', 'стоял', 'в', 'парке', 'и.', 'Ленина', '.']]
+    assert list(text1.get_sents(strings=True)) == sents
+
+
 def test_stressify_selection_safe():
     text1 = udar.Text('шепотом')
     text2 = udar.Text('замок')
