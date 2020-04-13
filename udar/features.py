@@ -70,7 +70,7 @@ def safe_name(tag: Union[str, Tag]) -> str:
 
 def safe_ms_feat_name(cat: str) -> str:
     """Convert tag category name to valid python variable name."""
-    return cat.replace('?', '？')  # full-width question mark
+    return cat.replace('?', '_')
 
 
 def warn_about_irrelevant_argument(func_name, arg_name):
@@ -525,11 +525,9 @@ for tag in tag_dict:  # noqa: E305
 
 
 @add_to_ALL('num_sents', category='Absolute length')
-def num_sents(text: Text, sent_tokenizer=None) -> int:
+def num_sents(text: Text) -> int:
     """Count number of sentences in a Text."""
-    if sent_tokenizer is None:
-        sent_tokenizer = nltk.sent_tokenize
-    return len(sent_tokenizer(text.orig))
+    return len(text.sent_tok_indices)
 
 
 @add_to_ALL('prcnt_abstract_nouns', category='Absolute length')
@@ -909,14 +907,14 @@ def sylls_per_content_word(text: Text, rmv_punc=True,
 
 
 @add_to_ALL('words_per_sent', category='Normalized length')
-def words_per_sent(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
+def words_per_sent(text: Text, lower=False, rmv_punc=True,
                    zero_div_val=NaN) -> float:
     """Calculate the average number of words per sentence."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('words_per_sent', 'lower')
     num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
-    num_sents = ALL['num_sents'](text, sent_tokenizer=sent_tokenizer)
+    num_sents = ALL['num_sents'](text)
     try:
         return num_tokens / num_sents
     except ZeroDivisionError:
@@ -924,7 +922,7 @@ def words_per_sent(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
 
 
 @add_to_ALL('matskovskij', category='Readability formula')
-def matskovskij(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
+def matskovskij(text: Text, lower=False, rmv_punc=True,
                 zero_div_val=NaN) -> float:
     """Calculate document readability according to Matskovskij's formula.
 
@@ -938,7 +936,6 @@ def matskovskij(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
         warn_about_irrelevant_argument('matskovskij', 'lower')
     words_per_sent = ALL['words_per_sent'](text, lower=lower,
                                            rmv_punc=rmv_punc,
-                                           sent_tokenizer=sent_tokenizer,
                                            zero_div_val=zero_div_val)
     prcnt_words_over_3_sylls = ALL['prcnt_words_over_3_sylls'](text,
                                                                lower=lower,
@@ -948,7 +945,7 @@ def matskovskij(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
 
 
 @add_to_ALL('oborneva', category='Readability formula')
-def oborneva(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
+def oborneva(text: Text, lower=False, rmv_punc=True,
              zero_div_val=NaN) -> float:
     """Calculate document readability according to Oborneva's formula.
 
@@ -962,7 +959,6 @@ def oborneva(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
         warn_about_irrelevant_argument('oborneva', 'lower')
     words_per_sent = ALL['words_per_sent'](text, lower=lower,
                                            rmv_punc=rmv_punc,
-                                           sent_tokenizer=sent_tokenizer,
                                            zero_div_val=zero_div_val)
     sylls_per_word = ALL['sylls_per_word'](text, lower=lower,
                                            rmv_punc=rmv_punc,
@@ -971,7 +967,7 @@ def oborneva(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
 
 
 @add_to_ALL('solnyshkina_M3', category='Readability formula')
-def solnyshkina_M3(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
+def solnyshkina_M3(text: Text, lower=False, rmv_punc=True,
                    zero_div_val=NaN) -> float:
     """Calculate document readability according to Solnyshkina et al.'s
     linear model M3.
@@ -985,7 +981,7 @@ def solnyshkina_M3(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
         warn_about_irrelevant_argument('solnyshkina', 'lower')
     words_per_sent = ALL['words_per_sent'](text, lower=lower,
                                            rmv_punc=rmv_punc,
-                                           sent_tokenizer=sent_tokenizer)
+                                           zero_div_val=zero_div_val)
     sylls_per_word = ALL['sylls_per_word'](text, lower=lower,
                                            rmv_punc=rmv_punc,
                                            zero_div_val=zero_div_val)
@@ -998,7 +994,7 @@ def solnyshkina_M3(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
 
 
 @add_to_ALL('solnyshkina_Q', category='Readability formula')
-def solnyshkina_Q(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
+def solnyshkina_Q(text: Text, lower=False, rmv_punc=True,
                   zero_div_val=NaN) -> float:
     """Calculate document readability according to Solnyshkina et al.'s
     quadratic formula.
@@ -1012,7 +1008,7 @@ def solnyshkina_Q(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
         warn_about_irrelevant_argument('solnyshkina', 'lower')
     words_per_sent = ALL['words_per_sent'](text, lower=lower,
                                            rmv_punc=rmv_punc,
-                                           sent_tokenizer=sent_tokenizer)
+                                           zero_div_val=zero_div_val)
     sylls_per_word = ALL['sylls_per_word'](text, lower=lower,
                                            rmv_punc=rmv_punc,
                                            zero_div_val=zero_div_val)
@@ -1038,7 +1034,7 @@ def solnyshkina_Q(text: Text, lower=False, rmv_punc=True, sent_tokenizer=None,
 
 @add_to_ALL('Flesch_Kincaid_rus', category='Readability formula')
 def Flesch_Kincaid_rus(text: Text, lower=False, rmv_punc=True,
-                       sent_tokenizer=None, zero_div_val=NaN) -> float:
+                       zero_div_val=NaN) -> float:
     """Flesch-Kincaid for Russian.
 
     Adapted from cal_Flesh_Kincaid_rus() in ...
@@ -1047,7 +1043,6 @@ def Flesch_Kincaid_rus(text: Text, lower=False, rmv_punc=True,
     # TODO find original (academic/research) source?
     words_per_sent = ALL['words_per_sent'](text, lower=lower,
                                            rmv_punc=rmv_punc,
-                                           sent_tokenizer=sent_tokenizer,
                                            zero_div_val=zero_div_val)
     sylls_per_word = ALL['sylls_per_word'](text, lower=lower,
                                            rmv_punc=rmv_punc,
@@ -1057,7 +1052,7 @@ def Flesch_Kincaid_rus(text: Text, lower=False, rmv_punc=True,
 
 @add_to_ALL('Flesch_Kincaid_Grade_rus', category='Readability formula')
 def Flesch_Kincaid_Grade_rus(text: Text, lower=False, rmv_punc=True,
-                             sent_tokenizer=None, zero_div_val=NaN) -> float:
+                             zero_div_val=NaN) -> float:
     """Flesch-Kincaid Grade for Russian.
 
     Adapted from cal_Flesh_Kincaid_Grade_rus() in ...
@@ -1066,7 +1061,6 @@ def Flesch_Kincaid_Grade_rus(text: Text, lower=False, rmv_punc=True,
     # TODO find original (academic/research) source?
     words_per_sent = ALL['words_per_sent'](text, lower=lower,
                                            rmv_punc=rmv_punc,
-                                           sent_tokenizer=sent_tokenizer,
                                            zero_div_val=zero_div_val)
     sylls_per_word = ALL['sylls_per_word'](text, lower=lower,
                                            rmv_punc=rmv_punc,
