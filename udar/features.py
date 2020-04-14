@@ -1493,3 +1493,27 @@ for tag in tag_dict:  # noqa: E305
     doc = num_tokens_Tag.__doc__.replace('a given', f'the `{tag}`')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
                         category='Morphology')
+
+
+@add_to_ALL('sylls_per_sent', category='Sentence')
+def sylls_per_sent(text: Text, zero_div_val=NaN) -> int:
+    """Compute number of syllables per sentence."""
+    num_sylls = ALL['num_sylls'](text)
+    num_sents = ALL['num_sents'](text)
+    try:
+        return num_sylls / num_sents
+    except ZeroDivisionError:
+        return zero_div_val
+
+
+@add_to_ALL('chars_per_sent', category='Sentence')
+def chars_per_sent(text: Text, lower=False, rmv_punc=False,
+                   rmv_whitespace=True, uniq=False, zero_div_val=NaN) -> int:
+    """Compute number of syllables per sentence."""
+    num_chars = ALL['num_chars'](text, lower=lower, rmv_punc=rmv_punc,
+                                 rmv_whitespace=rmv_whitespace, uniq=uniq)
+    num_sents = ALL['num_sents'](text)
+    try:
+        return num_chars / num_sents
+    except ZeroDivisionError:
+        return zero_div_val
