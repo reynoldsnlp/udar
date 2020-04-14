@@ -1496,7 +1496,7 @@ for tag in tag_dict:  # noqa: E305
 
 
 @add_to_ALL('sylls_per_sent', category='Sentence')
-def sylls_per_sent(text: Text, zero_div_val=NaN) -> int:
+def sylls_per_sent(text: Text, zero_div_val=NaN) -> float:
     """Compute number of syllables per sentence."""
     num_sylls = ALL['num_sylls'](text)
     num_sents = ALL['num_sents'](text)
@@ -1508,12 +1508,35 @@ def sylls_per_sent(text: Text, zero_div_val=NaN) -> int:
 
 @add_to_ALL('chars_per_sent', category='Sentence')
 def chars_per_sent(text: Text, lower=False, rmv_punc=False,
-                   rmv_whitespace=True, uniq=False, zero_div_val=NaN) -> int:
+                   rmv_whitespace=True, uniq=False, zero_div_val=NaN) -> float:
     """Compute number of syllables per sentence."""
     num_chars = ALL['num_chars'](text, lower=lower, rmv_punc=rmv_punc,
                                  rmv_whitespace=rmv_whitespace, uniq=uniq)
     num_sents = ALL['num_sents'](text)
     try:
         return num_chars / num_sents
+    except ZeroDivisionError:
+        return zero_div_val
+
+
+@add_to_ALL('coord_conj_per_sent', category='Sentence')
+def coord_conj_per_sent(text: Text, rmv_punc=False, zero_div_val=NaN) -> float:
+    """Compute number of coordinating conjunctions per sentence."""
+    num_tokens_CC = ALL['num_tokens_CC'](text, rmv_punc=rmv_punc)
+    num_sents = ALL['num_sents'](text)
+    try:
+        return num_tokens_CC / num_sents
+    except ZeroDivisionError:
+        return zero_div_val
+
+
+@add_to_ALL('subord_conj_per_sent', category='Sentence')
+def subord_conj_per_sent(text: Text, rmv_punc=False,
+                         zero_div_val=NaN) -> float:
+    """Compute number of coordinating conjunctions per sentence."""
+    num_tokens_CS = ALL['num_tokens_CS'](text, rmv_punc=rmv_punc)
+    num_sents = ALL['num_sents'](text)
+    try:
+        return num_tokens_CS / num_sents
     except ZeroDivisionError:
         return zero_div_val
