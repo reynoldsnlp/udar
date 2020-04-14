@@ -80,21 +80,24 @@ def test_noun_distractors_NotImplementedError():
 
 
 def test_readability():
-    r1 = convenience.readability_measures(Text('Анастасия сотрудничает со всякими корреспондентами.'))[1]  # noqa: E501
+    t1 = Text('Афанасий сотрудничает со смешными корреспондентами.')
+    assert all(len(tok.readings) == 1 for tok in t1), t1.hfst_str()
+    r1 = convenience.readability_measures(t1)[1]  # noqa: E501
     assert len(r1) == 6, r1
     assert r1.matskovskij == 3.2248
-    assert r1.oborneva == 14.910000000000004
-    assert r1.solnyshkina_M3 == 10.100000000000001
-    assert isnan(r1.solnyshkina_Q)
-    assert r1.Flesch_Kincaid_rus == 47.18000000000001
-    assert r1.Flesch_Kincaid_Grade_rus == 10.193333333333332
+    assert r1.oborneva == 13.510000000000002
+    assert r1.solnyshkina_M3 == 10.160000000000002
+    assert r1.solnyshkina_Q == 2.401
+    assert r1.Flesch_Kincaid_rus == 55.53
+    assert r1.Flesch_Kincaid_Grade_rus == 8.976666666666663
 
-    r2 = convenience.readability_measures(Text('Он идет с разными людьми.'))[1]
+    t2 = Text('Она идет со смешными людьми.')
+    assert all(len(tok.readings) == 1 for tok in t2), t2.hfst_str()
+    r2 = convenience.readability_measures(t2)[1]
     assert len(r2) == 6, r2
     assert r2.matskovskij == 3.1510000000000002
-    assert r2.oborneva == -1.8900000000000006
-    # TODO solnyshkina may be subject to chance in this sentence.
-    # assert r2.solnyshkina_M3 == 1.0300000000000011
-    assert r2.solnyshkina_Q == -0.6460000000000001
-    assert r2.Flesch_Kincaid_rus == 147.38
-    assert r2.Flesch_Kincaid_Grade_rus == -4.406666666666666
+    assert r2.oborneva == 0.9100000000000001
+    assert r2.solnyshkina_M3 == 1.8000000000000014
+    assert r2.solnyshkina_Q == 0.17633333333333331
+    assert r2.Flesch_Kincaid_rus == 130.68
+    assert r2.Flesch_Kincaid_Grade_rus == -1.9733333333333327
