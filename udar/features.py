@@ -433,6 +433,19 @@ def num_abstract_nouns(text: Text, rmv_punc=True) -> int:
                                              t.get_most_likely_lemma())])
 
 
+@add_to_ALL('num_definitions', category='Discourse')
+def num_definitions(text: Text) -> int:
+    """Count the number of definitions (a la Krioni et al. 2008)."""
+    def_re = r'''[а-яё-]+ \s+ (?:есть|-|–|—) \s+ [а-яё-]+ |
+                 называ[ею]тся |
+                 понима[ею]тся |
+                 представля[ею]т собой |
+                 о(?:бо)?знача[ею]т |
+                 определя[ею]т(?:ся)? |
+                 счита[ею]т(?:ся)?'''
+    return len(re.findall(def_re, text.orig, flags=re.I | re.X))
+
+
 def num_tokens_over_n_sylls(n, text: Text, lower=False, rmv_punc=True) -> int:
     """Count the number of tokens with more than n syllables."""
     # `lower` is irrelevant here, but included for hierarchical consistency
@@ -1538,5 +1551,67 @@ def subord_conj_per_sent(text: Text, rmv_punc=False,
     num_sents = ALL['num_sents'](text)
     try:
         return num_tokens_CS / num_sents
+    except ZeroDivisionError:
+        return zero_div_val
+
+
+@add_to_ALL('definitions_per_token', category='Discourse')
+def definitions_per_token(text: Text, lower=False, rmv_punc=False,
+                          zero_div_val=NaN) -> float:
+    """Compute number of definitions (a la Krioni et al. 2008) per token."""
+    num_definitions = ALL['num_definitions'](text)
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    try:
+        return num_definitions / num_tokens
+    except ZeroDivisionError:
+        return zero_div_val
+
+
+@add_to_ALL('definitions_per_sent', category='Discourse')
+def definitions_per_sent(text: Text, zero_div_val=NaN) -> float:
+    """Compute number of definitions (a la Krioni et al. 2008) per sentence."""
+    num_definitions = ALL['num_definitions'](text)
+    num_sents = ALL['num_sents'](text)
+    try:
+        return num_definitions / num_sents
+    except ZeroDivisionError:
+        return zero_div_val
+
+
+@add_to_ALL('num_propositions', category='Absolute length')
+def num_propositions(text: Text, rmv_punc=False) -> int:
+    """Count number of propositions, as estimated by part-of-speech
+    (a la Brown et al. 2007; 2008).
+    """
+    prop_Toks = ALL['_filter_Toks'](text, has_tag=('A', 'Adv', 'CC', 'CS',
+                                                   'Pr', 'Det', 'V'),
+                                    rmv_punc=rmv_punc)
+    return len(prop_Toks)
+
+
+@add_to_ALL('propositions_per_token', category='Discourse')
+def propositions_per_token(text: Text, lower=False, rmv_punc=False,
+                           zero_div_val=NaN) -> float:
+    """Compute propositional density per token, as estimated by part-of-speech
+    counts (a la Brown et al. 2007; 2008).
+    """
+    num_propositions = ALL['num_propositions'](text, rmv_punc=rmv_punc)
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    try:
+        return num_propositions / num_tokens
+    except ZeroDivisionError:
+        return zero_div_val
+
+
+@add_to_ALL('propositions_per_sent', category='Discourse')
+def propositions_per_sent(text: Text, rmv_punc=False,
+                          zero_div_val=NaN) -> float:
+    """Compute propositional density per sentence, as estimated by
+    part-of-speech counts (a la Brown et al. 2007; 2008).
+    """
+    num_propositions = ALL['num_propositions'](text, rmv_punc=rmv_punc)
+    num_sents = ALL['num_sents'](text)
+    try:
+        return num_propositions / num_sents
     except ZeroDivisionError:
         return zero_div_val
