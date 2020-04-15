@@ -104,17 +104,6 @@ def get_sent_tokenizer():
         return nltk_sent_tokenizer
 
 
-def get_hunpos_tagger():
-    global hunpos_tagger
-    try:
-        return hunpos_tagger
-    except NameError:
-        from nltk.tag.hunpos import HunposTagger  # type: ignore
-        hunpos_tagger = HunposTagger(RSRC_PATH + 'hunpos_SynTagRus.model',
-                                     encoding='utf8')
-        return hunpos_tagger
-
-
 class Text:
     """Sequence of `Token`s.
 
@@ -324,22 +313,6 @@ class Text:
         else:
             for start, end in self.sent_tok_indices:
                 yield self.Toks[start:end + 1]
-
-    def _2hunposconll(self):
-        """Tag using hunpos (trained on SynTagRus),
-        then convert into conll-ish format.
-        """
-        output = []
-        for sent in self.get_sents():
-            hunpos_tagger = get_hunpos_tagger()
-            tagged = hunpos_tagger.tag([t.orig for t in sent])
-            for i, (token, reading) in enumerate(tagged, start=1):
-                reading = reading.decode('utf8')
-                pos = reading.split('|')[0]
-                output.append('\t'.join([str(i), token, '_', pos, pos,
-                                         reading]))
-            output.append('')
-        return '\n'.join(output)
 
     def analyze(self, analyzer=None, experiment=None) -> None:
         """Analyze Text's self.toks."""

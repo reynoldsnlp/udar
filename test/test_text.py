@@ -41,29 +41,6 @@ def test_sent_tokenize():
     assert list(text1.get_sents(strings=True)) == sents
 
 
-def test_2hunposconll():
-    s = 'Мы все говорили об этом с тобой. Он стоял в парке и. Ленина.'
-    text1 = udar.Text(s, sent_tokenize=True)
-    conll = '''1	Мы	_	S	S	S|МН|ИМ|ОД
-2	все	_	S	S	S|ЕД|СРЕД|ВИН|НЕОД
-3	говорили	_	V	V	V|НЕСОВ|ИЗЪЯВ|ПРОШ|МН
-4	об	_	PR	PR	PR
-5	этом	_	S	S	S|ЕД|СРЕД|ПР|НЕОД
-6	с	_	PR	PR	PR
-7	тобой	_	S	S	S|ЕД|МУЖ|ТВОР|ОД
-8	.	_	SENT	SENT	SENT
-
-1	Он	_	S	S	S|ЕД|МУЖ|ИМ|ОД
-2	стоял	_	V	V	V|НЕСОВ|ИЗЪЯВ|ПРОШ|ЕД|МУЖ
-3	в	_	PR	PR	PR
-4	парке	_	S	S	S|ЕД|МУЖ|ПР|НЕОД
-5	и.	_	S	S	S|ЕД|МУЖ|РОД|ОД
-6	Ленина	_	S	S	S|ЕД|МУЖ|РОД|ОД
-7	.	_	SENT	SENT	SENT
-'''
-    assert text1._2hunposconll() == conll
-
-
 def test_stressify_selection_safe():
     text1 = udar.Text('шепотом')
     text2 = udar.Text('замок')
