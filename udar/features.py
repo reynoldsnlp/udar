@@ -1615,3 +1615,22 @@ def propositions_per_sent(text: Text, rmv_punc=False,
         return num_propositions / num_sents
     except ZeroDivisionError:
         return zero_div_val
+
+
+@add_to_ALL('num_dialog_punc', category='Absolute length')
+def num_dialog_punc(text: Text) -> int:
+    """Count number of lines that begin with dialog punctuation."""
+    return len(re.findall(r'^\s*(?:[–—-]+|[а-яё]+:)', text.orig,
+                          flags=re.I | re.M))
+
+
+@add_to_ALL('dialog_punc_per_token', category='Discourse')
+def dialog_punc_per_token(text: Text, lower=False, rmv_punc=False,
+                          zero_div_val=NaN) -> float:
+    """Compute percentage of tokens that are dialog punctuation."""
+    num_dialog_punc = ALL['num_dialog_punc'](text)
+    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    try:
+        return num_dialog_punc / num_tokens
+    except ZeroDivisionError:
+        return zero_div_val
