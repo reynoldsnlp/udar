@@ -36,7 +36,7 @@ class PostInstallCommand(install):
 
 setuptools.setup(
     name='udar',
-    version='0.0.1',
+    version='0.1.0',
     author='Robert Reynolds',
     author_email='ReynoldsRJR@gmail.com',
     cmdclass={'install': PostInstallCommand},

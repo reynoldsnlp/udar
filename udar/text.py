@@ -116,15 +116,15 @@ class Text:
     "Text('Мы хотим', 7 tokens)"
     """
     __slots__ = ['_tokenized', '_analyzed', '_disambiguated', '_from_str',
-                 'orig', 'toks', 'Toks', 'sent_tok_indices', 'text_name',
+                 'orig', '_toks', 'toks', 'sent_tok_indices', 'text_name',
                  'experiment', 'annotation', 'features', '_feat_cache']
     _tokenized: bool
     _analyzed: bool
     _disambiguated: bool
     _from_str: bool
+    _toks: List[str]
     orig: str
-    toks: List[str]
-    Toks: List[Token]
+    toks: List[Token]
     sent_tok_indices: List[Tuple[int, int]]
     text_name: str
     experiment: bool
@@ -137,14 +137,11 @@ class Text:
                  sent_tokenizer=None, analyzer=None, gram_path=None,
                  text_name=None, experiment=False, annotation='',
                  features=None, feat_cache=None, from_file=False):
-        """Note the difference between self.toks and self.Toks, where the
-        latter is a list of Token objects, the former a list of strings.
-        """
         self._analyzed = False
         self._disambiguated = False
         self._from_str = False
         self.sent_tok_indices = []
-        self.Toks = []
+        self.toks = []
         self.text_name = text_name
         self.experiment = experiment
         self.annotation = annotation
@@ -166,7 +163,7 @@ class Text:
             else:
                 self.orig = input_text
             self._tokenized = False
-            self.toks = []
+            self._toks = []
         # elif input_text is a sequence of `str`s...
         elif ((hasattr(input_text, '__iter__')
                or hasattr(input_text, '__getitem__'))
@@ -174,7 +171,7 @@ class Text:
             if from_file:
                 raise TypeError('With from_file set to True, input_text must '
                                 'be a filename; sequence of str\'s given.')
-            self.toks = input_text
+            self._toks = input_text
             self._tokenized = True
             self.orig = ' '.join(input_text)
         # elif input_text is a sequence of `Token`s...
@@ -185,10 +182,9 @@ class Text:
                 raise TypeError('With from_file set to True, input_text must '
                                 'be a filename; sequence of Tokens given.')
             self._analyzed = True
-            self.Toks = input_text
-            self.toks = [t.orig for t in input_text]
+            self.toks = input_text
             self._tokenized = True
-            self.orig = ' '.join(self.toks)
+            self.orig = ' '.join([t.orig for t in input_text])
             return
         else:
             raise NotImplementedError('Expected `str`, '
@@ -196,7 +192,7 @@ class Text:
                                       'or sequence of `Token`s; '
                                       f'got {type(input_text)}: '
                                       f'{repr(input_text)[:50]}...')
-        if tokenize and not self.toks:
+        if tokenize and not self._toks:
             self.tokenize(tokenizer=tokenizer)
         if sent_tokenize:
             self.sent_tokenize(sent_tokenizer=sent_tokenizer)
@@ -209,18 +205,18 @@ class Text:
     def from_cg3(cls: 'Type[Text]', input_str: str, disambiguate=False,
                  **kwargs) -> 'Text':
         """Initialize Text object from CG3 stream."""
-        Toks = cls.parse_cg3(input_str)
-        return cls(Toks, disambiguate=disambiguate, **kwargs)
+        toks = cls.parse_cg3(input_str)
+        return cls(toks, disambiguate=disambiguate, **kwargs)
 
     @classmethod
     def from_hfst(cls: 'Type[Text]', input_str: str, disambiguate=False,
                   **kwargs) -> 'Text':
         """Initialize Text object from HFST stream."""
-        Toks = cls.parse_hfst(input_str)
-        return cls(Toks, disambiguate=disambiguate, **kwargs)
+        toks = cls.parse_hfst(input_str)
+        return cls(toks, disambiguate=disambiguate, **kwargs)
 
     def __format__(self, format_spec: str):
-        tok_count = len(self.toks)
+        tok_count = len(self)
         tok_count_str = f', {tok_count} tokens'
         if not format_spec:
             return f'Text({self.orig!r}{tok_count_str})'
@@ -235,12 +231,9 @@ class Text:
     def hfst_str(self) -> str:
         """Text HFST-/XFST-style stream."""
         try:
-            return '\n\n'.join(t.hfst_str() for t in self.Toks) + '\n\n'
+            return '\n\n'.join(t.hfst_str() for t in self) + '\n\n'
         except TypeError:
-            try:
-                return f'(Text (not analyzed) {self.toks[:10]})'
-            except TypeError:
-                return f'(Text (not tokenized) {self.orig[:30]})'
+            return f'(Text (not tokenized) {self.orig[:30]})'
 
     def cg3_str(self, traces=False, annotated=False) -> str:
         """Text CG3-style stream."""
@@ -248,34 +241,30 @@ class Text:
             ann = f'TEXT: {self.annotation}\n'
         else:
             ann = ''
-        return f"{ann}{NEWLINE.join(t.cg3_str(traces=traces, annotated=annotated) for t in self.Toks)}\n\n"  # noqa: E501
+        return f"{ann}{NEWLINE.join(t.cg3_str(traces=traces, annotated=annotated) for t in self)}\n\n"  # noqa: E501
 
     def __lt__(self, other):
-        return self.Toks < other.Toks
+        return self.toks < other.toks
 
     def __eq__(self, other):
-        return self.Toks == other.Toks
+        return self.toks == other.toks
 
     def __hash__(self):
-        return hash(self.Toks)
+        return hash(self.toks)
 
     def __len__(self):
-        return len(self.Toks)
+        return len(self.toks)
 
-    def __getitem__(self, i: int) -> Union[Token, str]:
-        # TODO return only Token or str, not either
+    def __getitem__(self, i) -> Token:
         try:
-            return self.Toks[i]
-        except TypeError:
-            try:
-                return self.toks[i]
-            except TypeError as e:
-                raise TypeError('Text not yet tokenized. Try Text.tokenize() '
-                                'or Text.analyze() first.') from e
+            return self.toks[i]
+        except TypeError as e:
+            raise TypeError('Text not yet tokenized. Try Text.tokenize() '
+                            'or Text.analyze() first.') from e
 
     def __iter__(self):
         try:
-            return (t for t in self.Toks)
+            return iter(self.toks)
         except TypeError as e:
             raise TypeError('Text object only iterable after morphological '
                             'analysis. Try Text.analyze() first.') from e
@@ -284,7 +273,7 @@ class Text:
         """Tokenize Text using `tokenizer`."""
         if tokenizer is None:
             tokenizer = get_tokenizer()
-        self.toks = tokenizer(self.orig)
+        self._toks = tokenizer(self.orig)
         self._tokenized = True
 
     def sent_tokenize(self, sent_tokenizer=None) -> None:
@@ -293,7 +282,7 @@ class Text:
         """
         if sent_tokenizer is None:
             sent_tokenizer = get_sent_tokenizer()
-        sents = sent_tokenizer.sentences_from_tokens(self.toks)
+        sents = sent_tokenizer.sentences_from_tokens(self._toks)
         self.sent_tok_indices = []
         i = 0
         for s in sents:
@@ -301,7 +290,8 @@ class Text:
             self.sent_tok_indices.append((i, i + length - 1))
             i += length
 
-    def get_sents(self, strings=False) -> Iterator[Union[List[Token], List[str]]]:  # noqa: E501
+    def get_sents(self, strings=False) -> Iterator[Union[List[str],
+                                                         List[Token]]]:
         """Yield a sequence of sentences, where each sentence is a list of
         Tokens.
 
@@ -309,22 +299,23 @@ class Text:
         """
         if strings:
             for start, end in self.sent_tok_indices:
-                yield self.toks[start:end + 1]
+                yield [tok.orig for tok in self.toks[start:end + 1]]
         else:
             for start, end in self.sent_tok_indices:
-                yield self.Toks[start:end + 1]
+                yield self.toks[start:end + 1]
 
     def analyze(self, analyzer=None, experiment=None) -> None:
-        """Analyze Text's self.toks."""
+        """Analyze Text's self._toks."""
         if analyzer is None:
             analyzer = get_fst('analyzer')
         if experiment is None:
             experiment = self.experiment
         if experiment:
-            self.Toks = [analyzer.lookup(destress(t)) for t in self.toks]
+            self.toks = [analyzer.lookup(destress(t)) for t in self._toks]
         else:
-            self.Toks = [analyzer.lookup(t) for t in self.toks]
+            self.toks = [analyzer.lookup(t) for t in self._toks]
         self._analyzed = True
+        self._toks = []
 
     def disambiguate(self, gram_path=None, traces=True) -> None:
         """Remove Text's readings using CG3 grammar at gram_path."""
@@ -346,15 +337,15 @@ class Text:
             raise FileNotFoundError('vislcg3 must be installed and be in your '
                                     'PATH variable to disambiguate a text.') from e  # noqa: E501
         output, error = p.communicate(input=self.cg3_str())
-        new_Toks = self.parse_cg3(output)
-        if len(self.Toks) != len(new_Toks):
+        new_toks = self.parse_cg3(output)
+        if len(self) != len(new_toks):
             triangle = '\u25B6'
             raise AssertionError('parse_cg3: output len does not match! '
-                                 f'{len(self.Toks)} --> {len(new_Toks)}\n' +
+                                 f'{len(self)} --> {len(new_toks)}\n' +
                                  '\n\n'.join(f'{old} {triangle} {new}'
                                              for old, new
-                                             in zip(self.Toks, new_Toks)))
-        for old, new in zip(self.Toks, new_Toks):
+                                             in zip(self, new_toks)))
+        for old, new in zip(self, new_toks):
             old.readings = new.readings
             old.removed_readings += new.removed_readings
             old.lemmas = new.lemmas
@@ -470,15 +461,15 @@ class Text:
                                 selection=selection, guess=guess,
                                 experiment=experiment,
                                 lemma=lemmas.get(t.orig, None))
-                    for t in self.Toks]
+                    for t in self]
         return self.respace(out_text)
 
     def stress_eval(self, stress_params: StressParams) -> Counter:
         """Text: get dictionary of evaluation metrics of stress predictions."""
         V = 'аэоуыяеёюи'
         counts = Counter(t.stress_predictions[stress_params][1]
-                         for t in self.Toks)
-        counts['N_ambig'] = len([1 for t in self.Toks
+                         for t in self)
+        counts['N_ambig'] = len([1 for t in self
                                  if (t.stress_ambig > 1
                                      and (len(re.findall(f'[{V}]', t.orig))
                                           > 1))])
@@ -509,12 +500,12 @@ class Text:
             path = path / Path(f'{prefix}_{self.text_name}.tsv')
         else:
             path = path / Path(f'{prefix}{filename}')
-        SPs = sorted(self.Toks[0].stress_predictions.keys())
+        SPs = sorted(self[0].stress_predictions.keys())
         readable_SPs = [sp.readable_name() for sp in SPs]
         with path.open('w') as f:
             print('orig', *readable_SPs, 'perfect', 'all_bad', 'ambig',
                   'CG_fixed_it', 'reads', sep='\t', file=f)
-            for t in self.Toks:
+            for t in self:
                 # '  '.join([result_names[t.stress_predictions[sp][1]],
                 preds = [f'{t.stress_predictions[sp][0]} {result_names[t.stress_predictions[sp][1]]}'  # noqa: E501
                          for sp in SPs]
@@ -549,7 +540,7 @@ class Text:
             raise NotImplementedError('The context keyword argument is not '
                                       'implemented yet.')
         out_text = []
-        for t in self.Toks:
+        for t in self:
             out_text.append(t.phoneticize(disambiguated=self._disambiguated,
                                           selection=selection, guess=guess,
                                           experiment=experiment))

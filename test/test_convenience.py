@@ -68,7 +68,7 @@ def test_noun_distractors_empty():
 
 
 def test_noun_distractors_reading():
-    r = Text('слово').Toks[0].readings[0]
+    r = Text('слово')[0].readings[0]
     distractors = convenience.noun_distractors(r)
     assert distractors == {'сло́ва', 'сло́ве', 'сло́вом', 'сло́во', 'сло́ву'}
 

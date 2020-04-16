@@ -26,7 +26,7 @@ def print_output(text: Text, args: argparse.Namespace) -> None:
     elif args.output_type == 'P':
         print(text.stressify(selection=args.stress, guess=args.guess))
     elif args.output_type == 'T':
-        print('\n'.join(text.toks))
+        print('\n'.join(tok.orig for tok in text))
     else:
         raise NotImplementedError
 

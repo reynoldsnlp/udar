@@ -308,39 +308,39 @@ def _filter_str(text: Text, lower=False, rmv_punc=False, rmv_whitespace=False,
     return orig
 
 
-@add_to_ALL('_filter_toks', category='_prior')
-def _filter_toks(text: Text, lower=False, rmv_punc=False) -> List[str]:
+@add_to_ALL('_filter_surface_strs', category='_prior')
+def _filter_surface_strs(text: Text, lower=False, rmv_punc=False) -> List[str]:
     """Convert surface tokens to lower case and/or remove punctuation."""
-    toks = text.toks
+    surface_toks = [tok.orig for tok in text]
     if rmv_punc:
-        toks = [t for t in toks if not re.match(punc_re, t)]
+        surface_toks = [t for t in surface_toks if not re.match(punc_re, t)]
     if lower:
-        toks = [t.lower() for t in toks]
-    return toks
+        surface_toks = [t.lower() for t in surface_toks]
+    return surface_toks
 
 
-@add_to_ALL('_filter_Toks', category='_prior')
-def _filter_Toks(text: Text,
+@add_to_ALL('_filter_toks', category='_prior')
+def _filter_toks(text: Text,
                  has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',
                  rmv_punc=False) -> List[Token]:
     """Filter Token objects according to whether each Token contains a given
     Tag or whether the original surface form is punctuation.
     """
-    Toks = text.Toks
+    toks = text.toks[:]
     if has_tag:
         if isinstance(has_tag, str) or isinstance(has_tag, Tag):
-            Toks = [t for t in Toks
+            toks = [t for t in toks
                     if t.has_tag_in_most_likely_reading(has_tag)]
         elif isinstance(has_tag, tuple):
-            Toks = [t for t in Toks
+            toks = [t for t in toks
                     if any(t.has_tag_in_most_likely_reading(tag)
                            for tag in has_tag)]
         else:
             raise NotImplementedError('has_tag argument must be a str or Tag, '
                                       'or a tuple of strs or Tags.')
     if rmv_punc:
-        Toks = [t for t in Toks if not re.match(punc_re, t.orig)]
-    return Toks
+        toks = [t for t in toks if not re.match(punc_re, t.orig)]
+    return toks
 
 
 @add_to_ALL('num_chars', category='Absolute length')
@@ -364,14 +364,14 @@ def num_tokens(text: Text, lower=False, rmv_punc=False) -> int:
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('num_tokens', 'lower')
-    toks = ALL['_filter_toks'](text, lower=lower, rmv_punc=rmv_punc)
+    toks = ALL['_filter_surface_strs'](text, lower=lower, rmv_punc=rmv_punc)
     return len(toks)
 
 
 def num_tokens_Tag(has_tag: str, text: Text, rmv_punc=False) -> int:
     """Count number of tokens with a given tag."""
-    Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
-    return len(Toks)
+    toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    return len(toks)
 for tag in tag_dict:  # noqa: E305
     name = f'num_tokens_{safe_name(tag)}'
     this_partial = partial(num_tokens_Tag, tag)
@@ -384,8 +384,8 @@ for tag in tag_dict:  # noqa: E305
 def num_tokens_ms_feat(ms_feat: str, text: Text, rmv_punc=False) -> int:
     """Count number of tokens with a given tag category."""
     has_tag = tags_by_ms_feat[ms_feat]
-    Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
-    return len(Toks)
+    toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    return len(toks)
 for ms_feat in ms_feats - {'POS'}:  # noqa: E305
     name = f'num_tokens_ms_feat_{safe_ms_feat_name(ms_feat)}'
     this_partial = partial(num_tokens_ms_feat, ms_feat)
@@ -400,16 +400,16 @@ def num_types_ms_feat(ms_feat: str, text: Text, rmv_punc=False) -> int:
     feature.
     """
     has_tag = tags_by_ms_feat[ms_feat]
-    Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
     counter = 0
-    for Tok in Toks:
+    for tok in toks:
         try:
-            for tag in Tok.get_most_likely_reading().tagset:
+            for tag in tok.get_most_likely_reading().tagset:
                 if tag.ms_feat == ms_feat:
                     counter += 1
                     break
         except AttributeError:
-            for r in Tok.get_most_likely_reading().readings:
+            for r in tok.get_most_likely_reading().readings:
                 for tag in r.tagset:
                     if tag.ms_feat == ms_feat:
                         counter += 1
@@ -427,9 +427,9 @@ for ms_feat in ms_feats - {'POS'}:  # noqa: E305
 @add_to_ALL('num_abstract_nouns', category='Morphology')
 def num_abstract_nouns(text: Text, rmv_punc=True) -> int:
     """Count the number of abstract tokens on the basis of endings."""
-    Toks = ALL['_filter_Toks'](text, has_tag='N', rmv_punc=rmv_punc)
+    toks = ALL['_filter_toks'](text, has_tag='N', rmv_punc=rmv_punc)
     abstract_re = r'(?:ье|ие|ство|ация|ость|изм|изна|ота|ина|ика|ива)[¹²³⁴⁵⁶⁷⁸⁹⁰⁻]*$'  # noqa: E501
-    return len([t for t in Toks if re.search(abstract_re,
+    return len([t for t in toks if re.search(abstract_re,
                                              t.get_most_likely_lemma())])
 
 
@@ -451,7 +451,7 @@ def num_tokens_over_n_sylls(n, text: Text, lower=False, rmv_punc=True) -> int:
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('num_tokens_over_n_sylls', 'lower')
-    toks = ALL['_filter_toks'](text, lower=lower, rmv_punc=rmv_punc)
+    toks = ALL['_filter_surface_strs'](text, lower=lower, rmv_punc=rmv_punc)
     return len([t for t in toks if len(re.findall(vowel_re, t, re.I)) > n])
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'num_tokens_over_{n}_sylls'
@@ -467,7 +467,7 @@ def num_tokens_over_n_chars(n, text: Text, lower=False, rmv_punc=True) -> int:
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('num_tokens_over_n_chars', 'lower')
-    toks = ALL['_filter_toks'](text, lower=lower, rmv_punc=rmv_punc)
+    toks = ALL['_filter_surface_strs'](text, lower=lower, rmv_punc=rmv_punc)
     return len([t for t in toks if len(t) > n])
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'num_tokens_over_{n}_chars'
@@ -485,9 +485,9 @@ def num_content_tokens_over_n_sylls(n, text: Text, lower=False,
     if lower:
         warn_about_irrelevant_argument('num_content_tokens_over_n_sylls',
                                        'lower')
-    Toks = ALL['_filter_Toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
+    toks = ALL['_filter_toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
                                rmv_punc=rmv_punc)
-    return len([t for t in Toks
+    return len([t for t in toks
                 if len(re.findall(vowel_re, t.orig, re.I)) > n])
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'num_content_tokens_over_{n}_sylls'
@@ -505,9 +505,9 @@ def num_content_tokens_over_n_chars(n, text: Text, lower=False,
     if lower:
         warn_about_irrelevant_argument('num_content_tokens_over_n_chars',
                                        'lower')
-    Toks = ALL['_filter_Toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
+    toks = ALL['_filter_toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
                                rmv_punc=rmv_punc)
-    return len([t for t in Toks if len(t.orig) > n])
+    return len([t for t in toks if len(t.orig) > n])
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'num_content_tokens_over_{n}_chars'
     this_partial = partial(num_content_tokens_over_n_chars, n)
@@ -520,7 +520,7 @@ for n in range(1, MAX_SYLL):  # noqa: E305
 @add_to_ALL('num_types', category='Absolute length')
 def num_types(text: Text, lower=True, rmv_punc=False) -> int:
     """Count number of unique tokens ("types") in a Text."""
-    toks = ALL['_filter_toks'](text, lower=lower, rmv_punc=rmv_punc)
+    toks = ALL['_filter_surface_strs'](text, lower=lower, rmv_punc=rmv_punc)
     return len(set(toks))
 
 
@@ -528,20 +528,20 @@ def num_types(text: Text, lower=True, rmv_punc=False) -> int:
 def num_lemma_types(text: Text, has_tag='', lower=False,
                     rmv_punc=False) -> int:
     """Count number of unique lemmas in a Text."""
-    Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
     if lower:
-        return len(set([t.get_most_likely_lemma().lower() for t in Toks]))
+        return len(set([t.get_most_likely_lemma().lower() for t in toks]))
     else:
-        return len(set([t.get_most_likely_lemma() for t in Toks]))
+        return len(set([t.get_most_likely_lemma() for t in toks]))
 
 
 def num_types_Tag(tag: str, text: Text, lower=True, rmv_punc=False) -> int:
     """Count number of unique tokens with a given tag in a Text."""
-    Toks = ALL['_filter_Toks'](text, has_tag=tag, rmv_punc=rmv_punc)
+    toks = ALL['_filter_toks'](text, has_tag=tag, rmv_punc=rmv_punc)
     if lower:
-        return len(set([t.orig.lower() for t in Toks]))
+        return len(set([t.orig.lower() for t in toks]))
     else:
-        return len(set([t.orig for t in Toks]))
+        return len(set([t.orig for t in toks]))
 for tag in tag_dict:  # noqa: E305
     name = f'num_types_{safe_name(tag)}'
     this_partial = partial(num_types_Tag, tag)
@@ -781,10 +781,10 @@ def nominal_verb_type_token_ratio(text: Text, lower=False, rmv_punc=False,
 @add_to_ALL('nominal_verb_ratio', category='Lexical variation')
 def nominal_verb_ratio(text: Text, rmv_punc=False, zero_div_val=NaN) -> float:
     """Compute ratio of nominal tokens to verbal tokens."""
-    AN_Toks = ALL['_filter_Toks'](text, has_tag=('A', 'N'), rmv_punc=rmv_punc)
-    V_Toks = ALL['_filter_Toks'](text, has_tag='V', rmv_punc=rmv_punc)
+    AN_toks = ALL['_filter_toks'](text, has_tag=('A', 'N'), rmv_punc=rmv_punc)
+    V_toks = ALL['_filter_toks'](text, has_tag='V', rmv_punc=rmv_punc)
     try:
-        return len(AN_Toks) / len(V_Toks)
+        return len(AN_toks) / len(V_toks)
     except ZeroDivisionError:
         return zero_div_val
 
@@ -823,14 +823,14 @@ def chars_per_word(text: Text, has_tag='', rmv_punc=True, uniq=False,
                    zero_div_val=NaN) -> float:
     """Calculate the average number of characters per word."""
     if has_tag:
-        Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+        toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
     else:
-        Toks = text.Toks
+        toks = text.toks[:]
     try:
         if not uniq:
-            return mean(len(tok.orig) for tok in Toks)
+            return mean(len(tok.orig) for tok in toks)
         else:
-            return mean(len(orig) for orig in set(tok.orig for tok in Toks))
+            return mean(len(orig) for orig in set(tok.orig for tok in toks))
     except StatisticsError:
         return zero_div_val
 
@@ -840,11 +840,11 @@ def max_chars_per_word(text: Text, has_tag='', rmv_punc=True,
                        zero_div_val=NaN) -> float:
     """Calculate the maximum number of characters per word."""
     if has_tag:
-        Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+        toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
     else:
-        Toks = text.Toks
+        toks = text.toks[:]
     try:
-        return max(len(tok.orig) for tok in Toks)
+        return max(len(tok.orig) for tok in toks)
     except ValueError:
         return zero_div_val
 
@@ -874,13 +874,13 @@ def sylls_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
     if lower:
         warn_about_irrelevant_argument('sylls_per_word', 'lower')
     if has_tag:
-        Toks = ALL['_filter_Toks'](text, has_tag=has_tag,
+        toks = ALL['_filter_toks'](text, has_tag=has_tag,
                                    rmv_punc=rmv_punc)
     else:
-        Toks = text.Toks
+        toks = text.toks[:]
     try:
         return mean(len(re.findall(vowel_re, tok.orig, flags=re.I))
-                    for tok in Toks)
+                    for tok in toks)
     except StatisticsError:
         return zero_div_val
 
@@ -893,13 +893,13 @@ def max_sylls_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
     if lower:
         warn_about_irrelevant_argument('sylls_per_word', 'lower')
     if has_tag:
-        Toks = ALL['_filter_Toks'](text, has_tag=has_tag,
+        toks = ALL['_filter_toks'](text, has_tag=has_tag,
                                    rmv_punc=rmv_punc)
     else:
-        Toks = text.Toks
+        toks = text.toks[:]
     try:
         return max(len(re.findall(vowel_re, tok.orig, flags=re.I))
-                   for tok in Toks)
+                   for tok in toks)
     except (StatisticsError, ValueError):
         return zero_div_val
 
@@ -911,11 +911,11 @@ def max_sylls_per_content_word(text: Text, lower=False, rmv_punc=True,
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('sylls_per_word', 'lower')
-    Toks = ALL['_filter_Toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
+    toks = ALL['_filter_toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
                                rmv_punc=rmv_punc)
     try:
         return max(len(re.findall(vowel_re, tok.orig, flags=re.I))
-                   for tok in Toks)
+                   for tok in toks)
     except (StatisticsError, ValueError):
         return zero_div_val
 
@@ -924,11 +924,11 @@ def max_sylls_per_content_word(text: Text, lower=False, rmv_punc=True,
 def sylls_per_content_word(text: Text, rmv_punc=True,
                            zero_div_val=NaN) -> float:
     """Calculate the average number of syllables per content word."""
-    Toks = ALL['_filter_Toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
+    toks = ALL['_filter_toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
                                rmv_punc=rmv_punc)
     try:
         return mean(len(re.findall(vowel_re, tok.orig, flags=re.I))
-                    for tok in Toks)
+                    for tok in toks)
     except StatisticsError:
         return zero_div_val
 
@@ -1104,13 +1104,13 @@ def morphs_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
     if lower:
         warn_about_irrelevant_argument('morphs_per_word', 'lower')
     if has_tag:
-        Toks = ALL['_filter_Toks'](text, has_tag=has_tag,
+        toks = ALL['_filter_toks'](text, has_tag=has_tag,
                                    rmv_punc=rmv_punc)
     else:
-        Toks = text.Toks
+        toks = text.toks[:]
     try:
         return mean(tix_morph_count_dict[tok.get_most_likely_lemma()]  # type: ignore  # noqa: E501
-                    for tok in Toks
+                    for tok in toks
                     if tok.get_most_likely_lemma() in tix_morph_count_dict)  # type: ignore  # noqa: E501
     except StatisticsError:
         return zero_div_val
@@ -1124,13 +1124,13 @@ def max_morphs_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
     if lower:
         warn_about_irrelevant_argument('max_morphs_per_word', 'lower')
     if has_tag:
-        Toks = ALL['_filter_Toks'](text, has_tag=has_tag,
+        toks = ALL['_filter_toks'](text, has_tag=has_tag,
                                    rmv_punc=rmv_punc)
     else:
-        Toks = text.Toks
+        toks = text.toks[:]
     try:
         return max(tix_morph_count_dict[tok.get_most_likely_lemma()]  # type: ignore  # noqa: E501
-                   for tok in Toks
+                   for tok in toks
                    if tok.get_most_likely_lemma() in tix_morph_count_dict)  # type: ignore  # noqa: E501
     except (StatisticsError, ValueError):
         return zero_div_val
@@ -1143,11 +1143,11 @@ def max_morphs_per_content_word(text: Text, lower=False, rmv_punc=True,
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('max_morphs_per_content_word', 'lower')
-    Toks = ALL['_filter_Toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
+    toks = ALL['_filter_toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
                                rmv_punc=rmv_punc)
     try:
         return max(len(re.findall(vowel_re, tok.orig, flags=re.I))
-                   for tok in Toks)
+                   for tok in toks)
     except (StatisticsError, ValueError):
         return zero_div_val
 
@@ -1156,11 +1156,11 @@ def max_morphs_per_content_word(text: Text, lower=False, rmv_punc=True,
 def morphs_per_content_word(text: Text, rmv_punc=True,
                             zero_div_val=NaN) -> float:
     """Calculate the average number of morphemes per content word."""
-    Toks = ALL['_filter_Toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
+    toks = ALL['_filter_toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
                                rmv_punc=rmv_punc)
     try:
         return mean(len(re.findall(vowel_re, tok.orig, flags=re.I))
-                    for tok in Toks)
+                    for tok in toks)
     except StatisticsError:
         return zero_div_val
 
@@ -1214,7 +1214,7 @@ def num_words_at_lexmin_level(level, text: Text) -> int:
     """Count number of words in a Text at LEVEL in the
     "lexical minimum" (лексический минимум) of the TORFL (ТРКИ) test.
     """
-    return len([1 for tok in text.Toks
+    return len([1 for tok in text
                 if lexmin_dict.get(tok.get_most_likely_lemma()) == level])  # type: ignore  # noqa: E501
 for level in ['A1', 'A2', 'B1', 'B2']:  # noqa: E305
     name = f'num_words_at_lexmin_{level}'
@@ -1255,7 +1255,7 @@ def num_words_at_kelly_level(level, text: Text) -> int:
     """Count number of words in a Text at LEVEL in the
     Kelly Project (Kilgarriff et al., 2014).
     """
-    return len([1 for tok in text.Toks
+    return len([1 for tok in text
                 if kelly_dict.get(tok.get_most_likely_lemma()) == level])  # type: ignore  # noqa: E501
 for level in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']:  # noqa: E305
     name = f'num_words_at_kelly_{level}'
@@ -1297,9 +1297,9 @@ def _lemma_frequencies(text: Text,
                        has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',
                        rmv_punc=True) -> List[float]:
     """Make list of lemma frequencies."""
-    Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
     return [Sharoff_lem_freq_dict.get(t.get_most_likely_lemma(), 0)  # type: ignore  # noqa: E501
-            for t in Toks]
+            for t in toks]
 
 
 @add_to_ALL('_lemma_frequency_ranks', category='_prior')
@@ -1307,9 +1307,9 @@ def _lemma_frequency_ranks(text: Text,
                           has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',  # noqa: E501
                           rmv_punc=True) -> List[float]:
     """Make list of lemma frequency ranks."""
-    Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
     return [Sharoff_lem_freq_rank_dict.get(t.get_most_likely_lemma(), 0)  # type: ignore  # noqa: E501
-            for t in Toks]
+            for t in toks]
 
 
 @add_to_ALL('mean_lemma_frequency', category='Lexical familiarity')
@@ -1422,8 +1422,8 @@ def _token_frequencies(text: Text,
                        has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',
                        rmv_punc=True) -> List[float]:
     """Make list of token frequencies."""
-    Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
-    return [RNC_tok_freq_dict.get(Tok.orig, 0) for Tok in Toks]  # type: ignore
+    toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    return [RNC_tok_freq_dict.get(tok.orig, 0) for tok in toks]  # type: ignore
 
 
 @add_to_ALL('_token_frequency_ranks', category='_prior')
@@ -1431,8 +1431,8 @@ def _token_frequency_ranks(text: Text,
                            has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',  # noqa: E501
                            rmv_punc=True) -> List[int]:
     """Make list of token frequency ranks."""
-    Toks = ALL['_filter_Toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
-    return [RNC_tok_freq_rank_dict.get(Tok.orig, 0) for Tok in Toks]  # type: ignore  # noqa: E501
+    toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    return [RNC_tok_freq_rank_dict.get(tok.orig, 0) for tok in toks]  # type: ignore  # noqa: E501
 
 
 @add_to_ALL('mean_token_frequency', category='Lexical familiarity')
@@ -1583,10 +1583,10 @@ def num_propositions(text: Text, rmv_punc=False) -> int:
     """Count number of propositions, as estimated by part-of-speech
     (a la Brown et al. 2007; 2008).
     """
-    prop_Toks = ALL['_filter_Toks'](text, has_tag=('A', 'Adv', 'CC', 'CS',
+    prop_toks = ALL['_filter_toks'](text, has_tag=('A', 'Adv', 'CC', 'CS',
                                                    'Pr', 'Det', 'V'),
                                     rmv_punc=rmv_punc)
-    return len(prop_Toks)
+    return len(prop_toks)
 
 
 @add_to_ALL('propositions_per_token', category='Discourse')

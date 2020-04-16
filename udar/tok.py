@@ -119,7 +119,7 @@ class Token:
         return self.readings[i]
 
     def __iter__(self):
-        return (r for r in self.readings)
+        return iter(self.readings)
 
     def get_most_likely_reading(self):
         """If one reading is marked as most likely, return it. Otherwise,
