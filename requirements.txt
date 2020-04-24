@@ -3,3 +3,4 @@ hfst
 nltk
 pandas
 pexpect
+stanza
