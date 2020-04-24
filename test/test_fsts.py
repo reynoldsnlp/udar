@@ -17,7 +17,7 @@ def test_HFSTTokenizer():
 def test_parse_tags_with_plus():
     tr = udar.get_fst('analyzer')
     tok = tr.lookup('+')
-    assert tok.orig == '+' and 'PUNCT' in tok
+    assert tok.text == '+' and 'PUNCT' in tok
 
 
 def test_accented_generator():

@@ -11,7 +11,7 @@ def test_empty_tok_contains():
 
 def test_tok_repr():
     t = anl.lookup('слово')
-    assert repr(t) == 'Token(orig=слово, readings=[Reading(слово+N+Neu+Inan+Sg+Acc, 5.975586, ), Reading(слово+N+Neu+Inan+Sg+Nom, 5.975586, )], removed_readings=[])'  # noqa: E501
+    assert repr(t) == 'Token(text=слово, readings=[Reading(слово+N+Neu+Inan+Sg+Acc, 5.975586, ), Reading(слово+N+Neu+Inan+Sg+Nom, 5.975586, )], removed_readings=[])'  # noqa: E501
 
 
 def test_tok_str():

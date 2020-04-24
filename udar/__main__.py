@@ -1,32 +1,32 @@
 import argparse
 import sys
 
-from .text import Text
+from .document import Document
 
 
-def parse_input(input_str: str, args: argparse.Namespace) -> Text:
+def parse_input(input_str: str, args: argparse.Namespace) -> Document:
     """Parse input string according to `args.input_type`."""
     if args.input_type == 'c':
-        return Text.from_cg3(input_str)
+        return Document.from_cg3(input_str)
     elif args.input_type == 'f':
         raise NotImplementedError  # TODO
-        return Text.from_hfst(input_str)
+        return Document.from_hfst(input_str)
     elif args.input_type == 'p':
-        return Text(input_str, disambiguate=args.disambiguate)
+        return Document(input_str, disambiguate=args.disambiguate)
     else:
         raise NotImplementedError
 
 
-def print_output(text: Text, args: argparse.Namespace) -> None:
+def print_output(doc: Document, args: argparse.Namespace) -> None:
     """Print output to stdout according to `args.output_type`."""
     if args.output_type == 'C':
-        print(text.cg3_str())
+        print(doc.cg3_str())
     elif args.output_type == 'F':
-        print(text)
+        print(doc)
     elif args.output_type == 'P':
-        print(text.stressify(selection=args.stress, guess=args.guess))
+        print(doc.stressify(selection=args.stress, guess=args.guess))
     elif args.output_type == 'T':
-        print('\n'.join(tok.orig for tok in text))
+        print('\n'.join(tok.text for tok in doc))
     else:
         raise NotImplementedError
 
@@ -90,5 +90,5 @@ if __name__ == '__main__':
     for file in files:
         input_string = file.read()
         file.close()
-        text = parse_input(input_string, args)
-        print_output(text, args)
+        doc = parse_input(input_string, args)
+        print_output(doc, args)

@@ -3,7 +3,7 @@ from pkg_resources import resource_filename
 import pytest
 
 from udar import convenience
-from udar import Text
+from udar import Document
 
 
 RSRC_PATH = resource_filename('udar', 'resources/')
@@ -68,7 +68,7 @@ def test_noun_distractors_empty():
 
 
 def test_noun_distractors_reading():
-    r = Text('слово')[0].readings[0]
+    r = Document('слово')[0].readings[0]
     distractors = convenience.noun_distractors(r)
     assert distractors == {'сло́ва', 'сло́ве', 'сло́вом', 'сло́во', 'сло́ву'}
 
@@ -79,24 +79,24 @@ def test_noun_distractors_NotImplementedError():
 
 
 def test_readability():
-    t1 = Text('Афанасий сотрудничает со смешными корреспондентами.')
-    assert all(len(tok.readings) == 1 for tok in t1), t1.hfst_str()
-    r1 = convenience.readability_measures(t1)[1]  # noqa: E501
+    d1 = Document('Афанасий сотрудничает со смешными корреспондентами.')
+    assert all(len(tok.readings) == 1 for tok in d1), d1.hfst_str()
+    r1 = convenience.readability_measures(d1)[1]  # noqa: E501
     assert len(r1) == 6, r1
     assert r1.matskovskij == 3.2248
-    assert r1.oborneva == 13.510000000000002
-    assert r1.solnyshkina_M3 == 10.160000000000002
-    assert r1.solnyshkina_Q == 2.401
-    assert r1.Flesch_Kincaid_rus == 55.53
-    assert r1.Flesch_Kincaid_Grade_rus == 8.976666666666663
+    assert r1.oborneva == 18.830000000000002
+    assert r1.solnyshkina_M3 == 13.314
+    assert r1.solnyshkina_Q == 3.594199999999999
+    assert r1.Flesch_Kincaid_rus == 23.80000000000001
+    assert r1.Flesch_Kincaid_Grade_rus == 13.599999999999998
 
-    t2 = Text('Она идет со смешными людьми.')
-    assert all(len(tok.readings) == 1 for tok in t2), t2.hfst_str()
-    r2 = convenience.readability_measures(t2)[1]
+    d2 = Document('Она идет со смешными людьми.')
+    assert all(len(tok.readings) == 1 for tok in d2), d2.hfst_str()
+    r2 = convenience.readability_measures(d2)[1]
     assert len(r2) == 6, r2
     assert r2.matskovskij == 3.1510000000000002
-    assert r2.oborneva == 0.9100000000000001
-    assert r2.solnyshkina_M3 == 1.8000000000000014
-    assert r2.solnyshkina_Q == 0.17633333333333331
-    assert r2.Flesch_Kincaid_rus == 130.68
-    assert r2.Flesch_Kincaid_Grade_rus == -1.9733333333333327
+    assert r2.oborneva == 3.710000000000001
+    assert r2.solnyshkina_M3 == 3.4600000000000017
+    assert r2.solnyshkina_Q == 0.6749999999999998
+    assert r2.Flesch_Kincaid_rus == 113.98
+    assert r2.Flesch_Kincaid_Grade_rus == 0.46000000000000085

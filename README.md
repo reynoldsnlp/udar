@@ -27,13 +27,13 @@ $ python3 -m pip install --user git+https://github.com/reynoldsnlp/udar
 
 ## Introduction
 
-The most common use-case is to use the `Text` constructor to automatically
-tokenize and analyze a text. If you `print()` a `Text` object, the result is
-an `xfst`/`hfst` stream:
+The most common use-case is to use the `Document` constructor to automatically
+tokenize and analyze a text. If you `print()` a `Document` object, the result
+is an `xfst`/`hfst` stream:
 
 ```python
 import udar
-text1 = udar.Text('Мы удивились простоте системы.')
+text1 = udar.Document('Мы удивились простоте системы.')
 print(text1)
 # Мы	мы+Pron+Pers+Pl1+Nom	0.000000
 # 
@@ -49,9 +49,9 @@ print(text1)
 # .	.+CLB	0.000000
 ```
 
-### `Text` methods
+### `Document` methods
 
-`Text` objects have convenient methods for adding stress or converting to
+`Document` objects have convenient methods for adding stress or converting to
 phonetic transcription.
 
 ```python
@@ -171,7 +171,7 @@ Grammatical analyses are parsed into the following objects:
     * Lemma (`str`) and a set of `Tag`s
 * Token
     * Surface form (`str`) and a list of `Reading`s
-* Text
+* Document
     * List of `Token`s
 
 ### Related projects

@@ -20,11 +20,11 @@ from typing import Mapping
 from typing import Optional
 from typing import Tuple
 from typing import Union
-import warnings
+from warnings import warn
 
+from .document import Document
 from .tag import Tag
 from .tag import tag_dict
-from .text import Text
 from .tok import Token
 
 RSRC_PATH = resource_filename('udar', 'resources/')
@@ -84,10 +84,10 @@ def safe_ms_feat_name(cat: str) -> str:
 
 
 def warn_about_irrelevant_argument(func_name, arg_name):
-    warnings.warn(f'In {func_name}(), the `{arg_name}` keyword argument is '
-                  'irrelevant (but included for hierarchical consistency). '
-                  'This warning was raised because the non-default value was '
-                  'used.')
+    warn(f'In {func_name}(), the `{arg_name}` keyword argument is '
+         'irrelevant (but included for hierarchical consistency). '
+         'This warning was raised because the non-default value was '
+         'used.', stacklevel=2)
 
 
 class Feature:
@@ -142,20 +142,21 @@ class Feature:
             auto_kwargs.update(default_kwargs)
             self.default_kwargs = auto_kwargs
 
-    def __call__(self, text: Text, **kwargs):
+    def __call__(self, doc: Document, **kwargs):
         """Call the feature extraction function.
 
-        Generally it is assumed that the function takes only Text as argument,
-        but all arguments and keyword arguments are passed to the function.
+        Generally it is assumed that the function takes only Document as
+        argument, but all arguments and keyword arguments are passed to the
+        function.
         """
         default_kwargs = dict(self.default_kwargs)  # temporary copy
         default_kwargs.update(kwargs)  # override defaults
         param_key = (self.name, tuple(default_kwargs.items()))
         try:
-            return text._feat_cache[param_key]
+            return doc._feat_cache[param_key]
         except KeyError:
-            value = self.func(text, **default_kwargs)
-            text._feat_cache[param_key] = value
+            value = self.func(doc, **default_kwargs)
+            doc._feat_cache[param_key] = value
             return value
 
     def __repr__(self):
@@ -219,7 +220,7 @@ class FeatureSetExtractor(OrderedDict):
         return cls(extractor_name=extractor_name,
                    features={name: self[name] for name in feat_names})
 
-    def __call__(self, texts: Union[List[Text], Text], feat_names=None,
+    def __call__(self, docs: Union[List[Document], Document], feat_names=None,
                  category_names: List[str] = None, header=True,
                  return_named_tuples=True, tsv=False,
                  **kwargs) -> Union[List[Tuple[Any, ...]], str]:
@@ -239,35 +240,35 @@ class FeatureSetExtractor(OrderedDict):
         output = []
         if header:
             output.append(feat_names)
-        if ((hasattr(texts, '__iter__') or hasattr(texts, '__getitem__'))
-                and isinstance(texts[0], Text)):
-            for text in texts:
-                text.features = self._call_features(text,
+        if ((hasattr(docs, '__iter__') or hasattr(docs, '__getitem__'))
+                and isinstance(docs[0], Document)):
+            for doc in docs:
+                doc.features = self._call_features(doc,
                                                     feat_names=feat_names,
                                                     tuple_constructor=tuple_constructor,  # noqa: E501
                                                     **kwargs)
-                output.append(text.features)
-        elif isinstance(texts, Text):
-            texts.features = self._call_features(texts,
+                output.append(doc.features)
+        elif isinstance(docs, Document):
+            docs.features = self._call_features(docs,
                                                  feat_names=feat_names,
                                                  tuple_constructor=tuple_constructor,  # noqa: E501
                                                  **kwargs)
-            output.append(texts.features)
+            output.append(docs.features)
         else:
-            raise TypeError('Expected Text or list of Texts; got '
-                            f'{type(texts)}.')
+            raise TypeError('Expected Document or list of Documents; got '
+                            f'{type(docs)}.')
         if tsv:
             return '\n'.join('\t'.join(row) for row in output)
         else:
             return output
 
-    def _call_features(self, text: Text, feat_names=(),
+    def _call_features(self, doc: Document, feat_names=(),
                        tuple_constructor=tuple, **kwargs):
         row = []
         for name in feat_names:
             feature = self[name]
-            row.append(feature(text, **kwargs))
-        text._feat_cache = {}  # delete cache to save memory
+            row.append(feature(doc, **kwargs))
+        doc._feat_cache = {}  # delete cache to save memory
         try:
             return tuple_constructor(*row)
         except TypeError:
@@ -291,12 +292,12 @@ def add_to_ALL(name, category=None, depends_on=None):
 
 
 @add_to_ALL('_filter_str', category='_prior')
-def _filter_str(text: Text, lower=False, rmv_punc=False, rmv_whitespace=False,
-                uniq=False) -> str:
+def _filter_str(doc: Document, lower=False, rmv_punc=False,
+                rmv_whitespace=False, uniq=False) -> str:
     """Convert string to lower case, remove punctuation, remove whitespace,
     and/or reduce string to unique characters.
     """
-    orig = text.orig
+    orig = doc.text
     if uniq:  # Putting this first improves performance of subsequent filters.
         orig = ''.join(set(orig))
     if rmv_whitespace:
@@ -309,9 +310,10 @@ def _filter_str(text: Text, lower=False, rmv_punc=False, rmv_whitespace=False,
 
 
 @add_to_ALL('_filter_surface_strs', category='_prior')
-def _filter_surface_strs(text: Text, lower=False, rmv_punc=False) -> List[str]:
+def _filter_surface_strs(doc: Document, lower=False,
+                         rmv_punc=False) -> List[str]:
     """Convert surface tokens to lower case and/or remove punctuation."""
-    surface_toks = [tok.orig for tok in text]
+    surface_toks = [tok.text for tok in doc]
     if rmv_punc:
         surface_toks = [t for t in surface_toks if not re.match(punc_re, t)]
     if lower:
@@ -320,13 +322,13 @@ def _filter_surface_strs(text: Text, lower=False, rmv_punc=False) -> List[str]:
 
 
 @add_to_ALL('_filter_toks', category='_prior')
-def _filter_toks(text: Text,
+def _filter_toks(doc: Document,
                  has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',
                  rmv_punc=False) -> List[Token]:
     """Filter Token objects according to whether each Token contains a given
     Tag or whether the original surface form is punctuation.
     """
-    toks = text.toks[:]
+    toks = list(doc)
     if has_tag:
         if isinstance(has_tag, str) or isinstance(has_tag, Tag):
             toks = [t for t in toks
@@ -339,38 +341,38 @@ def _filter_toks(text: Text,
             raise NotImplementedError('has_tag argument must be a str or Tag, '
                                       'or a tuple of strs or Tags.')
     if rmv_punc:
-        toks = [t for t in toks if not re.match(punc_re, t.orig)]
+        toks = [t for t in toks if not re.match(punc_re, t.text)]
     return toks
 
 
 @add_to_ALL('num_chars', category='Absolute length')
-def num_chars(text: Text, lower=False, rmv_punc=False,
+def num_chars(doc: Document, lower=False, rmv_punc=False,
               rmv_whitespace=True, uniq=False) -> int:
-    """Count number of characters in original string of Text."""
-    orig = ALL['_filter_str'](text, lower=lower, rmv_punc=rmv_punc,
+    """Count number of characters in original string of Document."""
+    orig = ALL['_filter_str'](doc, lower=lower, rmv_punc=rmv_punc,
                               rmv_whitespace=rmv_whitespace, uniq=uniq)
     return len(orig)
 
 
 @add_to_ALL('num_sylls', category='Absolute length')
-def num_sylls(text: Text) -> int:
-    """Count number of syllables in a Text."""
-    return len(re.findall(vowel_re, text.orig, flags=re.I))
+def num_sylls(doc: Document) -> int:
+    """Count number of syllables in a Document."""
+    return len(re.findall(vowel_re, doc.text, flags=re.I))
 
 
 @add_to_ALL('num_tokens', category='Absolute length')
-def num_tokens(text: Text, lower=False, rmv_punc=False) -> int:
-    """Count number of tokens in a Text."""
+def num_tokens(doc: Document, lower=False, rmv_punc=False) -> int:
+    """Count number of tokens in a Document."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('num_tokens', 'lower')
-    toks = ALL['_filter_surface_strs'](text, lower=lower, rmv_punc=rmv_punc)
+    toks = ALL['_filter_surface_strs'](doc, lower=lower, rmv_punc=rmv_punc)
     return len(toks)
 
 
-def num_tokens_Tag(has_tag: str, text: Text, rmv_punc=False) -> int:
+def num_tokens_Tag(has_tag: str, doc: Document, rmv_punc=False) -> int:
     """Count number of tokens with a given tag."""
-    toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     return len(toks)
 for tag in tag_dict:  # noqa: E305
     name = f'num_tokens_{safe_name(tag)}'
@@ -381,10 +383,10 @@ for tag in tag_dict:  # noqa: E305
                         category='Absolute length')
 
 
-def num_tokens_ms_feat(ms_feat: str, text: Text, rmv_punc=False) -> int:
+def num_tokens_ms_feat(ms_feat: str, doc: Document, rmv_punc=False) -> int:
     """Count number of tokens with a given tag category."""
     has_tag = tags_by_ms_feat[ms_feat]
-    toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     return len(toks)
 for ms_feat in ms_feats - {'POS'}:  # noqa: E305
     name = f'num_tokens_ms_feat_{safe_ms_feat_name(ms_feat)}'
@@ -395,12 +397,12 @@ for ms_feat in ms_feats - {'POS'}:  # noqa: E305
                         category='Absolute length')
 
 
-def num_types_ms_feat(ms_feat: str, text: Text, rmv_punc=False) -> int:
+def num_types_ms_feat(ms_feat: str, doc: Document, rmv_punc=False) -> int:
     """Count number of attested tag types within the MS_FEAT morphosyntactic
     feature.
     """
     has_tag = tags_by_ms_feat[ms_feat]
-    toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     counter = 0
     for tok in toks:
         try:
@@ -425,16 +427,16 @@ for ms_feat in ms_feats - {'POS'}:  # noqa: E305
 
 
 @add_to_ALL('num_abstract_nouns', category='Morphology')
-def num_abstract_nouns(text: Text, rmv_punc=True) -> int:
+def num_abstract_nouns(doc: Document, rmv_punc=True) -> int:
     """Count the number of abstract tokens on the basis of endings."""
-    toks = ALL['_filter_toks'](text, has_tag='N', rmv_punc=rmv_punc)
+    toks = ALL['_filter_toks'](doc, has_tag='N', rmv_punc=rmv_punc)
     abstract_re = r'(?:ье|ие|ство|ация|ость|изм|изна|ота|ина|ика|ива)[¹²³⁴⁵⁶⁷⁸⁹⁰⁻]*$'  # noqa: E501
     return len([t for t in toks if re.search(abstract_re,
                                              t.get_most_likely_lemma())])
 
 
 @add_to_ALL('num_definitions', category='Discourse')
-def num_definitions(text: Text) -> int:
+def num_definitions(doc: Document) -> int:
     """Count the number of definitions (a la Krioni et al. 2008)."""
     def_re = r'''[а-яё-]+ \s+ (?:есть|-|–|—) \s+ [а-яё-]+ |
                  называ[ею]тся |
@@ -443,15 +445,16 @@ def num_definitions(text: Text) -> int:
                  о(?:бо)?знача[ею]т |
                  определя[ею]т(?:ся)? |
                  счита[ею]т(?:ся)?'''
-    return len(re.findall(def_re, text.orig, flags=re.I | re.X))
+    return len(re.findall(def_re, doc.text, flags=re.I | re.X))
 
 
-def num_tokens_over_n_sylls(n, text: Text, lower=False, rmv_punc=True) -> int:
+def num_tokens_over_n_sylls(n, doc: Document, lower=False,
+                            rmv_punc=True) -> int:
     """Count the number of tokens with more than n syllables."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('num_tokens_over_n_sylls', 'lower')
-    toks = ALL['_filter_surface_strs'](text, lower=lower, rmv_punc=rmv_punc)
+    toks = ALL['_filter_surface_strs'](doc, lower=lower, rmv_punc=rmv_punc)
     return len([t for t in toks if len(re.findall(vowel_re, t, re.I)) > n])
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'num_tokens_over_{n}_sylls'
@@ -462,12 +465,13 @@ for n in range(1, MAX_SYLL):  # noqa: E305
                         category='Absolute length')
 
 
-def num_tokens_over_n_chars(n, text: Text, lower=False, rmv_punc=True) -> int:
+def num_tokens_over_n_chars(n, doc: Document, lower=False,
+                            rmv_punc=True) -> int:
     """Count the number of tokens with more than n characters."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('num_tokens_over_n_chars', 'lower')
-    toks = ALL['_filter_surface_strs'](text, lower=lower, rmv_punc=rmv_punc)
+    toks = ALL['_filter_surface_strs'](doc, lower=lower, rmv_punc=rmv_punc)
     return len([t for t in toks if len(t) > n])
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'num_tokens_over_{n}_chars'
@@ -478,17 +482,17 @@ for n in range(1, MAX_SYLL):  # noqa: E305
                         category='Absolute length')
 
 
-def num_content_tokens_over_n_sylls(n, text: Text, lower=False,
+def num_content_tokens_over_n_sylls(n, doc: Document, lower=False,
                                     rmv_punc=True) -> int:
     """Count the number of content tokens with more than n syllables."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('num_content_tokens_over_n_sylls',
                                        'lower')
-    toks = ALL['_filter_toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
+    toks = ALL['_filter_toks'](doc, has_tag=('A', 'Adv', 'N', 'V'),
                                rmv_punc=rmv_punc)
     return len([t for t in toks
-                if len(re.findall(vowel_re, t.orig, re.I)) > n])
+                if len(re.findall(vowel_re, t.text, re.I)) > n])
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'num_content_tokens_over_{n}_sylls'
     this_partial = partial(num_content_tokens_over_n_sylls, n)
@@ -498,16 +502,16 @@ for n in range(1, MAX_SYLL):  # noqa: E305
                         category='Absolute length')
 
 
-def num_content_tokens_over_n_chars(n, text: Text, lower=False,
+def num_content_tokens_over_n_chars(n, doc: Document, lower=False,
                                     rmv_punc=True) -> int:
     """Count the number of content tokens with more than n characters."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('num_content_tokens_over_n_chars',
                                        'lower')
-    toks = ALL['_filter_toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
+    toks = ALL['_filter_toks'](doc, has_tag=('A', 'Adv', 'N', 'V'),
                                rmv_punc=rmv_punc)
-    return len([t for t in toks if len(t.orig) > n])
+    return len([t for t in toks if len(t.text) > n])
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'num_content_tokens_over_{n}_chars'
     this_partial = partial(num_content_tokens_over_n_chars, n)
@@ -518,30 +522,30 @@ for n in range(1, MAX_SYLL):  # noqa: E305
 
 
 @add_to_ALL('num_types', category='Absolute length')
-def num_types(text: Text, lower=True, rmv_punc=False) -> int:
-    """Count number of unique tokens ("types") in a Text."""
-    toks = ALL['_filter_surface_strs'](text, lower=lower, rmv_punc=rmv_punc)
+def num_types(doc: Document, lower=True, rmv_punc=False) -> int:
+    """Count number of unique tokens ("types") in a Document."""
+    toks = ALL['_filter_surface_strs'](doc, lower=lower, rmv_punc=rmv_punc)
     return len(set(toks))
 
 
 @add_to_ALL('num_lemma_types', category='Absolute length')
-def num_lemma_types(text: Text, has_tag='', lower=False,
+def num_lemma_types(doc: Document, has_tag='', lower=False,
                     rmv_punc=False) -> int:
-    """Count number of unique lemmas in a Text."""
-    toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    """Count number of unique lemmas in a Document."""
+    toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     if lower:
         return len(set([t.get_most_likely_lemma().lower() for t in toks]))
     else:
         return len(set([t.get_most_likely_lemma() for t in toks]))
 
 
-def num_types_Tag(tag: str, text: Text, lower=True, rmv_punc=False) -> int:
-    """Count number of unique tokens with a given tag in a Text."""
-    toks = ALL['_filter_toks'](text, has_tag=tag, rmv_punc=rmv_punc)
+def num_types_Tag(tag: str, doc: Document, lower=True, rmv_punc=False) -> int:
+    """Count number of unique tokens with a given tag in a Document."""
+    toks = ALL['_filter_toks'](doc, has_tag=tag, rmv_punc=rmv_punc)
     if lower:
-        return len(set([t.orig.lower() for t in toks]))
+        return len(set([t.text.lower() for t in toks]))
     else:
-        return len(set([t.orig for t in toks]))
+        return len(set([t.text for t in toks]))
 for tag in tag_dict:  # noqa: E305
     name = f'num_types_{safe_name(tag)}'
     this_partial = partial(num_types_Tag, tag)
@@ -552,31 +556,31 @@ for tag in tag_dict:  # noqa: E305
 
 
 @add_to_ALL('num_sents', category='Absolute length')
-def num_sents(text: Text) -> int:
-    """Count number of sentences in a Text."""
-    return len(text.sent_tok_indices)
+def num_sents(doc: Document) -> int:
+    """Count number of sentences in a Document."""
+    return len(doc.sentences)
 
 
 @add_to_ALL('prcnt_abstract_nouns', category='Absolute length')
-def prcnt_abstract_nouns(text: Text, lower=False, rmv_punc=True,
+def prcnt_abstract_nouns(doc: Document, lower=False, rmv_punc=True,
                          zero_div_val=NaN) -> float:
     """Compute the percentage of nouns that are abstract."""
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
-    num_abstract_nouns = ALL[f'num_abstract_nouns'](text, rmv_punc=rmv_punc)
+    num_tokens = ALL['num_tokens'](doc, lower=lower, rmv_punc=rmv_punc)
+    num_abstract_nouns = ALL[f'num_abstract_nouns'](doc, rmv_punc=rmv_punc)
     try:
         return num_abstract_nouns / num_tokens
     except ZeroDivisionError:
         return zero_div_val
 
 
-def prcnt_words_over_n_sylls(n, text: Text, lower=False, rmv_punc=True,
+def prcnt_words_over_n_sylls(n, doc: Document, lower=False, rmv_punc=True,
                              zero_div_val=NaN) -> float:
-    """Compute the percentage of words over n syllables in a Text."""
+    """Compute the percentage of words over n syllables in a Document."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('prcnt_words_over_n_sylls', 'lower')
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
-    num_tokens_over_n_sylls = ALL[f'num_tokens_over_{n}_sylls'](text,
+    num_tokens = ALL['num_tokens'](doc, lower=lower, rmv_punc=rmv_punc)
+    num_tokens_over_n_sylls = ALL[f'num_tokens_over_{n}_sylls'](doc,
                                                                 lower=lower,
                                                                 rmv_punc=rmv_punc)  # noqa: E501
     try:
@@ -592,15 +596,17 @@ for n in range(1, MAX_SYLL):  # noqa: E305
                         category='Lexical variation')
 
 
-def prcnt_content_words_over_n_sylls(n, text: Text, lower=False, rmv_punc=True,
-                                     zero_div_val=NaN) -> float:
-    """Compute the percentage of content words over n syllables in a Text."""
+def prcnt_content_words_over_n_sylls(n, doc: Document, lower=False,
+                                     rmv_punc=True, zero_div_val=NaN) -> float:
+    """Compute the percentage of content words over n syllables in a
+    Document.
+    """
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('prcnt_content_words_over_n_sylls',
                                        'lower')
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
-    num_content_tokens_over_n_sylls = ALL[f'num_content_tokens_over_{n}_sylls'](text, lower=lower, rmv_punc=rmv_punc)  # noqa: E501
+    num_tokens = ALL['num_tokens'](doc, lower=lower, rmv_punc=rmv_punc)
+    num_content_tokens_over_n_sylls = ALL[f'num_content_tokens_over_{n}_sylls'](doc, lower=lower, rmv_punc=rmv_punc)  # noqa: E501
     try:  # TODO normalize over content tokens?
         return num_content_tokens_over_n_sylls / num_tokens
     except ZeroDivisionError:
@@ -615,14 +621,14 @@ for n in range(1, MAX_SYLL):  # noqa: E305
 
 
 @add_to_ALL('type_token_ratio', category='Lexical variation')
-def type_token_ratio(text: Text, lower=True, rmv_punc=False,
+def type_token_ratio(doc: Document, lower=True, rmv_punc=False,
                      zero_div_val=NaN) -> float:
     """Compute the "type-token ratio", i.e. the number of unique tokens
     ("types") divided by the number of tokens.
     """
-    num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
+    num_types = ALL['num_types'](doc, lower=lower, rmv_punc=rmv_punc)
     # for num_tokens(), lower is irrelevant, so we use the default lower=False
-    num_tokens = ALL['num_tokens'](text, lower=False, rmv_punc=rmv_punc)
+    num_tokens = ALL['num_tokens'](doc, lower=False, rmv_punc=rmv_punc)
     try:
         return num_types / num_tokens
     except ZeroDivisionError:
@@ -630,14 +636,14 @@ def type_token_ratio(text: Text, lower=True, rmv_punc=False,
 
 
 @add_to_ALL('lemma_type_token_ratio', category='Lexical variation')
-def lemma_type_token_ratio(text: Text, has_tag='', lower=False, rmv_punc=False,
-                           zero_div_val=NaN) -> float:
+def lemma_type_token_ratio(doc: Document, has_tag='', lower=False,
+                           rmv_punc=False, zero_div_val=NaN) -> float:
     """Compute the "lemma type-token ratio", i.e. the number of unique lemmas
     divided by the number of tokens.
     """
-    num_lemma_types = ALL['num_lemma_types'](text, has_tag=has_tag,
+    num_lemma_types = ALL['num_lemma_types'](doc, has_tag=has_tag,
                                              lower=lower, rmv_punc=rmv_punc)
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    num_tokens = ALL['num_tokens'](doc, lower=lower, rmv_punc=rmv_punc)
     try:
         return num_lemma_types / num_tokens
     except ZeroDivisionError:
@@ -645,7 +651,7 @@ def lemma_type_token_ratio(text: Text, has_tag='', lower=False, rmv_punc=False,
 
 
 @add_to_ALL('content_lemma_type_token_ratio', category='Lexical variation')
-def content_lemma_type_token_ratio(text: Text, has_tag='', lower=False,
+def content_lemma_type_token_ratio(doc: Document, has_tag='', lower=False,
                                    rmv_punc=False, zero_div_val=NaN) -> float:
     """Compute the "content lemma type-token ratio".
 
@@ -653,19 +659,19 @@ def content_lemma_type_token_ratio(text: Text, has_tag='', lower=False,
     the number of tokens. Content words are limited to nouns, adjectives,
     and verbs.
     """
-    return ALL['lemma_type_token_ratio'](text, has_tag=('A', 'Adv', 'N', 'V'),
+    return ALL['lemma_type_token_ratio'](doc, has_tag=('A', 'Adv', 'N', 'V'),
                                          lower=lower, rmv_punc=rmv_punc,
                                          zero_div_val=zero_div_val)
 
 
 @add_to_ALL('root_type_token_ratio', category='Lexical variation')
-def root_type_token_ratio(text: Text, lower=True, rmv_punc=False,
+def root_type_token_ratio(doc: Document, lower=True, rmv_punc=False,
                           zero_div_val=NaN) -> float:
     """Compute the "root type-token ratio", i.e. number of unique tokens
     divided by the square root of the number of tokens."""
-    num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
+    num_types = ALL['num_types'](doc, lower=lower, rmv_punc=rmv_punc)
     # for num_tokens(), lower is irrelevant, so we use the default lower=False
-    num_tokens = ALL['num_tokens'](text, lower=False, rmv_punc=rmv_punc)
+    num_tokens = ALL['num_tokens'](doc, lower=False, rmv_punc=rmv_punc)
     try:
         return num_types / (num_tokens ** 0.5)
     except ZeroDivisionError:
@@ -673,14 +679,14 @@ def root_type_token_ratio(text: Text, lower=True, rmv_punc=False,
 
 
 @add_to_ALL('corrected_type_token_ratio', category='Lexical variation')
-def corrected_type_token_ratio(text: Text, lower=True, rmv_punc=False,
+def corrected_type_token_ratio(doc: Document, lower=True, rmv_punc=False,
                                zero_div_val=NaN) -> float:
     """Compute the "corrected type-token ratio", i.e. the number of unique
     tokens divided by the square root of twice the number of tokens.
     """
-    num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
+    num_types = ALL['num_types'](doc, lower=lower, rmv_punc=rmv_punc)
     # for num_tokens(), lower is irrelevant, so we use the default lower=False
-    num_tokens = ALL['num_tokens'](text, lower=False, rmv_punc=rmv_punc)
+    num_tokens = ALL['num_tokens'](doc, lower=False, rmv_punc=rmv_punc)
     try:
         return num_types / ((2 * num_tokens) ** 0.5)
     except ZeroDivisionError:
@@ -688,13 +694,13 @@ def corrected_type_token_ratio(text: Text, lower=True, rmv_punc=False,
 
 
 @add_to_ALL('bilog_type_token_ratio', category='Lexical variation')
-def bilog_type_token_ratio(text: Text, lower=True, rmv_punc=False,
+def bilog_type_token_ratio(doc: Document, lower=True, rmv_punc=False,
                            zero_div_val=NaN) -> float:
     """Compute the "bilogarithmic type-token ratio", i.e. the log of the number
     of unique tokens divided by the log of the number of tokens."""
-    num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
+    num_types = ALL['num_types'](doc, lower=lower, rmv_punc=rmv_punc)
     # for num_tokens(), lower is irrelevant, so we use the default lower=False
-    num_tokens = ALL['num_tokens'](text, lower=False, rmv_punc=rmv_punc)
+    num_tokens = ALL['num_tokens'](doc, lower=False, rmv_punc=rmv_punc)
     try:
         return log(num_types) / log(num_tokens)
     except (ValueError, ZeroDivisionError):
@@ -702,28 +708,30 @@ def bilog_type_token_ratio(text: Text, lower=True, rmv_punc=False,
 
 
 @add_to_ALL('uber_index', category='Lexical variation')
-def uber_index(text: Text, lower=True, rmv_punc=False,
+def uber_index(doc: Document, lower=True, rmv_punc=False,
                zero_div_val=NaN) -> float:
     """Compute the "uber index", i.e. the log base 2 of the number of types
     divided by the log base 10 of the number of tokens divided by the number of
     unique tokens.
     """
-    num_types = ALL['num_types'](text, lower=lower, rmv_punc=rmv_punc)
+    num_types = ALL['num_types'](doc, lower=lower, rmv_punc=rmv_punc)
     # for num_tokens(), lower is irrelevant, so we use the default lower=False
-    num_tokens = ALL['num_tokens'](text, lower=False, rmv_punc=rmv_punc)
+    num_tokens = ALL['num_tokens'](doc, lower=False, rmv_punc=rmv_punc)
     try:
         return log(num_types, 2) / log(num_tokens / num_types)
     except (ValueError, ZeroDivisionError):
         return zero_div_val
 
 
-def type_token_ratio_Tag(tag: str, text: Text, lower=True, rmv_punc=False,
+def type_token_ratio_Tag(tag: str, doc: Document, lower=True, rmv_punc=False,
                          zero_div_val=NaN) -> float:
-    """Compute type-token ratio for all tokens in a Text with a given Tag."""
-    num_types = ALL[f'num_types_{safe_name(tag)}'](text,
+    """Compute type-token ratio for all tokens in a Document with a given
+    Tag.
+    """
+    num_types = ALL[f'num_types_{safe_name(tag)}'](doc,
                                                    rmv_punc=rmv_punc,
                                                    lower=lower)
-    num_tokens = ALL[f'num_tokens_{safe_name(tag)}'](text,
+    num_tokens = ALL[f'num_tokens_{safe_name(tag)}'](doc,
                                                      rmv_punc=rmv_punc)
     try:
         return num_types / num_tokens
@@ -738,15 +746,15 @@ for tag in tag_dict:  # noqa: E305
                         category='Lexical variation')
 
 
-def tag_ms_feat_ratio_Tag(tag: str, text: Text, rmv_punc=False,
+def tag_ms_feat_ratio_Tag(tag: str, doc: Document, rmv_punc=False,
                           zero_div_val=NaN) -> float:
     """Compute tag-to-morphosyntactic-feature ratio for Tag, i.e. what
     proportion of MS_FEAT tags are Tag.
     """
     ms_feat = safe_ms_feat_name(tag_dict[tag].ms_feat)
-    num_tokens_tag = ALL[f'num_tokens_{safe_name(tag)}'](text,
+    num_tokens_tag = ALL[f'num_tokens_{safe_name(tag)}'](doc,
                                                          rmv_punc=rmv_punc)
-    num_tokens_ms_feat = ALL[f'num_tokens_ms_feat_{ms_feat}'](text,
+    num_tokens_ms_feat = ALL[f'num_tokens_ms_feat_{ms_feat}'](doc,
                                                               rmv_punc=rmv_punc)  # noqa: E501
     try:
         return num_tokens_tag / num_tokens_ms_feat
@@ -763,14 +771,14 @@ for tag in tag_dict:  # noqa: E305
 
 
 @add_to_ALL('nominal_verb_type_token_ratio', category='Lexical variation')
-def nominal_verb_type_token_ratio(text: Text, lower=False, rmv_punc=False,
+def nominal_verb_type_token_ratio(doc: Document, lower=False, rmv_punc=False,
                                   zero_div_val=NaN) -> float:
     """Compute ratio of nominal type-token ratios to verb type-token ratio."""
-    TTR_N = ALL['type_token_ratio_N'](text, lower=lower, rmv_punc=rmv_punc,
+    TTR_N = ALL['type_token_ratio_N'](doc, lower=lower, rmv_punc=rmv_punc,
                                       zero_div_val=zero_div_val)
-    TTR_A = ALL['type_token_ratio_A'](text, lower=lower, rmv_punc=rmv_punc,
+    TTR_A = ALL['type_token_ratio_A'](doc, lower=lower, rmv_punc=rmv_punc,
                                       zero_div_val=zero_div_val)
-    TTR_V = ALL['type_token_ratio_V'](text, lower=lower, rmv_punc=rmv_punc,
+    TTR_V = ALL['type_token_ratio_V'](doc, lower=lower, rmv_punc=rmv_punc,
                                       zero_div_val=zero_div_val)
     try:
         return (TTR_N + TTR_A) / TTR_V
@@ -779,10 +787,11 @@ def nominal_verb_type_token_ratio(text: Text, lower=False, rmv_punc=False,
 
 
 @add_to_ALL('nominal_verb_ratio', category='Lexical variation')
-def nominal_verb_ratio(text: Text, rmv_punc=False, zero_div_val=NaN) -> float:
+def nominal_verb_ratio(doc: Document, rmv_punc=False,
+                       zero_div_val=NaN) -> float:
     """Compute ratio of nominal tokens to verbal tokens."""
-    AN_toks = ALL['_filter_toks'](text, has_tag=('A', 'N'), rmv_punc=rmv_punc)
-    V_toks = ALL['_filter_toks'](text, has_tag='V', rmv_punc=rmv_punc)
+    AN_toks = ALL['_filter_toks'](doc, has_tag=('A', 'N'), rmv_punc=rmv_punc)
+    V_toks = ALL['_filter_toks'](doc, has_tag='V', rmv_punc=rmv_punc)
     try:
         return len(AN_toks) / len(V_toks)
     except ZeroDivisionError:
@@ -790,12 +799,12 @@ def nominal_verb_ratio(text: Text, rmv_punc=False, zero_div_val=NaN) -> float:
 
 
 @add_to_ALL('nominal_verb_type_ratio', category='Lexical variation')
-def nominal_verb_type_ratio(text: Text, lower=False, rmv_punc=False,
+def nominal_verb_type_ratio(doc: Document, lower=False, rmv_punc=False,
                             zero_div_val=NaN) -> float:
     """Compute ratio of nominal types to verbal types."""
-    num_types_N = ALL['num_types_N'](text, lower=lower, rmv_punc=rmv_punc)
-    num_types_A = ALL['num_types_A'](text, lower=lower, rmv_punc=rmv_punc)
-    num_types_V = ALL['num_types_V'](text, lower=lower, rmv_punc=rmv_punc)
+    num_types_N = ALL['num_types_N'](doc, lower=lower, rmv_punc=rmv_punc)
+    num_types_A = ALL['num_types_A'](doc, lower=lower, rmv_punc=rmv_punc)
+    num_types_V = ALL['num_types_V'](doc, lower=lower, rmv_punc=rmv_punc)
     try:
         return (num_types_N + num_types_A) / num_types_V
     except ZeroDivisionError:
@@ -803,14 +812,14 @@ def nominal_verb_type_ratio(text: Text, lower=False, rmv_punc=False,
 
 
 @add_to_ALL('nominal_verb_lemma_ratio', category='Lexical variation')
-def nominal_verb_lemma_ratio(text: Text, lower=False, rmv_punc=False,
+def nominal_verb_lemma_ratio(doc: Document, lower=False, rmv_punc=False,
                              zero_div_val=NaN) -> float:
     """Compute ratio of nominal lemma types to verbal lemma types."""
-    num_lemma_types_A = ALL['num_lemma_types'](text, has_tag='A', lower=lower,
+    num_lemma_types_A = ALL['num_lemma_types'](doc, has_tag='A', lower=lower,
                                                rmv_punc=rmv_punc)
-    num_lemma_types_N = ALL['num_lemma_types'](text, has_tag='N', lower=lower,
+    num_lemma_types_N = ALL['num_lemma_types'](doc, has_tag='N', lower=lower,
                                                rmv_punc=rmv_punc)
-    num_lemma_types_V = ALL['num_lemma_types'](text, has_tag='V', lower=lower,
+    num_lemma_types_V = ALL['num_lemma_types'](doc, has_tag='V', lower=lower,
                                                rmv_punc=rmv_punc)
     try:
         return (num_lemma_types_A + num_lemma_types_N) / num_lemma_types_V
@@ -819,129 +828,115 @@ def nominal_verb_lemma_ratio(text: Text, lower=False, rmv_punc=False,
 
 
 @add_to_ALL('chars_per_word', category='Normalized length')
-def chars_per_word(text: Text, has_tag='', rmv_punc=True, uniq=False,
+def chars_per_word(doc: Document, has_tag='', rmv_punc=True, uniq=False,
                    zero_div_val=NaN) -> float:
     """Calculate the average number of characters per word."""
-    if has_tag:
-        toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
-    else:
-        toks = text.toks[:]
+    toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     try:
         if not uniq:
-            return mean(len(tok.orig) for tok in toks)
+            return mean(len(tok.text) for tok in toks)
         else:
-            return mean(len(orig) for orig in set(tok.orig for tok in toks))
+            return mean(len(orig) for orig in set(tok.text for tok in toks))
     except StatisticsError:
         return zero_div_val
 
 
 @add_to_ALL('max_chars_per_word', category='Normalized length')
-def max_chars_per_word(text: Text, has_tag='', rmv_punc=True,
+def max_chars_per_word(doc: Document, has_tag='', rmv_punc=True,
                        zero_div_val=NaN) -> float:
     """Calculate the maximum number of characters per word."""
-    if has_tag:
-        toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
-    else:
-        toks = text.toks[:]
+    toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     try:
-        return max(len(tok.orig) for tok in toks)
+        return max(len(tok.text) for tok in toks)
     except ValueError:
         return zero_div_val
 
 
 @add_to_ALL('chars_per_content_word', category='Normalized length')
-def chars_per_content_word(text: Text, rmv_punc=True, uniq=False,
+def chars_per_content_word(doc: Document, rmv_punc=True, uniq=False,
                            zero_div_val=NaN) -> float:
     """Calculate the average number of characters per content word."""
-    return ALL['chars_per_word'](text, has_tag=('A', 'Adv', 'N', 'V'),
+    return ALL['chars_per_word'](doc, has_tag=('A', 'Adv', 'N', 'V'),
                                  rmv_punc=rmv_punc, uniq=uniq,
                                  zero_div_val=NaN)
 
 
 @add_to_ALL('max_chars_per_content_word', category='Normalized length')
-def max_chars_per_content_word(text: Text, rmv_punc=True,
+def max_chars_per_content_word(doc: Document, rmv_punc=True,
                                zero_div_val=NaN) -> float:
     """Calculate the maximum number of characters per content word."""
-    return ALL['max_chars_per_word'](text, has_tag=('A', 'Adv', 'N', 'V'),
+    return ALL['max_chars_per_word'](doc, has_tag=('A', 'Adv', 'N', 'V'),
                                      rmv_punc=rmv_punc, zero_div_val=NaN)
 
 
 @add_to_ALL('sylls_per_word', category='Normalized length')
-def sylls_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
+def sylls_per_word(doc: Document, has_tag='', lower=False, rmv_punc=True,
                    zero_div_val=NaN) -> float:
     """Calculate the average number of syllables per word."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('sylls_per_word', 'lower')
-    if has_tag:
-        toks = ALL['_filter_toks'](text, has_tag=has_tag,
-                                   rmv_punc=rmv_punc)
-    else:
-        toks = text.toks[:]
+    toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     try:
-        return mean(len(re.findall(vowel_re, tok.orig, flags=re.I))
+        return mean(len(re.findall(vowel_re, tok.text, flags=re.I))
                     for tok in toks)
     except StatisticsError:
         return zero_div_val
 
 
 @add_to_ALL('max_sylls_per_word', category='Normalized length')
-def max_sylls_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
+def max_sylls_per_word(doc: Document, has_tag='', lower=False, rmv_punc=True,
                        zero_div_val=NaN) -> float:
     """Calculate the maximum number of syllables per word."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('sylls_per_word', 'lower')
-    if has_tag:
-        toks = ALL['_filter_toks'](text, has_tag=has_tag,
-                                   rmv_punc=rmv_punc)
-    else:
-        toks = text.toks[:]
+    toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     try:
-        return max(len(re.findall(vowel_re, tok.orig, flags=re.I))
+        return max(len(re.findall(vowel_re, tok.text, flags=re.I))
                    for tok in toks)
     except (StatisticsError, ValueError):
         return zero_div_val
 
 
 @add_to_ALL('max_sylls_per_content_word', category='Normalized length')
-def max_sylls_per_content_word(text: Text, lower=False, rmv_punc=True,
+def max_sylls_per_content_word(doc: Document, lower=False, rmv_punc=True,
                                zero_div_val=NaN) -> float:
     """Calculate the maximum number of syllables per content word."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('sylls_per_word', 'lower')
-    toks = ALL['_filter_toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
+    toks = ALL['_filter_toks'](doc, has_tag=('A', 'Adv', 'N', 'V'),
                                rmv_punc=rmv_punc)
     try:
-        return max(len(re.findall(vowel_re, tok.orig, flags=re.I))
+        return max(len(re.findall(vowel_re, tok.text, flags=re.I))
                    for tok in toks)
     except (StatisticsError, ValueError):
         return zero_div_val
 
 
 @add_to_ALL('sylls_per_content_word', category='Normalized length')
-def sylls_per_content_word(text: Text, rmv_punc=True,
+def sylls_per_content_word(doc: Document, rmv_punc=True,
                            zero_div_val=NaN) -> float:
     """Calculate the average number of syllables per content word."""
-    toks = ALL['_filter_toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
+    toks = ALL['_filter_toks'](doc, has_tag=('A', 'Adv', 'N', 'V'),
                                rmv_punc=rmv_punc)
     try:
-        return mean(len(re.findall(vowel_re, tok.orig, flags=re.I))
+        return mean(len(re.findall(vowel_re, tok.text, flags=re.I))
                     for tok in toks)
     except StatisticsError:
         return zero_div_val
 
 
 @add_to_ALL('words_per_sent', category='Normalized length')
-def words_per_sent(text: Text, lower=False, rmv_punc=True,
+def words_per_sent(doc: Document, lower=False, rmv_punc=True,
                    zero_div_val=NaN) -> float:
     """Calculate the average number of words per sentence."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('words_per_sent', 'lower')
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
-    num_sents = ALL['num_sents'](text)
+    num_tokens = ALL['num_tokens'](doc, lower=lower, rmv_punc=rmv_punc)
+    num_sents = ALL['num_sents'](doc)
     try:
         return num_tokens / num_sents
     except ZeroDivisionError:
@@ -949,7 +944,7 @@ def words_per_sent(text: Text, lower=False, rmv_punc=True,
 
 
 @add_to_ALL('matskovskij', category='Readability formula')
-def matskovskij(text: Text, lower=False, rmv_punc=True,
+def matskovskij(doc: Document, lower=False, rmv_punc=True,
                 zero_div_val=NaN) -> float:
     """Calculate document readability according to Matskovskij's formula.
 
@@ -961,10 +956,10 @@ def matskovskij(text: Text, lower=False, rmv_punc=True,
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('matskovskij', 'lower')
-    words_per_sent = ALL['words_per_sent'](text, lower=lower,
+    words_per_sent = ALL['words_per_sent'](doc, lower=lower,
                                            rmv_punc=rmv_punc,
                                            zero_div_val=zero_div_val)
-    prcnt_words_over_3_sylls = ALL['prcnt_words_over_3_sylls'](text,
+    prcnt_words_over_3_sylls = ALL['prcnt_words_over_3_sylls'](doc,
                                                                lower=lower,
                                                                rmv_punc=rmv_punc,  # noqa: E501
                                                                zero_div_val=zero_div_val)  # noqa: E501
@@ -972,7 +967,7 @@ def matskovskij(text: Text, lower=False, rmv_punc=True,
 
 
 @add_to_ALL('oborneva', category='Readability formula')
-def oborneva(text: Text, lower=False, rmv_punc=True,
+def oborneva(doc: Document, lower=False, rmv_punc=True,
              zero_div_val=NaN) -> float:
     """Calculate document readability according to Oborneva's formula.
 
@@ -984,17 +979,17 @@ def oborneva(text: Text, lower=False, rmv_punc=True,
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('oborneva', 'lower')
-    words_per_sent = ALL['words_per_sent'](text, lower=lower,
+    words_per_sent = ALL['words_per_sent'](doc, lower=lower,
                                            rmv_punc=rmv_punc,
                                            zero_div_val=zero_div_val)
-    sylls_per_word = ALL['sylls_per_word'](text, lower=lower,
+    sylls_per_word = ALL['sylls_per_word'](doc, lower=lower,
                                            rmv_punc=rmv_punc,
                                            zero_div_val=zero_div_val)
     return 0.5 * words_per_sent + 8.4 * sylls_per_word - 15.59
 
 
 @add_to_ALL('solnyshkina_M3', category='Readability formula')
-def solnyshkina_M3(text: Text, lower=False, rmv_punc=True,
+def solnyshkina_M3(doc: Document, lower=False, rmv_punc=True,
                    zero_div_val=NaN) -> float:
     """Calculate document readability according to Solnyshkina et al.'s
     linear model M3.
@@ -1006,13 +1001,13 @@ def solnyshkina_M3(text: Text, lower=False, rmv_punc=True,
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('solnyshkina', 'lower')
-    words_per_sent = ALL['words_per_sent'](text, lower=lower,
+    words_per_sent = ALL['words_per_sent'](doc, lower=lower,
                                            rmv_punc=rmv_punc,
                                            zero_div_val=zero_div_val)
-    sylls_per_word = ALL['sylls_per_word'](text, lower=lower,
+    sylls_per_word = ALL['sylls_per_word'](doc, lower=lower,
                                            rmv_punc=rmv_punc,
                                            zero_div_val=zero_div_val)
-    UNAV = ALL['nominal_verb_type_ratio'](text, rmv_punc=rmv_punc,
+    UNAV = ALL['nominal_verb_type_ratio'](doc, rmv_punc=rmv_punc,
                                           zero_div_val=zero_div_val)
     return (-9.53
             + 0.25 * words_per_sent  # ASL  average sentence length (words)
@@ -1021,7 +1016,7 @@ def solnyshkina_M3(text: Text, lower=False, rmv_punc=True,
 
 
 @add_to_ALL('solnyshkina_Q', category='Readability formula')
-def solnyshkina_Q(text: Text, lower=False, rmv_punc=True,
+def solnyshkina_Q(doc: Document, lower=False, rmv_punc=True,
                   zero_div_val=NaN) -> float:
     """Calculate document readability according to Solnyshkina et al.'s
     quadratic formula.
@@ -1033,15 +1028,15 @@ def solnyshkina_Q(text: Text, lower=False, rmv_punc=True,
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('solnyshkina', 'lower')
-    words_per_sent = ALL['words_per_sent'](text, lower=lower,
+    words_per_sent = ALL['words_per_sent'](doc, lower=lower,
                                            rmv_punc=rmv_punc,
                                            zero_div_val=zero_div_val)
-    sylls_per_word = ALL['sylls_per_word'](text, lower=lower,
+    sylls_per_word = ALL['sylls_per_word'](doc, lower=lower,
                                            rmv_punc=rmv_punc,
                                            zero_div_val=zero_div_val)
-    NAV = ALL['nominal_verb_type_token_ratio'](text, rmv_punc=rmv_punc,
+    NAV = ALL['nominal_verb_type_token_ratio'](doc, rmv_punc=rmv_punc,
                                                zero_div_val=zero_div_val)
-    UNAV = ALL['nominal_verb_type_ratio'](text, rmv_punc=rmv_punc,
+    UNAV = ALL['nominal_verb_type_ratio'](doc, rmv_punc=rmv_punc,
                                           zero_div_val=zero_div_val)
     return (-0.124 * words_per_sent  # ASL  average sentence length (words)
             + 0.018 * sylls_per_word  # ASW  average word length (syllables)
@@ -1060,7 +1055,7 @@ def solnyshkina_Q(text: Text, lower=False, rmv_punc=True,
 
 
 @add_to_ALL('Flesch_Kincaid_rus', category='Readability formula')
-def Flesch_Kincaid_rus(text: Text, lower=False, rmv_punc=True,
+def Flesch_Kincaid_rus(doc: Document, lower=False, rmv_punc=True,
                        zero_div_val=NaN) -> float:
     """Flesch-Kincaid for Russian.
 
@@ -1068,17 +1063,17 @@ def Flesch_Kincaid_rus(text: Text, lower=False, rmv_punc=True,
     github.com/infoculture/plainrussian/blob/master/textmetric/metric.py
     """
     # TODO find original (academic/research) source?
-    words_per_sent = ALL['words_per_sent'](text, lower=lower,
+    words_per_sent = ALL['words_per_sent'](doc, lower=lower,
                                            rmv_punc=rmv_punc,
                                            zero_div_val=zero_div_val)
-    sylls_per_word = ALL['sylls_per_word'](text, lower=lower,
+    sylls_per_word = ALL['sylls_per_word'](doc, lower=lower,
                                            rmv_punc=rmv_punc,
                                            zero_div_val=zero_div_val)
     return 220.755 - 1.315 * words_per_sent - 50.1 * sylls_per_word
 
 
 @add_to_ALL('Flesch_Kincaid_Grade_rus', category='Readability formula')
-def Flesch_Kincaid_Grade_rus(text: Text, lower=False, rmv_punc=True,
+def Flesch_Kincaid_Grade_rus(doc: Document, lower=False, rmv_punc=True,
                              zero_div_val=NaN) -> float:
     """Flesch-Kincaid Grade for Russian.
 
@@ -1086,10 +1081,10 @@ def Flesch_Kincaid_Grade_rus(text: Text, lower=False, rmv_punc=True,
     github.com/infoculture/plainrussian/blob/master/textmetric/metric.py
     """
     # TODO find original (academic/research) source?
-    words_per_sent = ALL['words_per_sent'](text, lower=lower,
+    words_per_sent = ALL['words_per_sent'](doc, lower=lower,
                                            rmv_punc=rmv_punc,
                                            zero_div_val=zero_div_val)
-    sylls_per_word = ALL['sylls_per_word'](text, lower=lower,
+    sylls_per_word = ALL['sylls_per_word'](doc, lower=lower,
                                            rmv_punc=rmv_punc,
                                            zero_div_val=zero_div_val)
     # 0.59 * words_per_sent + 6.2 * sylls_per_word - 16.59  # TODO what this?
@@ -1097,17 +1092,13 @@ def Flesch_Kincaid_Grade_rus(text: Text, lower=False, rmv_punc=True,
 
 
 @add_to_ALL('morphs_per_word', category='Normalized length')
-def morphs_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
+def morphs_per_word(doc: Document, has_tag='', lower=False, rmv_punc=True,
                     zero_div_val=NaN) -> float:
     """Calculate the average number of morphemes per word."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('morphs_per_word', 'lower')
-    if has_tag:
-        toks = ALL['_filter_toks'](text, has_tag=has_tag,
-                                   rmv_punc=rmv_punc)
-    else:
-        toks = text.toks[:]
+    toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     try:
         return mean(tix_morph_count_dict[tok.get_most_likely_lemma()]  # type: ignore  # noqa: E501
                     for tok in toks
@@ -1117,17 +1108,13 @@ def morphs_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
 
 
 @add_to_ALL('max_morphs_per_word', category='Normalized length')
-def max_morphs_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
+def max_morphs_per_word(doc: Document, has_tag='', lower=False, rmv_punc=True,
                         zero_div_val=NaN) -> int:
     """Calculate the maximum number of morphemes per word."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('max_morphs_per_word', 'lower')
-    if has_tag:
-        toks = ALL['_filter_toks'](text, has_tag=has_tag,
-                                   rmv_punc=rmv_punc)
-    else:
-        toks = text.toks[:]
+    toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     try:
         return max(tix_morph_count_dict[tok.get_most_likely_lemma()]  # type: ignore  # noqa: E501
                    for tok in toks
@@ -1137,42 +1124,42 @@ def max_morphs_per_word(text: Text, has_tag='', lower=False, rmv_punc=True,
 
 
 @add_to_ALL('max_morphs_per_content_word', category='Normalized length')
-def max_morphs_per_content_word(text: Text, lower=False, rmv_punc=True,
+def max_morphs_per_content_word(doc: Document, lower=False, rmv_punc=True,
                                 zero_div_val=NaN) -> int:
     """Calculate the maximum number of morphemes per content word."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('max_morphs_per_content_word', 'lower')
-    toks = ALL['_filter_toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
+    toks = ALL['_filter_toks'](doc, has_tag=('A', 'Adv', 'N', 'V'),
                                rmv_punc=rmv_punc)
     try:
-        return max(len(re.findall(vowel_re, tok.orig, flags=re.I))
+        return max(len(re.findall(vowel_re, tok.text, flags=re.I))
                    for tok in toks)
     except (StatisticsError, ValueError):
         return zero_div_val
 
 
 @add_to_ALL('morphs_per_content_word', category='Normalized length')
-def morphs_per_content_word(text: Text, rmv_punc=True,
+def morphs_per_content_word(doc: Document, rmv_punc=True,
                             zero_div_val=NaN) -> float:
     """Calculate the average number of morphemes per content word."""
-    toks = ALL['_filter_toks'](text, has_tag=('A', 'Adv', 'N', 'V'),
+    toks = ALL['_filter_toks'](doc, has_tag=('A', 'Adv', 'N', 'V'),
                                rmv_punc=rmv_punc)
     try:
-        return mean(len(re.findall(vowel_re, tok.orig, flags=re.I))
+        return mean(len(re.findall(vowel_re, tok.text, flags=re.I))
                     for tok in toks)
     except StatisticsError:
         return zero_div_val
 
 
-def prcnt_words_over_n_chars(n, text: Text, lower=False, rmv_punc=True,
+def prcnt_words_over_n_chars(n, doc: Document, lower=False, rmv_punc=True,
                              zero_div_val=NaN) -> float:
-    """Compute the percentage of words over n characters in a Text."""
+    """Compute the percentage of words over n characters in a Document."""
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('prcnt_words_over_n_chars', 'lower')
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
-    num_tokens_over_n_chars = ALL[f'num_tokens_over_{n}_chars'](text,
+    num_tokens = ALL['num_tokens'](doc, lower=lower, rmv_punc=rmv_punc)
+    num_tokens_over_n_chars = ALL[f'num_tokens_over_{n}_chars'](doc,
                                                                 lower=lower,
                                                                 rmv_punc=rmv_punc)  # noqa: E501
     try:
@@ -1188,15 +1175,17 @@ for n in range(1, MAX_SYLL):  # noqa: E305
                         category='Lexical variation')
 
 
-def prcnt_content_words_over_n_chars(n, text: Text, lower=False, rmv_punc=True,
-                                     zero_div_val=NaN) -> float:
-    """Compute the percentage of content words over n characters in a Text."""
+def prcnt_content_words_over_n_chars(n, doc: Document, lower=False,
+                                     rmv_punc=True, zero_div_val=NaN) -> float:
+    """Compute the percentage of content words over n characters in a
+    Document.
+    """
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('prcnt_content_words_over_n_chars',
                                        'lower')
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
-    num_content_tokens_over_n_chars = ALL[f'num_content_tokens_over_{n}_chars'](text, lower=lower, rmv_punc=rmv_punc)  # noqa: E501
+    num_tokens = ALL['num_tokens'](doc, lower=lower, rmv_punc=rmv_punc)
+    num_content_tokens_over_n_chars = ALL[f'num_content_tokens_over_{n}_chars'](doc, lower=lower, rmv_punc=rmv_punc)  # noqa: E501
     try:  # TODO normalize over content tokens?
         return num_content_tokens_over_n_chars / num_tokens
     except ZeroDivisionError:
@@ -1210,11 +1199,11 @@ for n in range(1, MAX_SYLL):  # noqa: E305
                         category='Lexical variation')
 
 
-def num_words_at_lexmin_level(level, text: Text) -> int:
-    """Count number of words in a Text at LEVEL in the
+def num_words_at_lexmin_level(level, doc: Document) -> int:
+    """Count number of words in a Document at LEVEL in the
     "lexical minimum" (лексический минимум) of the TORFL (ТРКИ) test.
     """
-    return len([1 for tok in text
+    return len([1 for tok in doc
                 if lexmin_dict.get(tok.get_most_likely_lemma()) == level])  # type: ignore  # noqa: E501
 for level in ['A1', 'A2', 'B1', 'B2']:  # noqa: E305
     name = f'num_words_at_lexmin_{level}'
@@ -1225,19 +1214,19 @@ for level in ['A1', 'A2', 'B1', 'B2']:  # noqa: E305
                         category='Lexical familiarity')
 
 
-def prcnt_words_over_lexmin_level(level, text: Text, lower=False,
+def prcnt_words_over_lexmin_level(level, doc: Document, lower=False,
                                   rmv_punc=True, zero_div_val=NaN) -> float:
-    """Compute the percentage of words in a Text over LEVEL in the
+    """Compute the percentage of words in a Document over LEVEL in the
     "lexical minimum" (лексический минимум) of the TORFL (ТРКИ) test.
     """
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('prcnt_words_over_n_chars', 'lower')
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    num_tokens = ALL['num_tokens'](doc, lower=lower, rmv_punc=rmv_punc)
     num_tokens_at_or_below = 0
     for each_level in ['A1', 'A2', 'B1', 'B2']:
         if each_level <= level:
-            num_tokens_at_or_below += ALL[f'num_words_at_lexmin_{level}'](text)
+            num_tokens_at_or_below += ALL[f'num_words_at_lexmin_{level}'](doc)
     try:
         return (num_tokens - num_tokens_at_or_below) / num_tokens
     except ZeroDivisionError:
@@ -1251,11 +1240,11 @@ for level in ['A1', 'A2', 'B1', 'B2']:  # noqa: E305
                         category='Lexical familiarity')
 
 
-def num_words_at_kelly_level(level, text: Text) -> int:
-    """Count number of words in a Text at LEVEL in the
+def num_words_at_kelly_level(level, doc: Document) -> int:
+    """Count number of words in a Document at LEVEL in the
     Kelly Project (Kilgarriff et al., 2014).
     """
-    return len([1 for tok in text
+    return len([1 for tok in doc
                 if kelly_dict.get(tok.get_most_likely_lemma()) == level])  # type: ignore  # noqa: E501
 for level in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']:  # noqa: E305
     name = f'num_words_at_kelly_{level}'
@@ -1266,19 +1255,19 @@ for level in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']:  # noqa: E305
                         category='Lexical familiarity')
 
 
-def prcnt_words_over_kelly_level(level, text: Text, lower=False,
+def prcnt_words_over_kelly_level(level, doc: Document, lower=False,
                                  rmv_punc=True, zero_div_val=NaN) -> float:
-    """Compute the percentage of words in a Text over LEVEL in the
+    """Compute the percentage of words in a Document over LEVEL in the
     Kelly Project (Kilgarriff et al., 2014).
     """
     # `lower` is irrelevant here, but included for hierarchical consistency
     if lower:
         warn_about_irrelevant_argument('prcnt_words_over_n_chars', 'lower')
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    num_tokens = ALL['num_tokens'](doc, lower=lower, rmv_punc=rmv_punc)
     num_tokens_at_or_below = 0
     for each_level in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']:
         if each_level <= level:
-            num_tokens_at_or_below += ALL[f'num_words_at_kelly_{level}'](text)
+            num_tokens_at_or_below += ALL[f'num_words_at_kelly_{level}'](doc)
     try:
         return (num_tokens - num_tokens_at_or_below) / num_tokens
     except ZeroDivisionError:
@@ -1293,31 +1282,31 @@ for level in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']:  # noqa: E305
 
 
 @add_to_ALL('_lemma_frequencies', category='_prior')
-def _lemma_frequencies(text: Text,
+def _lemma_frequencies(doc: Document,
                        has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',
                        rmv_punc=True) -> List[float]:
     """Make list of lemma frequencies."""
-    toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     return [Sharoff_lem_freq_dict.get(t.get_most_likely_lemma(), 0)  # type: ignore  # noqa: E501
             for t in toks]
 
 
 @add_to_ALL('_lemma_frequency_ranks', category='_prior')
-def _lemma_frequency_ranks(text: Text,
+def _lemma_frequency_ranks(doc: Document,
                           has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',  # noqa: E501
                           rmv_punc=True) -> List[float]:
     """Make list of lemma frequency ranks."""
-    toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     return [Sharoff_lem_freq_rank_dict.get(t.get_most_likely_lemma(), 0)  # type: ignore  # noqa: E501
             for t in toks]
 
 
 @add_to_ALL('mean_lemma_frequency', category='Lexical familiarity')
-def mean_lemma_frequency(text: Text,
+def mean_lemma_frequency(doc: Document,
                          has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',
                          rmv_punc=True, zero_div_val=NaN) -> float:
-    """Return mean lemma frequency of the given text."""
-    freqs = ALL['_lemma_frequencies'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    """Return mean lemma frequency of the given document."""
+    freqs = ALL['_lemma_frequencies'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     try:
         return mean(freqs)
     except StatisticsError:
@@ -1325,19 +1314,19 @@ def mean_lemma_frequency(text: Text,
 
 
 @add_to_ALL('mean_content_lemma_frequency', category='Lexical familiarity')
-def mean_content_lemma_frequency(text: Text, rmv_punc=True,
+def mean_content_lemma_frequency(doc: Document, rmv_punc=True,
                                  zero_div_val=NaN) -> float:
-    """Return mean content lemma frequency of the given text."""
-    return mean_lemma_frequency(text, has_tag=('A', 'Adv', 'N', 'V'),
+    """Return mean content lemma frequency of the given document."""
+    return mean_lemma_frequency(doc, has_tag=('A', 'Adv', 'N', 'V'),
                                 rmv_punc=rmv_punc, zero_div_val=zero_div_val)
 
 
 @add_to_ALL('mean_lemma_frequency_rank', category='Lexical familiarity')
-def mean_lemma_frequency_rank(text: Text,
+def mean_lemma_frequency_rank(doc: Document,
                               has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',  # noqa: E501
                               rmv_punc=True, zero_div_val=NaN) -> float:
-    """Return mean lemma frequency of the given text."""
-    ranks = ALL['_lemma_frequency_ranks'](text, has_tag=has_tag,
+    """Return mean lemma frequency of the given document."""
+    ranks = ALL['_lemma_frequency_ranks'](doc, has_tag=has_tag,
                                           rmv_punc=rmv_punc)
     try:
         return mean(ranks)
@@ -1347,20 +1336,20 @@ def mean_lemma_frequency_rank(text: Text,
 
 @add_to_ALL('mean_content_lemma_frequency_rank',
             category='Lexical familiarity')
-def mean_content_lemma_frequency_rank(text: Text, rmv_punc=True,
+def mean_content_lemma_frequency_rank(doc: Document, rmv_punc=True,
                                       zero_div_val=NaN) -> float:
-    """Return mean lemma frequency of the given text."""
-    return mean_lemma_frequency_rank(text, has_tag=('A', 'Adv', 'N', 'V'),
+    """Return mean lemma frequency of the given document."""
+    return mean_lemma_frequency_rank(doc, has_tag=('A', 'Adv', 'N', 'V'),
                                      rmv_punc=rmv_punc,
                                      zero_div_val=zero_div_val)
 
 
 @add_to_ALL('med_lemma_frequency', category='Lexical familiarity')
-def med_lemma_frequency(text: Text,
+def med_lemma_frequency(doc: Document,
                         has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',
                         rmv_punc=True, zero_div_val=NaN) -> float:
-    """Return median lemma frequency of the given text."""
-    freqs = ALL['_lemma_frequencies'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    """Return median lemma frequency of the given document."""
+    freqs = ALL['_lemma_frequencies'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     try:
         return median(freqs)
     except StatisticsError:
@@ -1368,19 +1357,19 @@ def med_lemma_frequency(text: Text,
 
 
 @add_to_ALL('med_content_lemma_frequency', category='Lexical familiarity')
-def med_content_lemma_frequency(text: Text, rmv_punc=True,
+def med_content_lemma_frequency(doc: Document, rmv_punc=True,
                                 zero_div_val=NaN) -> float:
-    """Return median content lemma frequency of the given text."""
-    return med_lemma_frequency(text, has_tag=('A', 'Adv', 'N', 'V'),
+    """Return median content lemma frequency of the given document."""
+    return med_lemma_frequency(doc, has_tag=('A', 'Adv', 'N', 'V'),
                                rmv_punc=rmv_punc, zero_div_val=zero_div_val)
 
 
 @add_to_ALL('min_lemma_frequency', category='Lexical familiarity')
-def min_lemma_frequency(text: Text,
+def min_lemma_frequency(doc: Document,
                         has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',
                         rmv_punc=True, zero_div_val=NaN) -> float:
-    """Return minimum lemma frequency of the given text."""
-    freqs = ALL['_lemma_frequencies'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    """Return minimum lemma frequency of the given document."""
+    freqs = ALL['_lemma_frequencies'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     try:
         return min(freqs)
     except ValueError:
@@ -1388,19 +1377,21 @@ def min_lemma_frequency(text: Text,
 
 
 @add_to_ALL('min_content_lemma_frequency', category='Lexical familiarity')
-def min_content_lemma_frequency(text: Text, rmv_punc=True,
+def min_content_lemma_frequency(doc: Document, rmv_punc=True,
                                 zero_div_val=NaN) -> float:
-    """Return minimum content lemma frequency of the given text."""
-    return min_lemma_frequency(text, has_tag=('A', 'Adv', 'N', 'V'),
+    """Return minimum content lemma frequency of the given document."""
+    return min_lemma_frequency(doc, has_tag=('A', 'Adv', 'N', 'V'),
                                rmv_punc=rmv_punc, zero_div_val=NaN)
 
 
 @add_to_ALL('stdev_lemma_frequency', category='Lexical familiarity')
-def stdev_lemma_frequency(text: Text,
+def stdev_lemma_frequency(doc: Document,
                           has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',  # noqa: E501
                           rmv_punc=True, zero_div_val=NaN) -> float:
-    """Return standard deviation of the lemma frequencies of the given text."""
-    freqs = ALL['_lemma_frequencies'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    """Return standard deviation of the lemma frequencies of the given
+    document.
+    """
+    freqs = ALL['_lemma_frequencies'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     try:
         return stdev(freqs)
     except StatisticsError:
@@ -1408,39 +1399,39 @@ def stdev_lemma_frequency(text: Text,
 
 
 @add_to_ALL('stdev_content_lemma_frequency', category='Lexical familiarity')
-def stdev_content_lemma_frequency(text: Text, rmv_punc=True,
+def stdev_content_lemma_frequency(doc: Document, rmv_punc=True,
                                   zero_div_val=NaN) -> float:
     """Return standard deviation of the content lemma frequencies of the given
-    text.
+    document.
     """
-    return stdev_lemma_frequency(text, has_tag=('A', 'Adv', 'N', 'V'),
+    return stdev_lemma_frequency(doc, has_tag=('A', 'Adv', 'N', 'V'),
                                  rmv_punc=rmv_punc, zero_div_val=zero_div_val)
 
 
 @add_to_ALL('_token_frequencies', category='_prior')
-def _token_frequencies(text: Text,
+def _token_frequencies(doc: Document,
                        has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',
                        rmv_punc=True) -> List[float]:
     """Make list of token frequencies."""
-    toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
-    return [RNC_tok_freq_dict.get(tok.orig, 0) for tok in toks]  # type: ignore
+    toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
+    return [RNC_tok_freq_dict.get(tok.text, 0) for tok in toks]  # type: ignore
 
 
 @add_to_ALL('_token_frequency_ranks', category='_prior')
-def _token_frequency_ranks(text: Text,
+def _token_frequency_ranks(doc: Document,
                            has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',  # noqa: E501
                            rmv_punc=True) -> List[int]:
     """Make list of token frequency ranks."""
-    toks = ALL['_filter_toks'](text, has_tag=has_tag, rmv_punc=rmv_punc)
-    return [RNC_tok_freq_rank_dict.get(tok.orig, 0) for tok in toks]  # type: ignore  # noqa: E501
+    toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
+    return [RNC_tok_freq_rank_dict.get(tok.text, 0) for tok in toks]  # type: ignore  # noqa: E501
 
 
 @add_to_ALL('mean_token_frequency', category='Lexical familiarity')
-def mean_token_frequency(text: Text,
+def mean_token_frequency(doc: Document,
                          has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',
                          rmv_punc=True, zero_div_val=NaN) -> float:
-    """Return mean token frequency of the given text."""
-    freqs = ALL['_token_frequencies'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    """Return mean token frequency of the given document."""
+    freqs = ALL['_token_frequencies'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     try:
         return mean(freqs)
     except StatisticsError:
@@ -1448,11 +1439,11 @@ def mean_token_frequency(text: Text,
 
 
 @add_to_ALL('mean_token_frequency_rank', category='Lexical familiarity')
-def mean_token_frequency_rank(text: Text,
+def mean_token_frequency_rank(doc: Document,
                               has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',  # noqa: E501
                               rmv_punc=True, zero_div_val=NaN) -> float:
-    """Return mean token frequency rank of the given text."""
-    ranks = ALL['_token_frequency_ranks'](text, has_tag=has_tag,
+    """Return mean token frequency rank of the given document."""
+    ranks = ALL['_token_frequency_ranks'](doc, has_tag=has_tag,
                                           rmv_punc=rmv_punc)
     try:
         return mean(ranks)
@@ -1461,11 +1452,11 @@ def mean_token_frequency_rank(text: Text,
 
 
 @add_to_ALL('med_token_frequency', category='Lexical familiarity')
-def med_token_frequency(text: Text,
+def med_token_frequency(doc: Document,
                         has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',
                         rmv_punc=True, zero_div_val=NaN) -> float:
-    """Return median token frequency of the given text."""
-    freqs = ALL['_token_frequencies'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    """Return median token frequency of the given document."""
+    freqs = ALL['_token_frequencies'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     try:
         return median(freqs)
     except StatisticsError:
@@ -1473,11 +1464,11 @@ def med_token_frequency(text: Text,
 
 
 @add_to_ALL('min_token_frequency', category='Lexical familiarity')
-def min_token_frequency(text: Text,
+def min_token_frequency(doc: Document,
                         has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',
                         rmv_punc=True, zero_div_val=NaN) -> float:
-    """Return minimum token frequency of the given text."""
-    freqs = ALL['_token_frequencies'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    """Return minimum token frequency of the given document."""
+    freqs = ALL['_token_frequencies'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     try:
         return min(freqs)
     except StatisticsError:
@@ -1485,20 +1476,20 @@ def min_token_frequency(text: Text,
 
 
 @add_to_ALL('stdev_token_frequency', category='Lexical familiarity')
-def stdev_token_frequency(text: Text,
+def stdev_token_frequency(doc: Document,
                           has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',  # noqa: E501
                           rmv_punc=True, zero_div_val=NaN) -> float:
-    """Return standard deviation of token frequencies of the given text."""
-    freqs = ALL['_token_frequencies'](text, has_tag=has_tag, rmv_punc=rmv_punc)
+    """Return standard deviation of token frequencies of the given document."""
+    freqs = ALL['_token_frequencies'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     try:
         return min(freqs)
     except StatisticsError:
         return zero_div_val
 
 
-def Tag_present(tag: Tag, text: Text) -> bool:
-    """Determine whether a given tag is in `text`."""
-    return tag in text
+def Tag_present(tag: Tag, doc: Document) -> bool:
+    """Determine whether a given tag is in `doc`."""
+    return any(tag in reading for token in doc for reading in token.readings)
 for tag in tag_dict:  # noqa: E305
     name = f'{safe_name(tag)}_present'
     this_partial = partial(Tag_present, tag)
@@ -1509,10 +1500,10 @@ for tag in tag_dict:  # noqa: E305
 
 
 @add_to_ALL('sylls_per_sent', category='Sentence')
-def sylls_per_sent(text: Text, zero_div_val=NaN) -> float:
+def sylls_per_sent(doc: Document, zero_div_val=NaN) -> float:
     """Compute number of syllables per sentence."""
-    num_sylls = ALL['num_sylls'](text)
-    num_sents = ALL['num_sents'](text)
+    num_sylls = ALL['num_sylls'](doc)
+    num_sents = ALL['num_sents'](doc)
     try:
         return num_sylls / num_sents
     except ZeroDivisionError:
@@ -1520,12 +1511,12 @@ def sylls_per_sent(text: Text, zero_div_val=NaN) -> float:
 
 
 @add_to_ALL('chars_per_sent', category='Sentence')
-def chars_per_sent(text: Text, lower=False, rmv_punc=False,
+def chars_per_sent(doc: Document, lower=False, rmv_punc=False,
                    rmv_whitespace=True, uniq=False, zero_div_val=NaN) -> float:
     """Compute number of syllables per sentence."""
-    num_chars = ALL['num_chars'](text, lower=lower, rmv_punc=rmv_punc,
+    num_chars = ALL['num_chars'](doc, lower=lower, rmv_punc=rmv_punc,
                                  rmv_whitespace=rmv_whitespace, uniq=uniq)
-    num_sents = ALL['num_sents'](text)
+    num_sents = ALL['num_sents'](doc)
     try:
         return num_chars / num_sents
     except ZeroDivisionError:
@@ -1533,10 +1524,11 @@ def chars_per_sent(text: Text, lower=False, rmv_punc=False,
 
 
 @add_to_ALL('coord_conj_per_sent', category='Sentence')
-def coord_conj_per_sent(text: Text, rmv_punc=False, zero_div_val=NaN) -> float:
+def coord_conj_per_sent(doc: Document, rmv_punc=False,
+                        zero_div_val=NaN) -> float:
     """Compute number of coordinating conjunctions per sentence."""
-    num_tokens_CC = ALL['num_tokens_CC'](text, rmv_punc=rmv_punc)
-    num_sents = ALL['num_sents'](text)
+    num_tokens_CC = ALL['num_tokens_CC'](doc, rmv_punc=rmv_punc)
+    num_sents = ALL['num_sents'](doc)
     try:
         return num_tokens_CC / num_sents
     except ZeroDivisionError:
@@ -1544,11 +1536,11 @@ def coord_conj_per_sent(text: Text, rmv_punc=False, zero_div_val=NaN) -> float:
 
 
 @add_to_ALL('subord_conj_per_sent', category='Sentence')
-def subord_conj_per_sent(text: Text, rmv_punc=False,
+def subord_conj_per_sent(doc: Document, rmv_punc=False,
                          zero_div_val=NaN) -> float:
     """Compute number of coordinating conjunctions per sentence."""
-    num_tokens_CS = ALL['num_tokens_CS'](text, rmv_punc=rmv_punc)
-    num_sents = ALL['num_sents'](text)
+    num_tokens_CS = ALL['num_tokens_CS'](doc, rmv_punc=rmv_punc)
+    num_sents = ALL['num_sents'](doc)
     try:
         return num_tokens_CS / num_sents
     except ZeroDivisionError:
@@ -1556,11 +1548,11 @@ def subord_conj_per_sent(text: Text, rmv_punc=False,
 
 
 @add_to_ALL('definitions_per_token', category='Discourse')
-def definitions_per_token(text: Text, lower=False, rmv_punc=False,
+def definitions_per_token(doc: Document, lower=False, rmv_punc=False,
                           zero_div_val=NaN) -> float:
     """Compute number of definitions (a la Krioni et al. 2008) per token."""
-    num_definitions = ALL['num_definitions'](text)
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    num_definitions = ALL['num_definitions'](doc)
+    num_tokens = ALL['num_tokens'](doc, lower=lower, rmv_punc=rmv_punc)
     try:
         return num_definitions / num_tokens
     except ZeroDivisionError:
@@ -1568,10 +1560,10 @@ def definitions_per_token(text: Text, lower=False, rmv_punc=False,
 
 
 @add_to_ALL('definitions_per_sent', category='Discourse')
-def definitions_per_sent(text: Text, zero_div_val=NaN) -> float:
+def definitions_per_sent(doc: Document, zero_div_val=NaN) -> float:
     """Compute number of definitions (a la Krioni et al. 2008) per sentence."""
-    num_definitions = ALL['num_definitions'](text)
-    num_sents = ALL['num_sents'](text)
+    num_definitions = ALL['num_definitions'](doc)
+    num_sents = ALL['num_sents'](doc)
     try:
         return num_definitions / num_sents
     except ZeroDivisionError:
@@ -1579,24 +1571,24 @@ def definitions_per_sent(text: Text, zero_div_val=NaN) -> float:
 
 
 @add_to_ALL('num_propositions', category='Absolute length')
-def num_propositions(text: Text, rmv_punc=False) -> int:
+def num_propositions(doc: Document, rmv_punc=False) -> int:
     """Count number of propositions, as estimated by part-of-speech
     (a la Brown et al. 2007; 2008).
     """
-    prop_toks = ALL['_filter_toks'](text, has_tag=('A', 'Adv', 'CC', 'CS',
-                                                   'Pr', 'Det', 'V'),
+    prop_toks = ALL['_filter_toks'](doc, has_tag=('A', 'Adv', 'CC', 'CS', 'Pr',
+                                                  'Det', 'V'),
                                     rmv_punc=rmv_punc)
     return len(prop_toks)
 
 
 @add_to_ALL('propositions_per_token', category='Discourse')
-def propositions_per_token(text: Text, lower=False, rmv_punc=False,
+def propositions_per_token(doc: Document, lower=False, rmv_punc=False,
                            zero_div_val=NaN) -> float:
     """Compute propositional density per token, as estimated by part-of-speech
     counts (a la Brown et al. 2007; 2008).
     """
-    num_propositions = ALL['num_propositions'](text, rmv_punc=rmv_punc)
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    num_propositions = ALL['num_propositions'](doc, rmv_punc=rmv_punc)
+    num_tokens = ALL['num_tokens'](doc, lower=lower, rmv_punc=rmv_punc)
     try:
         return num_propositions / num_tokens
     except ZeroDivisionError:
@@ -1604,13 +1596,13 @@ def propositions_per_token(text: Text, lower=False, rmv_punc=False,
 
 
 @add_to_ALL('propositions_per_sent', category='Discourse')
-def propositions_per_sent(text: Text, rmv_punc=False,
+def propositions_per_sent(doc: Document, rmv_punc=False,
                           zero_div_val=NaN) -> float:
     """Compute propositional density per sentence, as estimated by
     part-of-speech counts (a la Brown et al. 2007; 2008).
     """
-    num_propositions = ALL['num_propositions'](text, rmv_punc=rmv_punc)
-    num_sents = ALL['num_sents'](text)
+    num_propositions = ALL['num_propositions'](doc, rmv_punc=rmv_punc)
+    num_sents = ALL['num_sents'](doc)
     try:
         return num_propositions / num_sents
     except ZeroDivisionError:
@@ -1618,18 +1610,18 @@ def propositions_per_sent(text: Text, rmv_punc=False,
 
 
 @add_to_ALL('num_dialog_punc', category='Absolute length')
-def num_dialog_punc(text: Text) -> int:
+def num_dialog_punc(doc: Document) -> int:
     """Count number of lines that begin with dialog punctuation."""
-    return len(re.findall(r'^\s*(?:[–—-]+|[а-яё]+:)', text.orig,
+    return len(re.findall(r'^\s*(?:[–—-]+|[а-яё]+:)', doc.text,
                           flags=re.I | re.M))
 
 
 @add_to_ALL('dialog_punc_per_token', category='Discourse')
-def dialog_punc_per_token(text: Text, lower=False, rmv_punc=False,
+def dialog_punc_per_token(doc: Document, lower=False, rmv_punc=False,
                           zero_div_val=NaN) -> float:
     """Compute percentage of tokens that are dialog punctuation."""
-    num_dialog_punc = ALL['num_dialog_punc'](text)
-    num_tokens = ALL['num_tokens'](text, lower=lower, rmv_punc=rmv_punc)
+    num_dialog_punc = ALL['num_dialog_punc'](doc)
+    num_tokens = ALL['num_tokens'](doc, lower=lower, rmv_punc=rmv_punc)
     try:
         return num_dialog_punc / num_tokens
     except ZeroDivisionError:

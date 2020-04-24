@@ -23,24 +23,24 @@ class Reading:
 
     A given Token can have many Readings.
     """
-    __slots__ = ['lemma', 'tags', 'weight', 'tagset', 'L2_tags', 'cg_rule',
-                 'most_likely']
+    __slots__ = ['cg_rule', 'L2_tags', 'lemma', 'most_likely', 'tags',
+                 'tagset', 'weight']
+    cg_rule: Optional[str]
+    L2_tags: Set[Tag]
     lemma: str
+    most_likely: bool
     tags: List[Tag]
     tagset: Set[Tag]
-    L2_tags: Set[Tag]
     weight: str
-    cg_rule: Optional[str]
-    most_likely: bool
 
     def __init__(self, r: str, weight: str, cg_rule: str):
         """Convert HFST tuples to more user-friendly interface."""
+        self.cg_rule = cg_rule
         self.lemma, *tags = re.split(r'\+(?=[^+])', r)  # TODO timeit
         self.tags = [tag_dict[t] for t in tags]
         self.tagset = set(self.tags)
-        self.L2_tags = {t for t in self.tags if t.is_L2}
         self.weight = weight
-        self.cg_rule = cg_rule
+        self.L2_tags = {t for t in self.tags if t.is_L2}
         self.most_likely = False
 
     def __contains__(self, key: Union[Tag, str]):
@@ -123,20 +123,22 @@ class MultiReading(Reading):
     """Complex grammatical analysis of a Token.
     (more than one underlying lemma)
     """
-    __slots__ = ['readings', 'weight', 'cg_rule', 'most_likely']
-    readings: List[Reading]
-    weight: str
+    __slots__ = ['cg_rule', 'most_likely', 'readings', 'weight']
     cg_rule: str
     most_likely: bool
+    readings: List[Reading]
+    weight: str
 
     def __init__(self, readings: str, weight: str, cg_rule: str):
         """Convert HFST tuples to more user-friendly interface."""
+        # TODO use @property to make the interface of Reading and MultiReading
+        # the same. Possibly even merge them into the same object.
         assert '#' in readings
+        self.cg_rule = cg_rule
+        self.most_likely = False
         self.readings = [_readify((r, weight, cg_rule))
                          for r in re.findall(r'([^+]*[^#]+)#?', readings)]
         self.weight = weight
-        self.cg_rule = cg_rule
-        self.most_likely = False
 
     def __contains__(self, key: Union[Tag, str]):
         """Enable `in` MultiReading.

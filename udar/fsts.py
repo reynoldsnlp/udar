@@ -37,7 +37,7 @@ class Udar:
     >>> ana = Udar('analyzer')
     >>> tok = ana.lookup('сло́ва')
     >>> tok
-    Token(orig=сло́ва, readings=[Reading(слово+N+Neu+Inan+Sg+Gen, 5.975586, )], removed_readings=[])
+    Token(text=сло́ва, readings=[Reading(слово+N+Neu+Inan+Sg+Gen, 5.975586, )], removed_readings=[])
     >>> print(tok)
     сло́ва [слово_N_Neu_Inan_Sg_Gen]
     >>> gen = Udar('accented-generator')
@@ -65,8 +65,8 @@ class Udar:
                   'generator': 'generator-gt-norm.hfstol',
                   'accented-generator': 'generator-gt-norm.accented.hfstol',
                   'phonetic-generator': 'generator-gt-norm.phonetic.hfstol'}
-        for alias, orig in ALIAS.items():
-            fnames[alias] = fnames[orig]
+        for alias, actual in ALIAS.items():
+            fnames[alias] = fnames[actual]
         try:
             self.path2fst = f'{RSRC_PATH}{fnames[flavor]}'
         except KeyError as e:
@@ -79,7 +79,7 @@ class Udar:
         """Return str from a given lemma+Reading."""
         try:
             if isinstance(read, Reading):
-                read = read.hfst_noL2_str()
+                read = read.hfst_noL2_str()  # TODO parameterize this
         except NameError:
             # fancy stuff to import Reading as global variable
             from importlib import import_module
