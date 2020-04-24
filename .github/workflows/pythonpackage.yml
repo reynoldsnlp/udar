@@ -24,6 +24,7 @@ jobs:
         wget https://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
         sudo apt-get -f install hfst vislcg3
         python3 -c "import nltk; nltk.download('punkt')"
+        python3 -c "import stanza; stanza.download(lang='ru')"
     - name: Lint with flake8
       run: |
         python3 -m pip install flake8
