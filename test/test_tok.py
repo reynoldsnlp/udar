@@ -27,12 +27,12 @@ def test_tok_cg3_str():
 
 def test_tok_lt():
     v = udar.Token('0')
-    v.readings = [0]
+    v._readings = [0]
     w = udar.Token('0')
-    w.readings = [1]
+    w._readings = [1]
     w.removed_readings = [0]
     x = udar.Token('0')
-    x.readings = [1]
+    x._readings = [1]
     x.removed_readings = [1]
     y = udar.Token('1')
     z = udar.Token('2')
@@ -41,9 +41,9 @@ def test_tok_lt():
 
 def test_tok_eq():
     v = udar.Token('0')
-    v.readings = [0]
+    v._readings = [0]
     w = udar.Token('0')
-    w.readings = [0]
+    w._readings = [0]
     w.removed_readings = [0]
     assert v == w
     assert v != ''

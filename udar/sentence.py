@@ -10,7 +10,6 @@ from subprocess import Popen
 import sys
 from time import strftime
 from typing import Callable
-from typing import Iterator
 from typing import List
 from typing import Tuple
 from typing import TYPE_CHECKING
@@ -126,11 +125,12 @@ class Sentence:
     tokens: List[Token]
     # words: List[Word]  # TODO
 
-    def __init__(self, input_text, doc=None, tokenize=True,
+    def __init__(self, input_text='', doc=None, tokenize=True,
                  analyze=True, disambiguate=False, tokenizer=None,
                  analyzer=None, gram_path=None,
                  id=None, experiment=False, annotation='',
-                 features=None, feat_cache=None, from_file=False):
+                 features=None, feat_cache=None, filename=None,
+                 orig_text=''):
         self._analyzed = False
         self._disambiguated = False
         if feat_cache is None:
@@ -149,36 +149,44 @@ class Sentence:
         self.tokens = []
         if tokenizer is None:
             tokenizer = get_tokenizer()
+        if filename is not None:
+            assert input_text == '', ('If filename is specified, input_text '
+                                      "must be ''.")
+            with open(filename) as f:
+                input_text = f.read()
+
         if isinstance(input_text, str):
             self._from_str = True
-            if from_file:  # TODO from_file -> filename
-                with open(input_text) as f:
-                    self.text = f.read()
-            else:
-                self.text = input_text
             self._tokenized = False
             self._toks = []
+            self.text = input_text
         # elif input_text is a sequence of `str`s...
         elif ((hasattr(input_text, '__iter__')
                or hasattr(input_text, '__getitem__'))
               and isinstance(input_text[0], str)):
-            if from_file:
-                raise TypeError('With from_file set to True, input_text must '
-                                'be a filename; sequence of str\'s given.')
+            if filename is not None:
+                raise ValueError('With filename provided, input_text must '
+                                 "be ''; sequence of `str`s given.")
             self._toks = input_text
             self._tokenized = True
-            self.text = ' '.join(input_text)
+            if orig_text:
+                self.text = orig_text
+            else:
+                self.text = ' '.join(input_text)
         # elif input_text is a sequence of `Token`s...
         elif ((hasattr(input_text, '__iter__')
                or hasattr(input_text, '__getitem__'))
               and isinstance(input_text[0], Token)):
-            if from_file:
-                raise TypeError('With from_file set to True, input_text must '
-                                'be a filename; sequence of Tokens given.')
+            if filename is not None:
+                raise ValueError('With filename provided, input_text must '
+                                 "be ''; sequence of `Token`s given.")
             self._analyzed = True
             self.tokens = input_text
             self._tokenized = True
-            self.text = ' '.join([t.text for t in input_text])
+            if orig_text:
+                self.text = orig_text
+            else:
+                self.text = ' '.join([t.text for t in input_text])
             return
         else:
             raise NotImplementedError('Expected `str`, '
@@ -186,6 +194,7 @@ class Sentence:
                                       'or sequence of `Token`s; '
                                       f'got {type(input_text)}: '
                                       f'{repr(input_text)[:50]}...')
+
         if tokenize and not self._toks:
             self.tokenize(tokenizer=tokenizer)
         if analyze:
@@ -227,10 +236,12 @@ class Sentence:
         except TypeError:
             return f'(Sentence (not tokenized) {self.text[:30]})'
 
-    def cg3_str(self, traces=False, annotated=False) -> str:
+    def cg3_str(self, traces=False, annotated=True) -> str:
         """Sentence CG3-style stream."""
         if annotated and self.annotation:
-            ann = f'TEXT: {self.annotation}\n'
+            ann = (f'\n# SENT ID: {self.id}\n'
+                   f'# ANNOTATION: {self.annotation}\n'
+                   f'# TEXT: {self.text.replace("{NEWLINE}", " ")}\n')
         else:
             ann = ''
         return f"{ann}{NEWLINE.join(t.cg3_str(traces=traces, annotated=annotated) for t in self)}\n\n"  # noqa: E501
@@ -555,7 +566,7 @@ def _get_Sentence(text: Union[str, List[str], Sentence], **kwargs) -> Sentence:
     if isinstance(text, str):
         return Sentence(text, **kwargs)
     elif isinstance(text, list):
-        return Sentence(' '.join(text), **kwargs)  # TODO make more robust
+        return Sentence(' '.join(text), **kwargs)  # TODO more robust respace
     elif isinstance(text, Sentence):
         return text
     else:

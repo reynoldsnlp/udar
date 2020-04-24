@@ -241,7 +241,7 @@ class FeatureSetExtractor(OrderedDict):
         if header:
             output.append(feat_names)
         if ((hasattr(docs, '__iter__') or hasattr(docs, '__getitem__'))
-                and isinstance(docs[0], Document)):
+                and isinstance(next(iter(docs)), Document)):
             for doc in docs:
                 doc.features = self._call_features(doc,
                                                     feat_names=feat_names,

@@ -32,10 +32,11 @@ GRAVE = '\u0300'
 
 class Token:
     """Custom token object"""
-    __slots__ = ['annotation', 'end_char', 'features', 'id', 'lemmas', 'misc',
-                 'phon_predictions', 'readings', 'removed_readings',
-                 'start_char', 'stress_ambig', 'stress_predictions',
-                 'text', 'upper_indices', 'words']
+    __slots__ = ['_readings', 'annotation', 'end_char', 'features', 'id',
+                 'lemmas', 'misc', 'phon_predictions', 'removed_readings',
+                 'start_char', 'stress_ambig', 'stress_predictions', 'text',
+                 'upper_indices', 'words']
+    _readings: List['Reading']
     annotation: str
     end_char: int
     features: Tuple
@@ -43,7 +44,6 @@ class Token:
     lemmas: Set[str]
     misc: str
     phon_predictions: Dict[StressParams, set]
-    readings: List['Reading']
     removed_readings: List['Reading']
     start_char: int
     stress_ambig: int  # number of stressed alternatives
@@ -52,19 +52,26 @@ class Token:
     upper_indices: Set[int]
     # words: List[Word]  # TODO
 
-    def __init__(self, text=None, readings=[], removed_readings=[]):
+    def __init__(self, text, readings=[], removed_readings=[]):
         from .reading import _readify
         self.annotation = None
         self.features = {}
-        self.readings = [_readify(r) for r in readings]
-        if self.readings == [None]:
-            self.readings = []
         self.removed_readings = [_readify(r) for r in removed_readings]
         self.text = text
         self.upper_indices = self.cap_indices()
+        # keep self.readings last, since it calls readings.setter()
+        self.readings = [_readify(r) for r in readings]
+
+    @property
+    def readings(self) -> List['Reading']:
+        return self._readings
+
+    @readings.setter
+    def readings(self, readings):
+        self._readings = [r for r in readings if r is not None]
         self.update_lemmas_stress_and_phon()
 
-    def update_lemmas_stress_and_phon(self):  # TODO worth the overhead?
+    def update_lemmas_stress_and_phon(self):
         self.lemmas = set()
         for r in self.readings:
             try:
@@ -236,13 +243,13 @@ class Token:
         acc_gen = get_fst('acc-generator')
         if recase:
             try:
-                stresses = {self.recase(r.generate(acc_gen))
+                stresses = {self.recase(r.generate(fst=acc_gen))
                             for r in self.readings}
             except AttributeError as e:  # pragma: no cover
                 raise AttributeError('Problem generating stresses from: '
                                      f'{self} {self.readings}.') from e
         else:
-            stresses = {r.generate(acc_gen) for r in self.readings}
+            stresses = {r.generate(fst=acc_gen) for r in self.readings}
         stresses = {s for s in stresses if s is not None}
         return stresses
 
@@ -366,7 +373,7 @@ class Token:
         """Return set of all phonetic transcriptions from self.readings."""
         from .fsts import get_fst
         phon_gen = get_fst('phonetic-generator')
-        phon_transcriptions = {r.generate(phon_gen) for r in self.readings}
+        phon_transcriptions = {r.generate(fst=phon_gen) for r in self.readings}
         return phon_transcriptions
 
     def phoneticize(self, disambiguated=None, selection='safe', guess=False,

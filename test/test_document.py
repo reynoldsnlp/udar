@@ -1,3 +1,4 @@
+from itertools import chain
 from pkg_resources import resource_filename
 from sys import stderr
 
@@ -85,7 +86,7 @@ def test_cg_conv_equivalence():
     p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC',  # noqa: E501
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
-    assert output == doc.cg3_str(with_ids=False)
+    assert output == doc.cg3_str(annotated=False)
 
 
 def test_cg3_parse():
@@ -97,7 +98,7 @@ def test_cg3_parse():
     p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC | vislcg3 -g {RSRC_PATH}disambiguator.cg3',  # noqa: E501
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
-    assert output == doc.cg3_str(with_ids=False)
+    assert output == doc.cg3_str(annotated=False)
 
 
 def test_cg3_parse_w_traces():
@@ -109,7 +110,7 @@ def test_cg3_parse_w_traces():
     p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC | vislcg3 -t -g {RSRC_PATH}disambiguator.cg3',  # noqa: E501
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
-    assert output == doc.cg3_str(with_ids=False, traces=True)
+    assert output == doc.cg3_str(annotated=False, traces=True)
 
 
 def test_from_hfst():
@@ -157,3 +158,8 @@ def test_doc_deepcopy():
             except ValueError:
                 print('could not iterate', doc, file=stderr)
                 pass
+
+def test_str2Sentences():
+    super_sentence = udar.Sentence(sent2)
+    sentences = udar.document._str2Sentences(super_sentence.text)
+    assert len(super_sentence) == len(list(chain(*sentences)))

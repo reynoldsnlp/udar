@@ -79,13 +79,13 @@ class Udar:
         """Return str from a given lemma+Reading."""
         try:
             if isinstance(read, Reading):
-                read = read.hfst_noL2_str()  # TODO parameterize this
+                read = read.hfst_noL2_str()  # TODO add L2 tags to generator
         except NameError:
-            # fancy stuff to import Reading as global variable
+            # fancy stuff to import Reading in *global* scope
             from importlib import import_module
             globals()['Reading'] = import_module('.reading', 'udar').Reading  # type: ignore  # noqa: E501
             if isinstance(read, Reading):
-                read = read.hfst_noL2_str()
+                read = read.hfst_noL2_str()  # TODO add L2 tags to generator
         try:
             return self.fst.lookup(read)[0][0]
         except IndexError:
