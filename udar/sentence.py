@@ -11,6 +11,7 @@ import sys
 from time import strftime
 from typing import Callable
 from typing import List
+from typing import Optional
 from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Type
@@ -19,6 +20,7 @@ from warnings import warn
 
 from .fsts import get_fst
 from .fsts import HFSTTokenizer
+from .misc import get_stanza_pretokenized_pipeline
 from .misc import destress
 from .misc import result_names
 from .misc import StressParams
@@ -27,6 +29,7 @@ from .tok import Token
 from .transliterate import transliterate
 
 if TYPE_CHECKING:
+    import stanza  # type: ignore  # noqa: F401
     from .document import Document
 
 __all__ = ['hfst_tokenize', 'Sentence']
@@ -59,7 +62,7 @@ def which(program):
 def hfst_tokenize(input_str: str) -> List[str]:
     try:
         p = Popen(['hfst-tokenize',
-                   RSRC_PATH + 'tokeniser-disamb-gt-desc.pmhfst'],
+                   f'{RSRC_PATH}tokeniser-disamb-gt-desc.pmhfst'],
                   stdin=PIPE,
                   stdout=PIPE,
                   universal_newlines=True)
@@ -107,12 +110,13 @@ class Sentence:
     "Sentence('Мы хотим', 7 tokens)"
     """
     __slots__ = ['_analyzed', '_disambiguated', '_feat_cache', '_from_str',
-                 '_tokenized', '_toks', 'annotation', 'doc', 'experiment',
-                 'features', 'id', 'text', 'tokens']
+                 '_stanza_sent', '_tokenized', '_toks', 'annotation',
+                 'doc', 'experiment', 'features', 'id', 'text', 'tokens']
     _analyzed: bool
     _disambiguated: bool
     _feat_cache: dict
     _from_str: bool
+    _stanza_sent: Optional['stanza.models.common.doc.Sentence']
     _tokenized: bool
     _toks: List[str]
     annotation: str
@@ -125,11 +129,10 @@ class Sentence:
     tokens: List[Token]
     # words: List[Word]  # TODO
 
-    def __init__(self, input_text='', doc=None, tokenize=True,
-                 analyze=True, disambiguate=False, tokenizer=None,
-                 analyzer=None, gram_path=None,
-                 id=None, experiment=False, annotation='',
-                 features=None, feat_cache=None, filename=None,
+    def __init__(self, input_text='', doc=None, tokenize=True, analyze=True,
+                 disambiguate=False, depparse=False, tokenizer=None,
+                 analyzer=None, gram_path=None, id=None, experiment=False,
+                 annotation='', features=None, feat_cache=None, filename=None,
                  orig_text=''):
         self._analyzed = False
         self._disambiguated = False
@@ -138,6 +141,7 @@ class Sentence:
         else:
             self._feat_cache = feat_cache
         self._from_str = False
+        self._stanza_sent = None
         self.annotation = annotation
         self.doc = doc
         self.experiment = experiment
@@ -155,6 +159,7 @@ class Sentence:
             with open(filename) as f:
                 input_text = f.read()
 
+        # if input_text is a `str`...
         if isinstance(input_text, str):
             self._from_str = True
             self._tokenized = False
@@ -163,7 +168,7 @@ class Sentence:
         # elif input_text is a sequence of `str`s...
         elif ((hasattr(input_text, '__iter__')
                or hasattr(input_text, '__getitem__'))
-              and isinstance(input_text[0], str)):
+              and isinstance(next(iter(input_text)), str)):
             if filename is not None:
                 raise ValueError('With filename provided, input_text must '
                                  "be ''; sequence of `str`s given.")
@@ -176,7 +181,7 @@ class Sentence:
         # elif input_text is a sequence of `Token`s...
         elif ((hasattr(input_text, '__iter__')
                or hasattr(input_text, '__getitem__'))
-              and isinstance(input_text[0], Token)):
+              and isinstance(next(iter(input_text)), Token)):
             if filename is not None:
                 raise ValueError('With filename provided, input_text must '
                                  "be ''; sequence of `Token`s given.")
@@ -187,7 +192,13 @@ class Sentence:
                 self.text = orig_text
             else:
                 self.text = ' '.join([t.text for t in input_text])
-            return
+            if tokenize or analyze:
+                warn('When constructing a Sentence from a list of Tokens, '
+                     '`tokenize` and `analyze` are ignored. The following '
+                     f'were passed as True: {"tokenize" if tokenize else ""} '
+                     f'{"analyze" if analyzer else ""}', stacklevel=2)
+            tokenize = False
+            analyze = False
         else:
             raise NotImplementedError('Expected `str`, '
                                       'or sequence of `str`s, '
@@ -201,20 +212,62 @@ class Sentence:
             self.analyze(analyzer=analyzer)
         if disambiguate:
             self.disambiguate(gram_path=gram_path)
+        if depparse:
+            self.depparse()
+
+    def _get_stanza_sent(self):
+        stanza_pipeline = get_stanza_pretokenized_pipeline()
+        doc = stanza_pipeline([[tok.text for tok in self.tokens]])
+        return doc.sentences[0]
+
+    def depparse(self):
+        if self._stanza_sent is None:
+            self._stanza_sent = self._get_stanza_sent()
+        stanza_iter = iter(self._stanza_sent.tokens)
+        for self_token in self.tokens:
+            stanza_toks = [next(stanza_iter)]
+            while (len(self_token.text) > len(' '.join(tok.text
+                                                       for tok in stanza_toks))
+                   and stanza_toks[-1].text in self_token.text.split(' ')):
+                stanza_toks.append(next(stanza_iter))
+            stanza_ids = {tok.id for tok in stanza_toks if int(tok.id)}
+            self_token.id = f'{min(stanza_ids)}{f"-{max(stanza_ids)}" if len(stanza_ids) > 1 else ""}'  # noqa: E501
+            assert all(len(tok.words) == 1 for tok in stanza_toks)
+            stanza_heads = {tok.words[0].head for tok in stanza_toks}
+            external_head = stanza_heads.difference(stanza_ids)
+            if len(external_head) > 1:
+                warn(f'Stanza tokens ({"/".join(t.text for t in stanza_toks)})'
+                     f' aligned with {self_token.text} have separate external '
+                     f'heads: {external_head}. The lower number will be used.',
+                     stacklevel=2)
+                external_head = set([min(external_head)])
+            self_token.head = external_head.pop()
+            deprels = {tok.words[0].deprel for tok in stanza_toks
+                       if tok.words[0].head == self_token.head}
+            if len(deprels) != 1:
+                warn('Multiple differing deprels are possible. One will be '
+                     f'chosen at random: {stanza_toks}', stacklevel=2)
+            self_token.deprel = deprels.pop()
 
     @classmethod
     def from_cg3(cls: 'Type[Sentence]', input_str: str, disambiguate=False,
                  **kwargs) -> 'Sentence':
         """Initialize Sentence object from CG3 stream."""
         tokens = cls.parse_cg3(input_str)
-        return cls(tokens, disambiguate=disambiguate, **kwargs)
+        return cls(tokens, tokenize=False, analyze=False,
+                   disambiguate=disambiguate,
+                   **{kw: arg for kw, arg in kwargs.items()
+                      if kw not in {'tokenize', 'analyze'}})
 
     @classmethod
     def from_hfst(cls: 'Type[Sentence]', input_str: str, disambiguate=False,
                   **kwargs) -> 'Sentence':
         """Initialize Sentence object from HFST stream."""
         tokens = cls.parse_hfst(input_str)
-        return cls(tokens, disambiguate=disambiguate, **kwargs)
+        return cls(tokens, tokenize=False, analyze=False,
+                   disambiguate=disambiguate,
+                   **{kw: arg for kw, arg in kwargs.items()
+                      if kw not in {'tokenize', 'analyze'}})
 
     def __format__(self, format_spec: str):
         tok_count = len(self)
@@ -244,7 +297,7 @@ class Sentence:
                    f'# TEXT: {self.text.replace("{NEWLINE}", " ")}\n')
         else:
             ann = ''
-        return f"{ann}{NEWLINE.join(t.cg3_str(traces=traces, annotated=annotated) for t in self)}\n\n"  # noqa: E501
+        return f"{ann}{NEWLINE.join(t.cg3_str(traces=traces, annotated=annotated) for t in self)}\n"  # noqa: E501
 
     def __lt__(self, other):
         return self.tokens < other.tokens
@@ -311,7 +364,7 @@ class Sentence:
     def disambiguate(self, gram_path=None, traces=True) -> None:
         """Remove Sentence's readings using CG3 grammar at gram_path."""
         if gram_path is None:
-            gram_path = RSRC_PATH + 'disambiguator.cg3'
+            gram_path = f'{RSRC_PATH}disambiguator.cg3'
         elif isinstance(gram_path, str):
             pass
         elif isinstance(gram_path, Path):

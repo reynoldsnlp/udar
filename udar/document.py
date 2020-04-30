@@ -3,13 +3,14 @@ import re
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Sequence
 from typing import Tuple
 from typing import Union
 from warnings import warn
 
 # import nltk (this happens covertly by unpickling nltk_punkt_russian.pkl)
-import stanza  # type: ignore
 
+from .misc import get_stanza_sent_tokenizer
 from .sentence import Sentence
 
 
@@ -19,22 +20,19 @@ NEWLINE = '\n'  # for use in f-strings
 
 src = '''Мы все говорили кое о чем с тобой, но по-моему, все это ни к чему, как он сказал. Он стоял в парке и. Ленина.'''  # noqa: E501
 
-stanza_sent = stanza.Pipeline(lang='ru', processors='tokenize')
-stanza_pretokenized = stanza.Pipeline(lang='ru', processors='tokenize',
-                                      tokenize_pretokenized=True)
-
 # Obsolete??
 # def get_sent_tokenizer():
 #     global nltk_sent_tokenizer
 #     try:
 #         return nltk_sent_tokenizer
 #     except NameError:
-#         with open(RSRC_PATH + 'nltk_punkt_russian.pkl', 'rb') as f:
+#         with open(f'{RSRC_PATH}nltk_punkt_russian.pkl', 'rb') as f:
 #             nltk_sent_tokenizer = pickle.load(f)
 #         return nltk_sent_tokenizer
 
 
 def _str2Sentences(input_str, **kwargs):
+    stanza_sent = get_stanza_sent_tokenizer()
     stanza_doc = stanza_sent(input_str)
     return [Sentence(sent.text, **kwargs)
             for i, sent in enumerate(stanza_doc.sentences)]
@@ -51,17 +49,18 @@ class Document:
     sentences: List[Sentence]
     text: str
 
-    def __init__(self, input_text: Union[str, List[Sentence], 'Document'],
+    def __init__(self, input_text: Union[str, Sequence[Sentence], 'Document'],
                  **kwargs):
         self._feat_cache = {}
         self.features = ()
         if isinstance(input_text, str):
             self.text = input_text
             self.sentences = _str2Sentences(input_text, doc=self, **kwargs)
-        elif (isinstance(input_text, list)
-              and isinstance(input_text[0], Sentence)):
+        elif ((hasattr(input_text, '__getitem__')
+               or hasattr(input_text, '__iter__'))
+              and isinstance(next(iter(input_text)), Sentence)):
             self.text = ' '.join(sent.text for sent in input_text)
-            self.sentences = input_text
+            self.sentences = list(input_text)
             for sent in self.sentences:
                 sent.doc = self
         elif isinstance(input_text, Document):
@@ -102,12 +101,12 @@ class Document:
         return '\n'.join(str(sent) for sent in self.sentences)
 
     def cg3_str(self, **kwargs):  # alternative to __str__
-        return '\n'.join(f'{sent.cg3_str(**kwargs)}'
-                         for sent in self.sentences)
+        return ''.join(f'{sent.cg3_str(**kwargs)}\n'
+                       for sent in self.sentences)
 
     def hfst_str(self):  # alternative to __str__
-        return '\n\n'.join(sent.hfst_str()
-                           for sent in self.sentences)
+        return ''.join(sent.hfst_str()
+                       for sent in self.sentences)
 
     def conll_str(self):  # alternative to __str__
         raise NotImplementedError()
@@ -131,7 +130,10 @@ class Document:
             sents_from_cg3 = []
             base = 0
             for length in lengths:
-                sent = Sentence(super_sentence[base:base + length], **kwargs)
+                sent = Sentence(super_sentence[base:base + length],
+                                tokenize=False, analyze=False,
+                                **{kw: arg for kw, arg in kwargs.items()
+                                   if kw not in {'tokenize', 'analyzer'}})
                 sents_from_cg3.append(sent)
                 base += length
             return cls(sents_from_cg3, **kwargs)
@@ -144,7 +146,10 @@ class Document:
         sents_from_cg3 = []
         base = 0
         for length in lengths:
-            sent = Sentence(super_sentence[base:base + length], **kwargs)
+            sent = Sentence(super_sentence[base:base + length], tokenize=False,
+                            analyze=False,
+                            **{kw: arg for kw, arg in kwargs.items()
+                               if kw not in {'tokenize', 'analyzer'}})
             sents_from_cg3.append(sent)
             base += length
         return cls(sents_from_cg3, **kwargs)

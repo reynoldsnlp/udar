@@ -20,6 +20,7 @@ from .tag import Tag
 from .transliterate import transliterate
 
 if TYPE_CHECKING:
+    import stanza  # type: ignore  # noqa: F401
     from .reading import MultiReading
     from .reading import Reading
 
@@ -32,14 +33,18 @@ GRAVE = '\u0300'
 
 class Token:
     """Custom token object"""
-    __slots__ = ['_readings', 'annotation', 'end_char', 'features', 'id',
-                 'lemmas', 'misc', 'phon_predictions', 'removed_readings',
-                 'start_char', 'stress_ambig', 'stress_predictions', 'text',
-                 'upper_indices', 'words']
+    __slots__ = ['_readings', '_stanza_tokens', 'annotation', 'deprel',
+                 'end_char', 'features', 'head', 'id', 'lemmas', 'misc',
+                 'phon_predictions', 'removed_readings', 'start_char',
+                 'stress_ambig', 'stress_predictions', 'text', 'upper_indices',
+                 'words']
     _readings: List['Reading']
+    _stanza_tokens: List['stanza.models.common.doc.Token']
     annotation: str
+    deprel: str
     end_char: int
     features: Tuple
+    head: int
     id: str  # 1-based index of word(s) in sentence (e.g., '4' or '7-9')
     lemmas: Set[str]
     misc: str
@@ -54,6 +59,7 @@ class Token:
 
     def __init__(self, text, readings=[], removed_readings=[]):
         from .reading import _readify
+        self._stanza_tokens = []
         self.annotation = None
         self.features = {}
         self.removed_readings = [_readify(r) for r in removed_readings]

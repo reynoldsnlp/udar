@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 __all__ = ['get_fst', 'get_g2p', 'Udar']
 
 RSRC_PATH = resource_filename('udar', 'resources/')
-G2P_FNAME = RSRC_PATH + 'g2p.hfstol'
+G2P_FNAME = f'{RSRC_PATH}g2p.hfstol'
 
 ALIAS = {'analyser': 'analyzer',
          'L2-analyser': 'L2-analyzer',

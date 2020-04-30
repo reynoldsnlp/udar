@@ -9,8 +9,8 @@ from udar.features import ALL
 
 RSRC_PATH = resource_filename('udar', 'resources/')
 
-sent_path = 'resources/sent1.txt'
-sent = 'Иванов и Сыроежкин говорили полчаса кое с кем о лицах, "ртах" и т.д.'
+text_path = 'resources/sent1.txt'
+text = 'Иванов и Сыроежкин говорили полчаса кое с кем о лицах, "ртах" и т.д.'
 
 
 def _get_all_dependent_keyword_arguments(feat_name):
@@ -26,14 +26,14 @@ def test_ALL():
 
 
 def test_extract_ALL():
-    doc1 = udar.Document(sent)
-    doc2 = udar.Document(sent)
+    doc1 = udar.Document(text, depparse=True)
+    doc2 = udar.Document(text, depparse=True)
     assert len(ALL(doc1)) == 2
     assert len(ALL([doc1, doc2])) == 3
 
 
 def test_extract_subset():
-    doc1 = udar.Document(sent)
+    doc1 = udar.Document(text, depparse=True)
     subset = ALL.new_extractor_from_subset(['type_token_ratio'])
     assert repr(list(zip(*subset(doc1)))) == "[('type_token_ratio', 0.8571428571428571)]"  # noqa: E501
 

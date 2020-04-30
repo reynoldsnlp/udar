@@ -7,8 +7,10 @@ import udar
 
 RSRC_PATH = resource_filename('udar', 'resources/')
 
-sent = 'Иванов и Сыроежкин говорили полчаса кое с кем о лицах, "ртах" и т.д.'
-sent2 = '''Мы все говорили кое о чем с тобой, но по-моему, все это ни к чему, как он сказал. Он стоял в парке и. Ленина.'''  # noqa: E501
+test_sents = ['Иванов и Сыроежкин говорили полчаса кое с кем о лицах, "ртах" и т.д.',  # noqa: E501
+              'Мы все говорили кое о чем с тобой, но по-моему, все это ни к чему, как он сказал.',  # noqa: E501
+              'Он стоял в парке и. Ленина.']
+joined_sents = '\n'.join(test_sents)
 
 hfst_str = '''Мы	мы+Pron+Pers+Pl1+Nom	50.000000
 
@@ -70,8 +72,8 @@ def test_doc_init():
 def test_hfst_stream_equivalence():
     from subprocess import Popen
     from subprocess import PIPE
-    toks = '\n'.join(udar.hfst_tokenize(sent))
-    doc = udar.Document(sent)
+    toks = '\n'.join(udar.hfst_tokenize(joined_sents))
+    doc = udar.Document(joined_sents)
     p = Popen(['hfst-lookup', RSRC_PATH + 'analyser-gt-desc.hfstol'],
               stdin=PIPE, stdout=PIPE, universal_newlines=True)
     output, error = p.communicate(toks)
@@ -81,40 +83,51 @@ def test_hfst_stream_equivalence():
 def test_cg_conv_equivalence():
     from subprocess import Popen
     from subprocess import PIPE
-    toks = '\n'.join(udar.hfst_tokenize(sent))
-    doc = udar.Document(sent)
-    p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC',  # noqa: E501
+    toks = '\n'.join(udar.hfst_tokenize(joined_sents))
+    doc = udar.Document(joined_sents)
+    p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol '
+               '| cg-conv -fC',
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
-    assert output == doc.cg3_str(annotated=False)
+    assert output == doc.cg3_str(annotated=False).replace('\n\n', '\n') + '\n'
 
 
 def test_cg3_parse():
     from subprocess import Popen
     from subprocess import PIPE
-    toks = '\n'.join(udar.hfst_tokenize(sent))
-    doc = udar.Document(sent)
+    doc = udar.Document(joined_sents)
     doc.disambiguate()
-    p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC | vislcg3 -g {RSRC_PATH}disambiguator.cg3',  # noqa: E501
-               stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
-    output, error = p1.communicate(toks)
-    assert output == doc.cg3_str(annotated=False)
+    output_stream = [] 
+    for sent in doc.sentences:
+        p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol '
+                   '| cg-conv -fC '
+                   f'| vislcg3 -g {RSRC_PATH}disambiguator.cg3',
+                   stdin=PIPE, stdout=PIPE, universal_newlines=True,
+                   shell=True)
+        output, error = p1.communicate('\n'.join(tok.text for tok in sent))
+        output_stream.append(output)
+    assert ''.join(output_stream) == doc.cg3_str(annotated=False)
 
 
 def test_cg3_parse_w_traces():
     from subprocess import Popen
     from subprocess import PIPE
-    toks = '\n'.join(udar.hfst_tokenize(sent))
-    doc = udar.Document(sent)
+    doc = udar.Document(joined_sents)
     doc.disambiguate(traces=True)
-    p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC | vislcg3 -t -g {RSRC_PATH}disambiguator.cg3',  # noqa: E501
-               stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
-    output, error = p1.communicate(toks)
-    assert output == doc.cg3_str(annotated=False, traces=True)
+    output_stream = []
+    for sent in doc.sentences:
+        p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol '
+                   '| cg-conv -fC '
+                   f'| vislcg3 -t -g {RSRC_PATH}disambiguator.cg3',
+                   stdin=PIPE, stdout=PIPE, universal_newlines=True,
+                   shell=True)
+        output, error = p1.communicate('\n'.join(tok.text for tok in sent))
+        output_stream.append(output)
+    assert ''.join(output_stream) == doc.cg3_str(annotated=False, traces=True)
 
 
 def test_from_hfst():
-    doc = udar.Document(sent)
+    doc = udar.Document(joined_sents)
     doc2 = udar.Document.from_hfst(doc.hfst_str())
     assert doc == doc2
 
@@ -159,7 +172,8 @@ def test_doc_deepcopy():
                 print('could not iterate', doc, file=stderr)
                 pass
 
+
 def test_str2Sentences():
-    super_sentence = udar.Sentence(sent2)
+    super_sentence = udar.Sentence(joined_sents)
     sentences = udar.document._str2Sentences(super_sentence.text)
     assert len(super_sentence) == len(list(chain(*sentences)))
