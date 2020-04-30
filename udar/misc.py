@@ -6,6 +6,8 @@ from pkg_resources import resource_filename
 import re
 from typing import Dict
 
+import stanza  # type: ignore
+
 
 __all__ = ['StressParams', 'Result', 'result_names', 'destress',
            'compute_metrics', 'unspace_punct']
@@ -17,6 +19,27 @@ ACUTE = '\u0301'  # acute combining accent: x́
 GRAVE = '\u0300'  # grave combining accent: x̀
 
 SP = namedtuple('StressParams', ['disambiguate', 'selection', 'guess'])
+
+
+def get_stanza_sent_tokenizer():
+    global stanza_sent
+    try:
+        return stanza_sent
+    except NameError:
+        stanza_sent = stanza.Pipeline(lang='ru', processors='tokenize',
+                                      verbose=False)
+        return stanza_sent
+
+
+def get_stanza_pretokenized_pipeline():
+    global stanza_pretokenized
+    try:
+        return stanza_pretokenized
+    except NameError:
+        stanza_pretokenized = stanza.Pipeline(lang='ru',
+                                              tokenize_pretokenized=True,
+                                              verbose=False)
+        return stanza_pretokenized
 
 
 class StressParams(SP):

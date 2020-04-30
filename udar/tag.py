@@ -14,16 +14,22 @@ ambiguous_tag_dict = {'AnIn': {'Anim', 'Inan'},
 
 class Tag:
     """Grammatical tag expressing a morphosyntactic or other value."""
-    __slots__ = ['ambig_alternative', 'name', 'ms_feat', 'detail', 'is_L2',
-                 'is_Err']
+    __slots__ = ['ambig_alternative', 'detail', 'is_L2', 'is_Err', 'ms_feat',
+                 'name']
+    ambig_alternative: 'Optional[Tag]'
+    detail: str
+    is_L2: bool
+    is_Err: bool
+    ms_feat: str
+    name: str
 
     def __init__(self, name: str, ms_feat: str, detail: str):
-        self.name = name
-        self.ms_feat = ms_feat
+        self.ambig_alternative = None
         self.detail = detail
         self.is_L2 = name.startswith('Err/L2')
         self.is_Err = name.startswith('Err')
-        self.ambig_alternative: 'Optional[Tag]' = None
+        self.ms_feat = ms_feat
+        self.name = name
 
     def __repr__(self):
         return f'Tag({self.name})'

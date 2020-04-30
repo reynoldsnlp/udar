@@ -4,7 +4,9 @@ from random import choice
 import re
 import sys
 from typing import Dict
+from typing import List
 from typing import Optional
+from typing import Set
 from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Union
@@ -15,9 +17,10 @@ from .misc import StressParams
 # from .reading import MultiReading
 # from .reading import Reading
 from .tag import Tag
-from .xlit import transliterate
+from .transliterate import transliterate
 
 if TYPE_CHECKING:
+    import stanza  # type: ignore  # noqa: F401
     from .reading import MultiReading
     from .reading import Reading
 
@@ -30,23 +33,51 @@ GRAVE = '\u0300'
 
 class Token:
     """Custom token object"""
-    __slots__ = ['orig', 'readings', 'removed_readings', 'lemmas',
-                 'upper_indices', 'stress_predictions', 'phon_predictions',
-                 'stress_ambig', 'features', 'annotation']
+    __slots__ = ['_readings', '_stanza_tokens', 'annotation', 'deprel',
+                 'end_char', 'features', 'head', 'id', 'lemmas', 'misc',
+                 'phon_predictions', 'removed_readings', 'start_char',
+                 'stress_ambig', 'stress_predictions', 'text', 'upper_indices',
+                 'words']
+    _readings: List['Reading']
+    _stanza_tokens: List['stanza.models.common.doc.Token']
+    annotation: str
+    deprel: str
+    end_char: int
+    features: Tuple
+    head: int
+    id: str  # 1-based index of word(s) in sentence (e.g., '4' or '7-9')
+    lemmas: Set[str]
+    misc: str
+    phon_predictions: Dict[StressParams, set]
+    removed_readings: List['Reading']
+    start_char: int
+    stress_ambig: int  # number of stressed alternatives
+    stress_predictions: Dict[StressParams, Tuple[str, Result]]
+    text: str
+    upper_indices: Set[int]
+    # words: List[Word]  # TODO
 
-    def __init__(self, orig=None, readings=[], removed_readings=[]):
+    def __init__(self, text, readings=[], removed_readings=[]):
         from .reading import _readify
-        self.orig = orig
-        self.upper_indices = self.cap_indices()
-        self.readings = [_readify(r) for r in readings]
-        if self.readings == [None]:
-            self.readings = []
-        self.removed_readings = [_readify(r) for r in removed_readings]
-        self.features = {}
+        self._stanza_tokens = []
         self.annotation = None
+        self.features = {}
+        self.removed_readings = [_readify(r) for r in removed_readings]
+        self.text = text
+        self.upper_indices = self.cap_indices()
+        # keep self.readings last, since it calls readings.setter()
+        self.readings = [_readify(r) for r in readings]
+
+    @property
+    def readings(self) -> List['Reading']:
+        return self._readings
+
+    @readings.setter
+    def readings(self, readings):
+        self._readings = [r for r in readings if r is not None]
         self.update_lemmas_stress_and_phon()
 
-    def update_lemmas_stress_and_phon(self):  # TODO worth the overhead?
+    def update_lemmas_stress_and_phon(self):
         self.lemmas = set()
         for r in self.readings:
             try:
@@ -56,8 +87,8 @@ class Token:
                 lemmas = _get_lemmas(r)
                 for lemma in lemmas:
                     self.lemmas.add(lemma)
-        self.stress_predictions = {}
         self.phon_predictions = {}
+        self.stress_predictions = {}
         self.stress_ambig = len(self.stresses())
 
     def __contains__(self, key: Union[str, Tag]):
@@ -68,22 +99,22 @@ class Token:
             return False
 
     def __repr__(self):
-        return f'Token(orig={self.orig}, readings={self.readings!r}, removed_readings={self.removed_readings!r})'  # noqa: E501
+        return f'Token(text={self.text}, readings={self.readings!r}, removed_readings={self.removed_readings!r})'  # noqa: E501
 
     def __str__(self):
-        return f'{self.orig} [{"  ".join(str(r) for r in self.readings)}]'
+        return f'{self.text} [{"  ".join(str(r) for r in self.readings)}]'
 
     def hfst_str(self):
         """Token HFST-/XFST-style stream."""
-        return '\n'.join(f'{self.orig}\t{r.hfst_str()}\t{float(r.weight):.6f}'
+        return '\n'.join(f'{self.text}\t{r.hfst_str()}\t{float(r.weight):.6f}'
                          for r in self.readings) \
-               or f'{self.orig}\t{self.orig}+?\tinf'
+               or f'{self.text}\t{self.text}+?\tinf'
 
     def cg3_str(self, traces=False, annotated=False):
         """Token CG3-style stream."""
         output = '\n'.join(f'{r.cg3_str(traces=traces)}'
                            for r in self.readings) \
-                 or f'\t"{self.orig}" ? <W:{281474976710655.000000:.6f}>'
+                 or f'\t"{self.text}" ? <W:{281474976710655.000000:.6f}>'
         if traces and self.removed_readings:
             removed = '\n'.join(f';{r.cg3_str(traces=traces)}'
                                 for r in self.removed_readings)
@@ -92,16 +123,16 @@ class Token:
             ann = f'NB: ↓↓  {self.annotation}  ↓↓\n'
         else:
             ann = ''
-        return f'{ann}"<{self.orig}>"\n{output}'
+        return f'{ann}"<{self.text}>"\n{output}'
 
     def __lt__(self, other):
-        return ((self.orig, self.readings, self.removed_readings)
-                < (other.orig, other.readings, other.removed_readings))
+        return ((self.text, self.readings, self.removed_readings)
+                < (other.text, other.readings, other.removed_readings))
 
     def __eq__(self, other):
         # Do not include removed_readings in the comparison
         try:
-            return (self.orig == other.orig
+            return (self.text == other.text
                     and len(self.readings) == len(other.readings)
                     and all(s == o for s, o in zip(sorted(self.readings),
                                                    sorted(other.readings))))
@@ -109,7 +140,7 @@ class Token:
             return False
 
     def __hash__(self):
-        return hash((self.orig, self.readings))  # pragma: no cover
+        return hash((self.text, self.readings))  # pragma: no cover
 
     def __len__(self):
         return len(self.readings)
@@ -120,6 +151,14 @@ class Token:
 
     def __iter__(self):
         return iter(self.readings)
+
+    def to_dict(self) -> List[Dict]:
+        # return [word.to_dict() for word in self.words]
+        raise NotImplementedError('Still need to implement Word.')
+
+    def pretty_print(self):
+        # TODO
+        raise NotImplementedError
 
     def get_most_likely_reading(self):
         """If one reading is marked as most likely, return it. Otherwise,
@@ -186,11 +225,11 @@ class Token:
 
     def cap_indices(self) -> set:
         """Token's indices of capitalized characters in the original."""
-        return {i for i, char in enumerate(self.orig) if char.isupper()}
+        return {i for i, char in enumerate(self.text) if char.isupper()}
 
-    def recase(self, in_str: str) -> str:
+    def recase(self, in_str: Optional[str]) -> Optional[str]:
         """Capitalize each letter in `in_str` indicated in `indices`."""
-        if not self.upper_indices:
+        if not self.upper_indices or in_str is None:
             return in_str
         grave_i = in_str.find(GRAVE)
         if grave_i == -1:
@@ -210,21 +249,22 @@ class Token:
         acc_gen = get_fst('acc-generator')
         if recase:
             try:
-                stresses = {self.recase(r.generate(acc_gen))
+                stresses = {self.recase(r.generate(fst=acc_gen))
                             for r in self.readings}
             except AttributeError as e:  # pragma: no cover
                 raise AttributeError('Problem generating stresses from: '
                                      f'{self} {self.readings}.') from e
         else:
-            stresses = {r.generate(acc_gen) for r in self.readings}
+            stresses = {r.generate(fst=acc_gen) for r in self.readings}
+        stresses = {s for s in stresses if s is not None}
         return stresses
 
-    def stressify(self, disambiguated=None, selection='safe', guess=False,
-                  experiment=False, lemma=None) -> str:
+    def stressify(self, disambiguated: bool = None, selection='safe',
+                  guess=False, experiment=False, lemma=None) -> str:
         """Set of Token's surface forms with stress marked.
 
         disambiguated
-            Boolean indicated whether the Text/Token has undergone CG3 disamb.
+            Boolean indicating whether the Token has undergone CG3 disamb.
 
         selection  (Applies only to words in the lexicon.)
             safe   -- Only add stress if it is unambiguous.
@@ -236,7 +276,7 @@ class Token:
             Applies only to out-of-lexicon words. Makes an "intelligent" guess.
 
         experiment
-            1) Remove stress from Token.orig
+            1) Remove stress from Token.text
             2) Save prediction in each Token.stress_predictions[stress_params]
 
         lemma
@@ -252,17 +292,17 @@ class Token:
             if guess:
                 pred = self.guess_syllable()
             elif experiment:
-                pred = destress(self.orig)
+                pred = destress(self.text)
             else:
-                pred = self.orig
+                pred = self.text
         elif len(stresses) == 1:
             pred = stresses.pop()
         else:
             if selection == 'safe':
                 if experiment:
-                    pred = destress(self.orig)
+                    pred = destress(self.text)
                 else:
-                    pred = self.orig
+                    pred = self.text
             elif selection == 'rand':
                 pred = choice(list(stresses))
             elif selection == 'freq':
@@ -300,27 +340,27 @@ class Token:
         assumption that all monosyllabic words are stressed.
         """
         V = 'аэоуыяеёюи'
-        if ignore_monosyll and len(re.findall(f'[{V}]', self.orig)) < 2:
+        if ignore_monosyll and len(re.findall(f'[{V}]', self.text)) < 2:
             return Result.SKIP
         try:
             orig_prim = {m.start()
                          for m in re.finditer(f'{ACUTE}|ё',
-                                              self.orig.replace(GRAVE, ''))}
+                                              self.text.replace(GRAVE, ''))}
             pred_prim = {m.start()
                          for m in re.finditer(f'{ACUTE}|ё',
                                               pred.replace(GRAVE, ''))}
         except AttributeError:
-            print(f'WARN: unexpected pred type, orig:{self.orig} pred:{pred}',
+            print(f'WARN: unexpected pred type, text:{self.text} pred:{pred}',
                   self, file=sys.stderr)
             return Result.UNK
         both_prim = orig_prim.intersection(pred_prim)
         # orig_sec = {m.start() for m
-        #             in re.finditer(GRAVE, self.orig.replace(ACUTE, ''))}
+        #             in re.finditer(GRAVE, self.text.replace(ACUTE, ''))}
         # pred_sec = {m.start() for m
         #             in re.finditer(GRAVE, pred.replace(ACUTE, ''))}
         # both_sec = orig_sec.intersection(pred_sec)
         if len(orig_prim) > 1 and len(pred_prim) > 1:
-            print(f'Too many stress counts: {self.orig}\t{pred}',
+            print(f'Too many stress counts: {self.text}\t{pred}',
                   file=sys.stderr)
         if both_prim:  # if both share a primary stress mark
             return Result.TP
@@ -339,7 +379,7 @@ class Token:
         """Return set of all phonetic transcriptions from self.readings."""
         from .fsts import get_fst
         phon_gen = get_fst('phonetic-generator')
-        phon_transcriptions = {r.generate(phon_gen) for r in self.readings}
+        phon_transcriptions = {r.generate(fst=phon_gen) for r in self.readings}
         return phon_transcriptions
 
     def phoneticize(self, disambiguated=None, selection='safe', guess=False,
@@ -367,17 +407,17 @@ class Token:
             if guess:
                 stress_pred = self.guess_syllable()
             elif experiment:
-                stress_pred = destress(self.orig)
+                stress_pred = destress(self.text)
             else:
-                stress_pred = self.orig
+                stress_pred = self.text
         elif len(transcriptions) == 1:
             return transcriptions.pop()
         else:  # if there are more than one possible transcription
             if selection == 'safe':
                 if experiment:
-                    stress_pred = destress(self.orig)
+                    stress_pred = destress(self.text)
                 else:
-                    stress_pred = self.orig
+                    stress_pred = self.text
             elif selection == 'rand':
                 return choice(list(transcriptions))
             elif selection == 'freq':
@@ -415,7 +455,7 @@ class Token:
         # raise NotImplementedError
         pass
 
-    def guess(self, backoff=None) -> str:
+    def guess(self, backoff=None) -> Optional[str]:
         if len(self.readings) > 0:
             random_reading = choice(self.readings)
             return random_reading.generate(fst='accented-generator')
@@ -428,6 +468,8 @@ class Token:
 
         Leftovers from dissertation script.
         """
+        raise NotImplementedError()
+        '''
         tag_freq_dict: Dict[str, int] = {}  # TODO import this dict
         lem_tag_freq_dict: Dict[str, int] = {}  # TODO import this dict
         read: Tuple[int, Optional[str]] = (0, None)
@@ -450,11 +492,12 @@ class Token:
             return self.readings[tag[1]][0]
         else:
             if backoff is None:
-                return self.orig
+                return self.text
             elif backoff == 'syllable':
                 return self.guess_syllable()
             else:
                 raise NotImplementedError('???')
+        '''
 
     def guess_syllable(self) -> str:
         """Token: Place stress on the last vowel followed by a consonant.
@@ -464,12 +507,12 @@ class Token:
         grammatical ending.
         """
         V = 'аэоуыяеёюи'
-        if 'ё' in self.orig or ACUTE in self.orig:
-            return self.orig
+        if 'ё' in self.text or ACUTE in self.text:
+            return self.text
         else:
             return re.sub(f'([{V}])([^{V}]+[{V}]+(?:[^{V}]+)?)$',
                           f'\\1{ACUTE}\\2',
-                          self.orig)
+                          self.text)
 
     def transliterate(self, **kwargs):
-        return transliterate(self.orig, **kwargs)
+        return transliterate(self.text, **kwargs)

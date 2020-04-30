@@ -1,15 +1,18 @@
 from collections import defaultdict
 import pickle
+from pkg_resources import resource_filename
 import re
 from statistics import mean
 from sys import stderr
 
 
+RSRC_PATH = resource_filename('udar', 'resources/')
+
 ###############################################################################
 print('making Tixonov_dict.pkl and Tix_morph_count_dict.pkl ...', file=stderr)
 
 tix_dict = defaultdict(set)
-with open('Tixonov.txt', 'r') as f:
+with open(f'{RSRC_PATH}src/Tixonov.txt', 'r') as f:
     for line in f:
         parse = line.strip().replace('`', '').split('/')
         parse = tuple([e for e in parse if e])
@@ -28,9 +31,9 @@ morph_count_dict = {}
 for lemma, parses in tix_dict.items():
     morph_count_dict[lemma] = mean(len(p) for p in parses)
 
-with open('../Tixonov_dict.pkl', 'wb') as f:
+with open(f'{RSRC_PATH}Tixonov_dict.pkl', 'wb') as f:
     pickle.dump(tix_dict, f)
-with open('../Tix_morph_count_dict.pkl', 'wb') as f:
+with open(f'{RSRC_PATH}Tix_morph_count_dict.pkl', 'wb') as f:
     pickle.dump(morph_count_dict, f)
 
 
@@ -39,7 +42,7 @@ print('making lexmin_dict.pkl ...', file=stderr)
 
 lexmin_dict = {}
 for level in ['A1', 'A2', 'B1', 'B2']:
-    with open(f'lexmin_{level}.txt') as f:
+    with open(f'{RSRC_PATH}src/lexmin_{level}.txt') as f:
         for lemma in f:
             lemma = lemma.strip()
             if lemma:
@@ -49,7 +52,7 @@ for level in ['A1', 'A2', 'B1', 'B2']:
                 #           lexmin_dict[lemma], file=stderr)
                 lexmin_dict[lemma] = level
 
-with open('../lexmin_dict.pkl', 'wb') as f:
+with open(f'{RSRC_PATH}lexmin_dict.pkl', 'wb') as f:
     pickle.dump(lexmin_dict, f)
 
 
@@ -57,7 +60,7 @@ with open('../lexmin_dict.pkl', 'wb') as f:
 print('making kelly_dict.pkl ...', file=stderr)
 
 kelly_dict = {}
-with open('KellyProject_Russian_M3.txt') as f:
+with open(f'{RSRC_PATH}src/KellyProject_Russian_M3.txt') as f:
     for line in f:
         level, freq, lemma = line.strip().split('\t')
         # TODO verify and remove duplicates
@@ -66,7 +69,7 @@ with open('KellyProject_Russian_M3.txt') as f:
         #           kelly_dict[lemma], file=stderr)
         kelly_dict[lemma] = level
 
-with open('../kelly_dict.pkl', 'wb') as f:
+with open(f'{RSRC_PATH}kelly_dict.pkl', 'wb') as f:
     pickle.dump(kelly_dict, f)
 
 
@@ -79,7 +82,7 @@ print('making RNC_tok_freq_dict.pkl and RNC_tok_freq_rank_dict.pkl ...',
 
 RNC_tok_freq_dict = {}
 RNC_tok_freq_rank_dict = {}
-with open('RNC_1grams-3.txt') as f:
+with open(f'{RSRC_PATH}src/RNC_1grams-3.txt') as f:
     rank = 0
     last_freq = None
     for i, line in enumerate(f, start=1):
@@ -92,9 +95,9 @@ with open('RNC_1grams-3.txt') as f:
             continue
         RNC_tok_freq_dict[tok] = float(tok_freq)
         RNC_tok_freq_rank_dict[tok] = rank
-with open('../RNC_tok_freq_dict.pkl', 'wb') as f:
+with open(f'{RSRC_PATH}RNC_tok_freq_dict.pkl', 'wb') as f:
     pickle.dump(RNC_tok_freq_dict, f)
-with open('../RNC_tok_freq_rank_dict.pkl', 'wb') as f:
+with open(f'{RSRC_PATH}RNC_tok_freq_rank_dict.pkl', 'wb') as f:
     pickle.dump(RNC_tok_freq_rank_dict, f)
 
 
@@ -109,7 +112,7 @@ print('making Sharoff_lem_freq_dict.pkl and Sharoff_lem_freq_rank_dict.pkl...',
 
 Sharoff_lem_freq_dict = {}
 Sharoff_lem_freq_rank_dict = {}
-with open('Sharoff_lemmaFreq.txt') as f:
+with open(f'{RSRC_PATH}src/Sharoff_lemmaFreq.txt') as f:
     rank = None
     last_freq = None
     for i, line in enumerate(f, start=1):
@@ -123,7 +126,7 @@ with open('Sharoff_lemmaFreq.txt') as f:
             continue
         Sharoff_lem_freq_dict[lemma] = float(freq)
         Sharoff_lem_freq_rank_dict[lemma] = rank
-with open('../Sharoff_lem_freq_dict.pkl', 'wb') as f:
+with open(f'{RSRC_PATH}Sharoff_lem_freq_dict.pkl', 'wb') as f:
     pickle.dump(Sharoff_lem_freq_dict, f)
-with open('../Sharoff_lem_freq_rank_dict.pkl', 'wb') as f:
+with open(f'{RSRC_PATH}Sharoff_lem_freq_rank_dict.pkl', 'wb') as f:
     pickle.dump(Sharoff_lem_freq_rank_dict, f)

@@ -11,7 +11,7 @@ def test_empty_tok_contains():
 
 def test_tok_repr():
     t = anl.lookup('слово')
-    assert repr(t) == 'Token(orig=слово, readings=[Reading(слово+N+Neu+Inan+Sg+Acc, 5.975586, ), Reading(слово+N+Neu+Inan+Sg+Nom, 5.975586, )], removed_readings=[])'  # noqa: E501
+    assert repr(t) == 'Token(text=слово, readings=[Reading(слово+N+Neu+Inan+Sg+Acc, 5.975586, ), Reading(слово+N+Neu+Inan+Sg+Nom, 5.975586, )], removed_readings=[])'  # noqa: E501
 
 
 def test_tok_str():
@@ -27,12 +27,12 @@ def test_tok_cg3_str():
 
 def test_tok_lt():
     v = udar.Token('0')
-    v.readings = [0]
+    v._readings = [0]
     w = udar.Token('0')
-    w.readings = [1]
+    w._readings = [1]
     w.removed_readings = [0]
     x = udar.Token('0')
-    x.readings = [1]
+    x._readings = [1]
     x.removed_readings = [1]
     y = udar.Token('1')
     z = udar.Token('2')
@@ -41,9 +41,9 @@ def test_tok_lt():
 
 def test_tok_eq():
     v = udar.Token('0')
-    v.readings = [0]
+    v._readings = [0]
     w = udar.Token('0')
-    w.readings = [0]
+    w._readings = [0]
     w.removed_readings = [0]
     assert v == w
     assert v != ''

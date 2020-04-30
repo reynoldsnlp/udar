@@ -5,19 +5,19 @@ from typing import Dict
 from typing import List
 from typing import Union
 
+from .document import Document
 from .features import ALL
 from .fsts import get_fst
 from .misc import destress
 from .reading import Reading
+from .sentence import get_tokenizer
+from .sentence import Sentence
 from .tag import tag_dict
 from .tag import Tag
-from .text import _get_Text
-from .text import Text
-from .text import get_tokenizer
 
 
-__all__ = ['tag_info', 'stressify', 'noun_distractors', 'stress_distractors',
-           'diagnose_L2']
+# __all__ = ['tag_info', 'stressify', 'noun_distractors', 'stress_distractors',
+#            'diagnose_L2']
 CASES = [tag for name, tag in tag_dict.items() if tag.ms_feat == 'CASE']
 
 
@@ -33,8 +33,8 @@ def stressify(in_str: str, disambiguate=False, **kwargs):
     >>> stressify('слову')
     'сло́ву'
     """
-    in_text = Text(in_str, disambiguate=disambiguate)
-    return in_text.stressify(**kwargs)
+    in_doc = Document(in_str, disambiguate=disambiguate)
+    return in_doc.stressify(**kwargs)
 
 
 def noun_distractors(noun: Union[str, Reading], stressed=True):
@@ -92,13 +92,12 @@ def diagnose_L2(in_str: str, tokenizer=None):
         tokenizer = get_tokenizer()
     out_dict: Dict[Tag, set] = defaultdict(set)
     L2an = get_fst('L2-analyzer')
-    in_text = Text(in_str, analyze=False)
-    in_text.analyze(analyzer=L2an)
-    for tok in in_text:
+    in_doc = Document(in_str, analyze=True, analyzer=L2an)
+    for tok in in_doc:
         if tok.is_L2():
             for r in tok.readings:
                 for t in r.L2_tags:
-                    out_dict[t].add(tok.orig)
+                    out_dict[t].add(tok.text)
     return dict(out_dict)
 
 
@@ -121,6 +120,6 @@ def stress_distractors(word: str):
                   key=lambda x: re.search('[Ёё\u0301]', x).start())  # type: ignore  # noqa: E501
 
 
-def readability_measures(text: Union[str, List[str], Text]):
-    my_Text = _get_Text(text)
-    return ALL(my_Text, category_names=['Readability formula'])
+def readability_measures(input_text: Union[str, List[Sentence], Document]):
+    doc = Document(input_text)
+    return ALL(doc, category_names=['Readability formula'])
