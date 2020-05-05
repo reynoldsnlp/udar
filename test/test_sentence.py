@@ -34,22 +34,22 @@ def test_hfst_tokenize():
     assert toks == ['Мы', 'нашли', 'все', 'проблемы', ',', 'и', 'т.д.']
 
 
-def test_stressify_selection_safe():
+def test_stressed_selection_safe():
     sent1 = udar.Sentence('шепотом')
     sent2 = udar.Sentence('замок')
     sent3 = udar.Sentence('карандаш')
-    assert (sent1.stressify(selection='safe') == 'шёпотом'
-            and sent2.stressify(selection='safe') == 'замок'
-            and sent3.stressify(selection='safe') == 'каранда́ш')
+    assert (sent1.stressed(selection='safe') == 'шёпотом'
+            and sent2.stressed(selection='safe') == 'замок'
+            and sent3.stressed(selection='safe') == 'каранда́ш')
 
 
-def test_stressify_selection_all():
+def test_stressed_selection_all():
     sent1 = udar.Sentence('Она узнает обо всем.')
-    assert sent1.stressify(selection='all') == 'Она́ узна́ёт обо всё́м.'
+    assert sent1.stressed(selection='all') == 'Она́ узна́ёт обо всё́м.'
 
 
-def test_stressify_lemma_limitation():
-    sent = udar.Sentence('Моя первая попытка.').stressify(lemmas={'Моя': 'мой'})
+def test_stressed_lemma_limitation():
+    sent = udar.Sentence('Моя первая попытка.').stressed(lemmas={'Моя': 'мой'})
     assert sent == 'Моя́ пе́рвая попы́тка.'
 
 

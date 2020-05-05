@@ -16,8 +16,8 @@ from .tag import tag_dict
 from .tag import Tag
 
 
-# __all__ = ['tag_info', 'stressify', 'noun_distractors', 'stress_distractors',
-#            'diagnose_L2']
+__all__ = ['tag_info', 'stressed', 'noun_distractors', 'stress_distractors',
+           'diagnose_L2']
 CASES = [tag for name, tag in tag_dict.items() if tag.ms_feat == 'CASE']
 
 
@@ -25,16 +25,16 @@ def tag_info(in_tag: Union[Tag, str]):
     return tag_dict[in_tag].info()
 
 
-def stressify(in_str: str, disambiguate=False, **kwargs):
+def stressed(in_str: str, disambiguate=False, **kwargs):
     """Automatically add stress to running text.
 
     disambiguate -- whether to use the constraint grammar
 
-    >>> stressify('слову')
+    >>> stressed('слову')
     'сло́ву'
     """
     in_doc = Document(in_str, disambiguate=disambiguate)
-    return in_doc.stressify(**kwargs)
+    return in_doc.stressed(**kwargs)
 
 
 def noun_distractors(noun: Union[str, Reading], stressed=True):

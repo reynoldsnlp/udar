@@ -100,15 +100,15 @@ class Document:
     def __str__(self):
         return '\n'.join(str(sent) for sent in self.sentences)
 
-    def cg3_str(self, **kwargs):  # alternative to __str__
+    def cg3_str(self, **kwargs) -> str:  # alternative to __str__
         return ''.join(f'{sent.cg3_str(**kwargs)}\n'
                        for sent in self.sentences)
 
-    def hfst_str(self):  # alternative to __str__
+    def hfst_str(self) -> str:  # alternative to __str__
         return ''.join(sent.hfst_str()
                        for sent in self.sentences)
 
-    def conll_str(self):  # alternative to __str__
+    def conll_str(self) -> str:  # alternative to __str__
         raise NotImplementedError()
 
     @classmethod
@@ -158,15 +158,15 @@ class Document:
         for sent in self.sentences:
             sent.disambiguate(**kwargs)
 
-    def phoneticize(self, **kwargs) -> str:
-        return ' '.join(sent.phoneticize(**kwargs) for sent in self.sentences)
+    def phonetic(self, **kwargs) -> str:
+        return ' '.join(sent.phonetic(**kwargs) for sent in self.sentences)
 
-    def stressify(self, **kwargs) -> str:
-        return ' '.join(sent.stressify(**kwargs) for sent in self.sentences)
+    def stressed(self, **kwargs) -> str:
+        return ' '.join(sent.stressed(**kwargs) for sent in self.sentences)
 
     def transliterate(self, **kwargs) -> str:
         return ' '.join(sent.transliterate(**kwargs)
                         for sent in self.sentences)
 
-    def to_dict(self) -> List[List[Dict]]:
-        return [sent.to_dict() for sent in self.sentences]
+    # def to_dict(self) -> List[List[Dict]]:  # TODO
+    #     return [sent.to_dict() for sent in self.sentences]

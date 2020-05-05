@@ -60,7 +60,7 @@ class Tag:
         return hash(self.name)
 
     def info(self):
-        return f'{self.detail}'
+        return self.detail
 
 
 _tags = [('A', 'POS', 'Adjective'),

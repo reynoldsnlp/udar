@@ -23,11 +23,11 @@ class Reading:
 
     A given Token can have many Readings.
     """
-    __slots__ = ['cg_rule', 'L2_tags', 'lemma', 'most_likely', 'tags',
+    __slots__ = ['_lemma', 'cg_rule', 'L2_tags', 'most_likely', 'tags',
                  'tagset', 'weight']
+    _lemma: str
     cg_rule: Optional[str]
     L2_tags: Set[Tag]
-    lemma: str
     most_likely: bool
     tags: List[Tag]
     tagset: Set[Tag]
@@ -36,12 +36,16 @@ class Reading:
     def __init__(self, r: str, weight: str, cg_rule: str):
         """Convert HFST tuples to more user-friendly interface."""
         self.cg_rule = cg_rule
-        self.lemma, *tags = re.split(r'\+(?=[^+])', r)  # TODO timeit
+        self._lemma, *tags = re.split(r'\+(?=[^+])', r)  # TODO timeit
         self.tags = [tag_dict[t] for t in tags]
         self.tagset = set(self.tags)
         self.weight = weight
         self.L2_tags = {t for t in self.tags if t.is_L2}
         self.most_likely = False
+
+    @property
+    def lemma(self):
+        return self._lemma
 
     def __contains__(self, key: Union[Tag, str]):
         """Enable `in` Reading."""
@@ -59,11 +63,11 @@ class Reading:
     def __str__(self):
         return f'{self.lemma}_{"_".join(t.name for t in self.tags)}'
 
-    def hfst_str(self):
+    def hfst_str(self) -> str:
         """Reading HFST-/XFST-style stream."""
         return f'{self.lemma}+{"+".join(t.name for t in self.tags)}'
 
-    def cg3_str(self, traces=False):
+    def cg3_str(self, traces=False) -> str:
         """Reading CG3-style stream."""
         if traces:
             rule = self.cg_rule
@@ -71,7 +75,7 @@ class Reading:
             rule = ''
         return f'\t"{self.lemma}" {" ".join(t.name for t in self.tags)} <W:{float(self.weight):.6f}>{rule}'  # noqa: E501
 
-    def hfst_noL2_str(self):
+    def hfst_noL2_str(self) -> str:
         """Reading HFST-/XFST-style stream, excluding L2 error tags."""
         return f'{self.lemma}+{"+".join(t.name for t in self.tags if not t.is_L2)}'  # noqa: E501
 
@@ -95,10 +99,7 @@ class Reading:
         return hash((self.lemma, self.tags, self.weight, self.cg_rule))
 
     def __len__(self):
-        return bool(self.lemma) + len(self.tags)
-
-    def get_lemma(self):
-        return self.lemma
+        return bool(self.lemma) + len(self.tags)  # TODO wut?
 
     def generate(self, fst=None) -> Optional[str]:
         """From Reading generate surface form."""
@@ -126,7 +127,7 @@ class MultiReading(Reading):
     __slots__ = ['cg_rule', 'most_likely', 'readings', 'weight']
     cg_rule: str
     most_likely: bool
-    readings: List[Reading]
+    readings: List['Reading']
     weight: str
 
     def __init__(self, readings: str, weight: str, cg_rule: str):
@@ -136,8 +137,9 @@ class MultiReading(Reading):
         assert '#' in readings
         self.cg_rule = cg_rule
         self.most_likely = False
-        self.readings = [_readify((r, weight, cg_rule))
-                         for r in re.findall(r'([^+]*[^#]+)#?', readings)]
+        self.readings = [_readify((r, weight, cg_rule))  # type: ignore
+                         for r in re.findall(r'([^+]*[^#]+)#?', readings)
+                         if _readify((r, weight, cg_rule)) is not None]
         self.weight = weight
 
     def __contains__(self, key: Union[Tag, str]):
@@ -146,29 +148,29 @@ class MultiReading(Reading):
         Fastest if `key` is a Tag, but it can also be a str.
         """
         if self.readings:
-            return any(key in r for r in self.readings)
+            return any(key in reading for reading in self.readings)
         else:
             return False
 
     def __iter__(self):
         """Iterator over *tags* in all readings."""
-        return (t for reading in self.readings for t in reading)
+        return (tag for reading in self.readings for tag in reading)
 
     def __repr__(self):
         return f'MultiReading({self.hfst_str()}, {self.weight}, {self.cg_rule})'  # noqa: E501
 
     def __str__(self):
-        return f'''{'#'.join(f"""{r}""" for r in self.readings)}'''
+        return f'''{'#'.join(f"""{reading}""" for reading in self.readings)}'''
 
-    def hfst_str(self):
+    def hfst_str(self) -> str:
         """MultiReading HFST-/XFST-style stream."""
         return f'''{'#'.join(f"""{r.hfst_str()}""" for r in self.readings)}'''
 
-    def hfst_noL2_str(self):
+    def hfst_noL2_str(self) -> str:
         """MultiReading HFST-/XFST-style stream, excluding L2 error tags."""
         return f'''{'#'.join(f"""{r.hfst_noL2_str()}""" for r in self.readings)}'''  # noqa: E501
 
-    def cg3_str(self, traces=False):
+    def cg3_str(self, traces=False) -> str:
         """MultiReading CG3-style stream"""
         lines = [f'{TAB * i}{r.cg3_str(traces=traces)}'
                  for i, r in enumerate(reversed(self.readings))]
@@ -188,10 +190,11 @@ class MultiReading(Reading):
         return hash([(r.lemma, r.tags, r.weight, r.cg_rule)
                      for r in self.readings])
 
-    def get_lemma(self):
-        return '_'.join(r.get_lemma() for r in self.readings)
+    @property
+    def lemma(self) -> str:
+        return '_'.join(r.lemma for r in self.readings)
 
-    def generate(self, fst=None):
+    def generate(self, fst=None) -> str:
         if fst is None:
             fst = get_fst('generator')
         return fst.generate(self.hfst_noL2_str())
@@ -219,7 +222,7 @@ class MultiReading(Reading):
                 pass
 
 
-def _readify(in_tup: Union[Tuple[str, str], Tuple[str, str, str]]):
+def _readify(in_tup: Union[Tuple[str, str], Tuple[str, str, str]]) -> Union['Reading', 'MultiReading', None]:  # noqa: E501
     """Try to make Reading. If that fails, try to make a MultiReading."""
     r, weight, *optional = in_tup
     if isinstance(weight, float):

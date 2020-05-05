@@ -326,8 +326,8 @@ class Sentence:
             raise TypeError('Sentence object only iterable after morphological'
                             ' analysis. Try Sentence.analyze() first.') from e
 
-    def to_dict(self):
-        return [token.to_dict() for token in self.tokens]
+    # def to_dict(self) -> List[Dict]:  # TODO
+    #     return [token.to_dict() for token in self.tokens]
 
     def print_dependencies(self):
         # TODO
@@ -475,8 +475,8 @@ class Sentence:
         output.append(t)
         return output
 
-    def stressify(self, selection='safe', guess=False, experiment=None,
-                  lemmas={}) -> str:
+    def stressed(self, selection='safe', guess=False, experiment=None,
+                 lemmas={}) -> str:
         """Return str of running text with stress marked.
 
         selection  (Applies only to words in the lexicon.)
@@ -501,10 +501,10 @@ class Sentence:
         """
         if experiment is None:
             experiment = self.experiment
-        out_text = [t.stressify(disambiguated=self._disambiguated,
-                                selection=selection, guess=guess,
-                                experiment=experiment,
-                                lemma=lemmas.get(t.text, None))
+        out_text = [t.stressed(disambiguated=self._disambiguated,
+                               selection=selection, guess=guess,
+                               experiment=experiment,
+                               lemma=lemmas.get(t.text, None))
                     for t in self]
         return self.respace(out_text)
 
@@ -560,8 +560,8 @@ class Sentence:
                       f'{t.readings} ||| {t.removed_readings}',
                       sep='\t', file=f)
 
-    def phoneticize(self, selection='safe', guess=False, experiment=False,
-                    context=False) -> str:
+    def phonetic(self, selection='safe', guess=False, experiment=False,
+                 context=False) -> str:
         """Return str of running text of phonetic transcription.
 
         selection  (Applies only to words in the lexicon.)
@@ -585,9 +585,9 @@ class Sentence:
                                       'implemented yet.')
         out_text = []
         for t in self:
-            out_text.append(t.phoneticize(disambiguated=self._disambiguated,
-                                          selection=selection, guess=guess,
-                                          experiment=experiment))
+            out_text.append(t.phonetic(disambiguated=self._disambiguated,
+                                       selection=selection, guess=guess,
+                                       experiment=experiment))
         return self.respace(out_text)
 
     def respace(self, tokens: List[str]) -> str:

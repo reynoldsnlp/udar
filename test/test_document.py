@@ -7,7 +7,7 @@ import udar
 
 RSRC_PATH = resource_filename('udar', 'resources/')
 
-test_sents = ['Иванов и Сыроежкин говорили полчаса кое с кем о лицах, "ртах" и т.д.',  # noqa: E501
+test_sents = ['Иванов и Сыроежкин говорили полчаса кое с кем о бутявках, лицах, "ртах" и т.д.',  # noqa: E501
               'Мы все говорили кое о чем с тобой, но по-моему, все это ни к чему, как он сказал.',  # noqa: E501
               'Он стоял в парке и. Ленина.']
 joined_sents = '\n'.join(test_sents)
@@ -45,22 +45,22 @@ def test_sent_tokenize():
     assert sents == [[token.text for token in sent] for sent in doc.sentences]
 
 
-def test_stressify_selection_safe():
+def test_stressed_selection_safe():
     doc1 = udar.Document('шепотом')
     doc2 = udar.Document('замок')
     doc3 = udar.Document('карандаш')
-    assert (doc1.stressify(selection='safe') == 'шёпотом'
-            and doc2.stressify(selection='safe') == 'замок'
-            and doc3.stressify(selection='safe') == 'каранда́ш')
+    assert (doc1.stressed(selection='safe') == 'шёпотом'
+            and doc2.stressed(selection='safe') == 'замок'
+            and doc3.stressed(selection='safe') == 'каранда́ш')
 
 
-def test_stressify_selection_all():
+def test_stressed_selection_all():
     doc1 = udar.Document('Она узнает обо всем.')
-    assert doc1.stressify(selection='all') == 'Она́ узна́ёт обо всё́м.'
+    assert doc1.stressed(selection='all') == 'Она́ узна́ёт обо всё́м.'
 
 
-def test_stressify_lemma_limitation():
-    doc = udar.Document('Моя первая попытка.').stressify(lemmas={'Моя': 'мой'})
+def test_stressed_lemma_limitation():
+    doc = udar.Document('Моя первая попытка.').stressed(lemmas={'Моя': 'мой'})
     assert doc == 'Моя́ пе́рвая попы́тка.'
 
 
@@ -97,7 +97,7 @@ def test_cg3_parse():
     from subprocess import PIPE
     doc = udar.Document(joined_sents)
     doc.disambiguate()
-    output_stream = [] 
+    output_stream = []
     for sent in doc.sentences:
         p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol '
                    '| cg-conv -fC '

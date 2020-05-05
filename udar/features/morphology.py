@@ -25,12 +25,12 @@ def num_types_ms_feat(ms_feat: str, doc: Document, rmv_punc=False) -> int:
     counter = 0
     for tok in toks:
         try:
-            for tag in tok.get_most_likely_reading().tagset:
+            for tag in tok.most_likely_reading.tagset:
                 if tag.ms_feat == ms_feat:
                     counter += 1
                     break
         except AttributeError:
-            for r in tok.get_most_likely_reading().readings:
+            for r in tok.most_likely_reading.readings:
                 for tag in r.tagset:
                     if tag.ms_feat == ms_feat:
                         counter += 1
@@ -51,7 +51,7 @@ def num_abstract_nouns(doc: Document, rmv_punc=True) -> int:
     toks = ALL['_filter_toks'](doc, has_tag='N', rmv_punc=rmv_punc)
     abstract_re = r'(?:ье|ие|ство|ация|ость|изм|изна|ота|ина|ика|ива)[¹²³⁴⁵⁶⁷⁸⁹⁰⁻]*$'  # noqa: E501
     return len([t for t in toks if re.search(abstract_re,
-                                             t.get_most_likely_lemma())])
+                                             t.most_likely_lemma)])
 
 
 def tag_ms_feat_ratio_Tag(tag: str, doc: Document, rmv_punc=False,

@@ -29,7 +29,7 @@ $ python3 -m pip install --user git+https://github.com/reynoldsnlp/udar
 
 The most common use-case is to use the `Document` constructor to automatically
 tokenize and analyze a text. If you `print()` a `Document` object, the result
-is an `xfst`/`hfst` stream:
+is an `XFST`/`HFST` stream:
 
 ```python
 import udar
@@ -49,20 +49,116 @@ print(text1)
 # .	.+CLB	0.000000
 ```
 
-### `Document` methods
+## Data objects
+
+### `Document`
+
+| Property | Type | Description |
+| --- | --- | --- |
+| text | `str` | Original text of this document |
+| sentences | `List[Sentence]` | List of sentences in this document |
+| num\_tokens | int | Number of tokens in this document |
 
 `Document` objects have convenient methods for adding stress or converting to
 phonetic transcription.
 
+| Method | Return type | Description |
+| --- | --- | --- |
+| stressed() | `str` | The original text of the document with stress marks |
+| phonetic() | `str` | The original text converted to phonetic transcription |
+| transliterate() | `str` | The original text converted to Romanized Cyrillic (default=Scholarly) |
+| cg3\_str() | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
+| from\_cg3() | `Document` | Create `Document` from [VISL-CG3 format stream](https://visl.sdu.dk/cg3/single/#stream-vislcg)
+| hfst\_str() | `str` | Analysis stream in the XFST/HFST format |
+| from\_hfst() | `Document` | Create `Document` from XFST/HFST format stream |
+
+#### Examples
+
 ```python
-stressed_text1 = text1.stressify()
+stressed_text1 = text1.stressed()
 print(stressed_text1)
 # Мы́ удиви́лись простоте́ систе́мы.
 
-phonetic_text1 = text1.phoneticize()
+phonetic_text1 = text1.phonetic()
 print(phonetic_text1)
 # мы́ уд'ив'и́л'ис' пръстʌт'э́ с'ис'т'э́мы.
 ```
+
+### `Sentence` object
+
+| Property | Type | Description |
+| --- | --- | --- |
+| doc | `Document` | "Back pointer" to the parent document of this sentence |
+| text | `str` | Original text of this sentence |
+| tokens | `List[Token]` | The list of tokens in this sentence |
+| id | `str` | (optional) Sentence id, if assigned at creation |
+
+| Method | Return type | Description |
+| --- | --- | --- |
+| stressed() | `str` | The original text of the sentence with stress marks |
+| phonetic() | `str` | The original text converted to phonetic transcription |
+| transliterate() | `str` | The original text converted to Romanized Cyrillic (default=Scholarly) |
+| cg3\_str() | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
+| from\_cg3() | `Sentence` | Create `Sentence` from [VISL-CG3 format stream](https://visl.sdu.dk/cg3/single/#stream-vislcg)
+| hfst\_str() | `str` | Analysis stream in the XFST/HFST format |
+| from\_hfst() | `Sentence` | Create `Sentence` from XFST/HFST format stream |
+
+### `Token` object
+
+| Property | Type | Description |
+| --- | --- | --- |
+| id | `str` | The index of this token in the sentence, 1-based |
+| text | `str` | The original text of this token |
+| misc | `str` | Miscellaneous annotations with regard to this token |
+| lemmas | `Set[str]` | All possible lemmas, based on remaining readings |
+| most\_likely\_reading | `Reading` | "Most likely" reading |
+| most\_likely\_lemma | `str` | Lemma from the "most likely" reading |
+| readings | `List[Reading]` | List of readings not removed by the Constraint Grammar |
+| removed\_readings | `List[Reading]` | List of readings removed by the Constraint Grammar | head | `int` | The id of the syntactic head of this token in the sentence, 1-based (0 is reserved for an artificial symbol that represents the root of the syntactic tree). |
+| deprel | `str` | The dependency relation between this word and its syntactic head. Example: ‘nmod’. |
+
+| Method | Return type | Description |
+| --- | --- | --- |
+| stresses() | `Set[str]` | All possible stressed wordforms, based on remaining readings |
+| stressed() | `str` | The original text of the sentence with stress marks |
+| phonetic() | `str` | The original text converted to phonetic transcription |
+| transliterate() | `str` | The original text converted to Romanized Cyrillic (default=Scholarly) |
+| cg3\_str() | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
+| from\_cg3() | `Sentence` | Create `Sentence` from [VISL-CG3 format stream](https://visl.sdu.dk/cg3/single/#stream-vislcg)
+| hfst\_str() | `str` | Analysis stream in the XFST/HFST format |
+| from\_hfst() | `Sentence` | Create `Sentence` from XFST/HFST format stream |
+
+### `Reading` object
+
+| Property | Type | Description |
+| --- | --- | --- |
+| lemma | `str` | The lemma of the reading |
+| tags | `List[Tag]` | The part-of-speech, morphosyntactic, semantic and other tags |
+| tagset | `Set[Tag]` | Same as tags, but for faster membership testing (`in` Reading) |
+| weight | `str` | Weight indicating the likelihood of the reading, without respect to context |
+| cg\_rule | `str` | Reference to the rule in the constraint grammar that removed/selected/etc. this reading |
+| most\_likely | `bool` | Indicates whether this reading has been selected as the most likely |
+
+| Method | Return type | Description |
+| --- | --- | --- |
+| cg3\_str() | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
+| hfst\_str() | `str` | Analysis stream in the XFST/HFST format |
+| generate() | `str` | Generate the wordform from this reading |
+| replace\_tag() | `None` | Replace a tag in this reading |
+
+### `Tag` object
+
+| Property | Type | Description |
+| --- | --- | --- |
+| name | `str` | The name of this tag |
+| ms\_feat | `str` | Morphosyntactic feature that this tag is associated with (e.g. `Dat` has ms\_feat `CASE`) |
+| detail | `str` | Description of the tag's purpose or meaning |
+| is\_L2 | `bool` | Whether this tag indicates a second-language learner error |
+
+| Method | Return type | Description |
+| --- | --- | --- |
+| info() | `str` | Alias for `Tag.detail` |
+
 
 ### Convenience functions
 
@@ -109,9 +205,9 @@ print(udar.tag_info('Err/L2_ii'))
 # L2 error: Failure to change ending ие to ии in +Sg+Loc or +Sg+Dat, e.g. к Марие, о кафетерие, о знание
 ```
 
-### Using the analyzer manually
+### Using the transducer manually
 
-The analyzer itself is the `Udar` class, which can be initialized as one of
+The transducer itself is the `Udar` class, which can be initialized as one of
 four flavors:
 
 1. `L2-analyzer` [default]: General analyzer with second-language learner
@@ -163,17 +259,6 @@ print(pl_readings)
 # [Reading(слово+N+Neu+Inan+Pl+Acc, 5.975586, ), Reading(слово+N+Neu+Inan+Pl+Nom, 5.975586, )]
 ```
 
-Grammatical analyses are parsed into the following objects:
-
-* Tag
-    * A part of speech or a morphosyntactic property
-* Reading
-    * Lemma (`str`) and a set of `Tag`s
-* Token
-    * Surface form (`str`) and a list of `Reading`s
-* Document
-    * List of `Token`s
-
-### Related projects
+## Related projects
 
 https://github.com/mikahama/uralicNLP
