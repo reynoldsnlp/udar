@@ -33,8 +33,8 @@ is an `XFST`/`HFST` stream:
 
 ```python
 import udar
-text1 = udar.Document('Мы удивились простоте системы.')
-print(text1)
+doc1 = udar.Document('Мы удивились простоте системы.')
+print(doc1)
 # Мы	мы+Pron+Pers+Pl1+Nom	0.000000
 # 
 # удивились	удивиться+V+Perf+IV+Pst+MFN+Pl	5.078125
@@ -75,12 +75,12 @@ phonetic transcription.
 #### Examples
 
 ```python
-stressed_text1 = text1.stressed()
-print(stressed_text1)
+stressed_doc1 = doc1.stressed()
+print(stressed_doc1)
 # Мы́ удиви́лись простоте́ систе́мы.
 
-phonetic_text1 = text1.phonetic()
-print(phonetic_text1)
+phonetic_doc1 = doc1.phonetic()
+print(phonetic_doc1)
 # мы́ уд'ив'и́л'ис' пръстʌт'э́ с'ис'т'э́мы.
 ```
 
