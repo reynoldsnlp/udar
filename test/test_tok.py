@@ -82,18 +82,18 @@ def test_tok_has_tag():
     assert not t.has_tag('N')
 
 
-def test_tok_stressify():
+def test_tok_stressed():
     t = anl.lookup('слова')
     assert len(t.stresses()) > 1
-    assert t.stressify(selection='safe', experiment=True) == 'слова'
+    assert t.stressed(selection='safe', experiment=True) == 'слова'
 
 
-def test_tok_stressify_no_readings():
+def test_tok_stressed_no_readings():
     t = udar.Token('слово')
-    assert '\u0301' in t.stressify(guess=True)
+    assert '\u0301' in t.stressed(guess=True)
     t = udar.Token('сло́во')
-    assert '\u0301' not in t.stressify(experiment=True)
-    assert t.stressify() == 'сло́во'
+    assert '\u0301' not in t.stressed(experiment=True)
+    assert t.stressed() == 'сло́во'
 
 
 def test_tok_can_be_pickled():

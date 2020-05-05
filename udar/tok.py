@@ -42,7 +42,7 @@ class Token:
     _stanza_tokens: List['stanza.models.common.doc.Token']
     annotation: str
     deprel: str
-    end_char: int
+    end_char: int  # TODO
     features: Tuple
     head: int
     id: str  # 1-based index of word(s) in sentence (e.g., '4' or '7-9')
@@ -50,18 +50,18 @@ class Token:
     misc: str
     phon_predictions: Dict[StressParams, set]
     removed_readings: List['Reading']
-    start_char: int
+    start_char: int  # TODO
     stress_ambig: int  # number of stressed alternatives
     stress_predictions: Dict[StressParams, Tuple[str, Result]]
     text: str
-    upper_indices: Set[int]
+    upper_indices: Set[int]  # TODO make hidden (add _)
     # words: List[Word]  # TODO
 
     def __init__(self, text, readings=[], removed_readings=[]):
         from .reading import _readify
         self._stanza_tokens = []
-        self.annotation = None
-        self.features = {}
+        self.annotation = ''
+        self.features = ()
         self.removed_readings = [_readify(r) for r in removed_readings]
         self.text = text
         self.upper_indices = self.cap_indices()
@@ -80,13 +80,7 @@ class Token:
     def update_lemmas_stress_and_phon(self):
         self.lemmas = set()
         for r in self.readings:
-            try:
-                self.lemmas.add(r.lemma)
-            except AttributeError:
-                from .reading import _get_lemmas
-                lemmas = _get_lemmas(r)
-                for lemma in lemmas:
-                    self.lemmas.add(lemma)
+            self.lemmas.add(r.lemma)
         self.phon_predictions = {}
         self.stress_predictions = {}
         self.stress_ambig = len(self.stresses())
@@ -104,13 +98,13 @@ class Token:
     def __str__(self):
         return f'{self.text} [{"  ".join(str(r) for r in self.readings)}]'
 
-    def hfst_str(self):
+    def hfst_str(self) -> str:
         """Token HFST-/XFST-style stream."""
         return '\n'.join(f'{self.text}\t{r.hfst_str()}\t{float(r.weight):.6f}'
                          for r in self.readings) \
                or f'{self.text}\t{self.text}+?\tinf'
 
-    def cg3_str(self, traces=False, annotated=False):
+    def cg3_str(self, traces=False, annotated=False) -> str:
         """Token CG3-style stream."""
         output = '\n'.join(f'{r.cg3_str(traces=traces)}'
                            for r in self.readings) \
@@ -152,15 +146,15 @@ class Token:
     def __iter__(self):
         return iter(self.readings)
 
-    def to_dict(self) -> List[Dict]:
-        # return [word.to_dict() for word in self.words]
-        raise NotImplementedError('Still need to implement Word.')
+    # def to_dict(self) -> List[str]:  # TODO
+    #     return [r.to_dict() for r in self.readings]
 
-    def pretty_print(self):
-        # TODO
-        raise NotImplementedError
+    # def pretty_print(self):
+    #     # TODO
+    #     raise NotImplementedError
 
-    def get_most_likely_reading(self):
+    @property
+    def most_likely_reading(self) -> Optional['Reading']:
         """If one reading is marked as most likely, return it. Otherwise,
         select a most likely reading, label it as such, and return it.
         """
@@ -178,14 +172,14 @@ class Token:
             lucky_reading.most_likely = True
             return lucky_reading
 
-    def get_most_likely_lemma(self):
+    @property
+    def most_likely_lemma(self) -> Optional[str]:
         """If one reading is marked as most likely, return its lemma.
         Otherwise, select a most likely reading, label it as such, and return
         its lemma.
         """
-        most_likely_reading = self.get_most_likely_reading()
         try:
-            return most_likely_reading.get_lemma()
+            return self.most_likely_reading.lemma  # type: ignore
         except AttributeError:
             return None
 
@@ -219,11 +213,14 @@ class Token:
                                        partial=True) -> bool:
         """Token's most likely reading contains the given tag."""
         if self.readings:
-            return tag in self.get_most_likely_reading()
+            try:
+                return tag in self.most_likely_reading  # type: ignore
+            except TypeError:
+                return False
         else:
             return False
 
-    def cap_indices(self) -> set:
+    def cap_indices(self) -> Set[int]:
         """Token's indices of capitalized characters in the original."""
         return {i for i, char in enumerate(self.text) if char.isupper()}
 
@@ -243,7 +240,7 @@ class Token:
                         else char
                         for i, char in enumerate(in_str)])
 
-    def stresses(self, recase=True) -> set:
+    def stresses(self, recase=True) -> Set[str]:
         """Return set of all surface forms from a Token's readings."""
         from .fsts import get_fst
         acc_gen = get_fst('acc-generator')
@@ -257,10 +254,10 @@ class Token:
         else:
             stresses = {r.generate(fst=acc_gen) for r in self.readings}
         stresses = {s for s in stresses if s is not None}
-        return stresses
+        return stresses  # type: ignore
 
-    def stressify(self, disambiguated: bool = None, selection='safe',
-                  guess=False, experiment=False, lemma=None) -> str:
+    def stressed(self, disambiguated: bool = None, selection='safe',
+                 guess=False, experiment=False, lemma=None) -> str:
         """Set of Token's surface forms with stress marked.
 
         disambiguated
@@ -375,15 +372,15 @@ class Token:
         else:
             raise NotImplementedError(f'Bad Result: {orig_prim} {pred_prim}')
 
-    def phonetic_transcriptions(self) -> set:
+    def phonetic_transcriptions(self) -> Set[str]:
         """Return set of all phonetic transcriptions from self.readings."""
         from .fsts import get_fst
         phon_gen = get_fst('phonetic-generator')
         phon_transcriptions = {r.generate(fst=phon_gen) for r in self.readings}
-        return phon_transcriptions
+        return {t for t in phon_transcriptions if t is not None}
 
-    def phoneticize(self, disambiguated=None, selection='safe', guess=False,
-                    experiment=False, lemma=None) -> str:
+    def phonetic(self, disambiguated=None, selection='safe', guess=False,
+                 experiment=False, lemma=None) -> str:
         """Token's phonetic transcription.
 
         selection  (Applies only to words in the lexicon.)
@@ -514,5 +511,5 @@ class Token:
                           f'\\1{ACUTE}\\2',
                           self.text)
 
-    def transliterate(self, **kwargs):
+    def transliterate(self, **kwargs) -> str:
         return transliterate(self.text, **kwargs)

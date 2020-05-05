@@ -24,7 +24,7 @@ def print_output(doc: Document, args: argparse.Namespace) -> None:
     elif args.output_type == 'F':
         print(doc)
     elif args.output_type == 'P':
-        print(doc.stressify(selection=args.stress, guess=args.guess))
+        print(doc.stressed(selection=args.stress, guess=args.guess))
     elif args.output_type == 'T':
         print('\n'.join(tok.text for tok in doc))
     else:

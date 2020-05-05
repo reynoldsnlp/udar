@@ -14,17 +14,17 @@ def test_tag_info():
     assert convenience.tag_info('N') == 'Noun'
 
 
-def test_stressify_selection_safe():
-    assert (convenience.stressify('шепотом', selection='safe') == 'шёпотом'
-            and convenience.stressify('замок', selection='safe') == 'замок')
+def test_stressed_selection_safe():
+    assert (convenience.stressed('шепотом', selection='safe') == 'шёпотом'
+            and convenience.stressed('замок', selection='safe') == 'замок')
 
 
-def test_stressify_selection_all():
-    assert (convenience.stressify('Она узнает обо всем.', selection='all')
+def test_stressed_selection_all():
+    assert (convenience.stressed('Она узнает обо всем.', selection='all')
             == 'Она́ узна́ёт обо всё́м.')
 
 
-def test_stressify_stress_distractors():
+def test_stressed_stress_distractors():
     assert convenience.stress_distractors('переработаны') == ['пёреработаны',
                                                               'пе́реработаны',
                                                               'перёработаны',
@@ -35,8 +35,8 @@ def test_stressify_stress_distractors():
                                                               'переработаны́']
 
 
-def test_stressify():
-    sent = convenience.stressify('Это - первая попытка.')
+def test_stressed():
+    sent = convenience.stressed('Это - первая попытка.')
     assert sent == 'Э́то - пе́рвая попы́тка.'
 
 
