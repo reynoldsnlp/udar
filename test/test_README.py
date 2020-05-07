@@ -4,6 +4,9 @@ from io import StringIO
 from pathlib import Path
 import re
 import sys
+from warnings import warn
+
+import udar
 
 
 @contextlib.contextmanager
@@ -37,3 +40,64 @@ def test_blocks():
             with stdoutIO() as s:
                 exec(code, globals())
             assert s.getvalue().strip() == expected_out
+
+
+def test_properties_documented_in_tables_actually_exist():
+    ignore = {'Method', 'Property', '---'}
+    table_blocks = re.findall(r'^### `([A-Za-z0-9]+)` object\n\n(.+?)(?=^###)',
+                              README, flags=re.S | re.M)
+    for obj_name, entry in table_blocks:
+        obj = getattr(udar, obj_name)
+        actual_attr_names = {name for name in dir(obj)
+                             if not name.startswith('_')
+                             and name not in ignore}
+        doc_attr_names = re.findall(r'^\| (.*?) \|.*?\|.*?\|$', entry,
+                                    flags=re.M)
+        doc_attr_names = {name.replace(r'\_', '_') for name in doc_attr_names
+                          if name not in ignore}
+        print(doc_attr_names, file=sys.stderr)
+        for doc_attr_name in doc_attr_names:
+            assert obj_name and doc_attr_name in actual_attr_names
+
+
+def test_all_properties_are_documented_in_tables():
+    # TODO should some of the following be named with leading underscore???
+    ignore_attrs = {'Document': set(),
+                    'Sentence': {'analyze', 'annotation', 'depparse',
+                                 'experiment', 'features',
+                                 'parse_cg3', 'parse_hfst', 'respace',
+                                 'stress_eval', 'stress_preds2tsv',
+                                 'tokenize'},
+                    'Token': {'annotation', 'end_char', 'features', 'guess',
+                              'guess_freq', 'guess_syllable', 'has_L2',
+                              'has_lemma', 'has_tag',
+                              'has_tag_in_most_likely_reading', 'head',
+                              'is_L2', 'phon_eval', 'phon_predictions',
+                              'phonetic_transcriptions', 'recase',
+                              'start_char', 'stress_ambig', 'stress_eval',
+                              'stress_predictions'},
+                    'Reading': {'L2_tags', 'hfst_noL2_str'},
+                    'Tag': {'ambig_alternative', 'is_Err', 'is_included_in'}}
+    table_blocks = re.findall(r'^### `([A-Za-z0-9]+)` object\n\n(.+?)(?=^###)',
+                              README, flags=re.S | re.M)
+    for obj_name, entry in table_blocks:
+        ignore = ignore_attrs[obj_name]
+        if ignore:
+            warn(f'Ignoring the following attributes of {obj_name}: {ignore}')
+        obj = getattr(udar, obj_name)
+        actual_attr_names = {name for name in dir(obj)
+                             if not name.startswith('_')}
+        unnecessarily_ignored = ignore.difference(actual_attr_names)
+        assert obj_name and len(unnecessarily_ignored) == 0, unnecessarily_ignored  # noqa: E501
+        actual_attr_names = actual_attr_names - ignore
+        doc_attr_names = re.findall(r'^\| (.*?) \| `.*?` \| .*?\ |$', entry,
+                                    flags=re.M)
+        doc_attr_names = {name.replace(r'\_', '_') for name in doc_attr_names
+                          if name not in {'Method', 'Property', '---'}}
+        is_you_is = sorted((actual_attr_name,
+                            actual_attr_name in doc_attr_names)
+                           for actual_attr_name in actual_attr_names)
+        if not all(val for name, val in is_you_is):
+            print([(name, val) for name, val in is_you_is if not val],
+                  file=sys.stderr)
+        assert obj_name and all([val for name, val in is_you_is])

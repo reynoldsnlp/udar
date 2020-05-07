@@ -329,17 +329,17 @@ class Sentence:
     # def to_dict(self) -> List[Dict]:  # TODO
     #     return [token.to_dict() for token in self.tokens]
 
-    def print_dependencies(self):
-        # TODO
-        raise NotImplementedError
+    # def print_dependencies(self):
+    #     # TODO
+    #     raise NotImplementedError
 
-    def print_tokens(self):
-        # TODO
-        raise NotImplementedError
+    # def print_tokens(self):
+    #     # TODO
+    #     raise NotImplementedError
 
-    def print_words(self):
-        # TODO
-        raise NotImplementedError
+    # def print_words(self):
+    #     # TODO
+    #     raise NotImplementedError
 
     def tokenize(self, tokenizer=None) -> None:
         """Tokenize Sentence using `tokenizer`."""
@@ -609,10 +609,10 @@ class Sentence:
     def transliterate(self, **kwargs):
         return transliterate(self.text, **kwargs)
 
-    def readability(approach=None):
-        # TODO
-        # from .features import ALL
-        pass
+    # def readability(approach=None):
+    #     # TODO
+    #     # from .features import ALL
+    #     pass
 
 
 def _get_Sentence(text: Union[str, List[str], Sentence], **kwargs) -> Sentence:

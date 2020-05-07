@@ -36,8 +36,7 @@ class Token:
     __slots__ = ['_readings', '_stanza_tokens', 'annotation', 'deprel',
                  'end_char', 'features', 'head', 'id', 'lemmas', 'misc',
                  'phon_predictions', 'removed_readings', 'start_char',
-                 'stress_ambig', 'stress_predictions', 'text', 'upper_indices',
-                 'words']
+                 'stress_ambig', 'stress_predictions', 'text', '_upper_indices']
     _readings: List['Reading']
     _stanza_tokens: List['stanza.models.common.doc.Token']
     annotation: str
@@ -54,8 +53,7 @@ class Token:
     stress_ambig: int  # number of stressed alternatives
     stress_predictions: Dict[StressParams, Tuple[str, Result]]
     text: str
-    upper_indices: Set[int]  # TODO make hidden (add _)
-    # words: List[Word]  # TODO
+    _upper_indices: Set[int]
 
     def __init__(self, text, readings=[], removed_readings=[]):
         from .reading import _readify
@@ -64,7 +62,7 @@ class Token:
         self.features = ()
         self.removed_readings = [_readify(r) for r in removed_readings]
         self.text = text
-        self.upper_indices = self.cap_indices()
+        self._upper_indices = self._cap_indices()
         # keep self.readings last, since it calls readings.setter()
         self.readings = [_readify(r) for r in readings]
 
@@ -75,9 +73,9 @@ class Token:
     @readings.setter
     def readings(self, readings):
         self._readings = [r for r in readings if r is not None]
-        self.update_lemmas_stress_and_phon()
+        self._update_lemmas_stress_and_phon()
 
-    def update_lemmas_stress_and_phon(self):
+    def _update_lemmas_stress_and_phon(self):
         self.lemmas = set()
         for r in self.readings:
             self.lemmas.add(r.lemma)
@@ -220,13 +218,13 @@ class Token:
         else:
             return False
 
-    def cap_indices(self) -> Set[int]:
+    def _cap_indices(self) -> Set[int]:
         """Token's indices of capitalized characters in the original."""
         return {i for i, char in enumerate(self.text) if char.isupper()}
 
     def recase(self, in_str: Optional[str]) -> Optional[str]:
         """Capitalize each letter in `in_str` indicated in `indices`."""
-        if not self.upper_indices or in_str is None:
+        if not self._upper_indices or in_str is None:
             return in_str
         grave_i = in_str.find(GRAVE)
         if grave_i == -1:
@@ -236,7 +234,7 @@ class Token:
             acute_i = 255
         return ''.join([char.upper()
                         if i + (i >= grave_i) + (i >= acute_i)  # True is 1
-                        in self.upper_indices
+                        in self._upper_indices
                         else char
                         for i, char in enumerate(in_str)])
 

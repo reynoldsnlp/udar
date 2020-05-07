@@ -51,26 +51,28 @@ print(doc1)
 
 ## Data objects
 
-### `Document`
+### `Document` object
 
 | Property | Type | Description |
 | --- | --- | --- |
 | text | `str` | Original text of this document |
 | sentences | `List[Sentence]` | List of sentences in this document |
-| num\_tokens | int | Number of tokens in this document |
+| num\_tokens | `int` | Number of tokens in this document |
+| features | `tuple` | `udar.features.FeatureExtractor` stores extracted features here |
 
 `Document` objects have convenient methods for adding stress or converting to
 phonetic transcription.
 
 | Method | Return type | Description |
 | --- | --- | --- |
-| stressed() | `str` | The original text of the document with stress marks |
-| phonetic() | `str` | The original text converted to phonetic transcription |
-| transliterate() | `str` | The original text converted to Romanized Cyrillic (default=Scholarly) |
-| cg3\_str() | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
-| from\_cg3() | `Document` | Create `Document` from [VISL-CG3 format stream](https://visl.sdu.dk/cg3/single/#stream-vislcg)
-| hfst\_str() | `str` | Analysis stream in the XFST/HFST format |
-| from\_hfst() | `Document` | Create `Document` from XFST/HFST format stream |
+| stressed | `str` | The original text of the document with stress marks |
+| phonetic | `str` | The original text converted to phonetic transcription |
+| transliterate | `str` | The original text converted to Romanized Cyrillic (default=Scholarly) |
+| disambiguate | `None` | Disambiguate readings using the Constraint Grammar |
+| cg3\_str | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
+| from\_cg3 | `Document` | Create `Document` from [VISL-CG3 format stream](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
+| hfst\_str | `str` | Analysis stream in the XFST/HFST format |
+| from\_hfst | `Document` | Create `Document` from XFST/HFST format stream |
 
 #### Examples
 
@@ -95,13 +97,14 @@ print(phonetic_doc1)
 
 | Method | Return type | Description |
 | --- | --- | --- |
-| stressed() | `str` | The original text of the sentence with stress marks |
-| phonetic() | `str` | The original text converted to phonetic transcription |
-| transliterate() | `str` | The original text converted to Romanized Cyrillic (default=Scholarly) |
-| cg3\_str() | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
-| from\_cg3() | `Sentence` | Create `Sentence` from [VISL-CG3 format stream](https://visl.sdu.dk/cg3/single/#stream-vislcg)
-| hfst\_str() | `str` | Analysis stream in the XFST/HFST format |
-| from\_hfst() | `Sentence` | Create `Sentence` from XFST/HFST format stream |
+| stressed | `str` | The original text of the sentence with stress marks |
+| phonetic | `str` | The original text converted to phonetic transcription |
+| transliterate | `str` | The original text converted to Romanized Cyrillic (default=Scholarly) |
+| disambiguate | `None` | Disambiguate readings using the Constraint Grammar |
+| cg3\_str | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
+| from\_cg3 | `Sentence` | Create `Sentence` from [VISL-CG3 format stream](https://visl.sdu.dk/cg3/single/#stream-vislcg)
+| hfst\_str | `str` | Analysis stream in the XFST/HFST format |
+| from\_hfst | `Sentence` | Create `Sentence` from XFST/HFST format stream |
 
 ### `Token` object
 
@@ -119,14 +122,12 @@ print(phonetic_doc1)
 
 | Method | Return type | Description |
 | --- | --- | --- |
-| stresses() | `Set[str]` | All possible stressed wordforms, based on remaining readings |
-| stressed() | `str` | The original text of the sentence with stress marks |
-| phonetic() | `str` | The original text converted to phonetic transcription |
-| transliterate() | `str` | The original text converted to Romanized Cyrillic (default=Scholarly) |
-| cg3\_str() | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
-| from\_cg3() | `Sentence` | Create `Sentence` from [VISL-CG3 format stream](https://visl.sdu.dk/cg3/single/#stream-vislcg)
-| hfst\_str() | `str` | Analysis stream in the XFST/HFST format |
-| from\_hfst() | `Sentence` | Create `Sentence` from XFST/HFST format stream |
+| stresses | `Set[str]` | All possible stressed wordforms, based on remaining readings |
+| stressed | `str` | The original text of the sentence with stress marks |
+| phonetic | `str` | The original text converted to phonetic transcription |
+| transliterate | `str` | The original text converted to Romanized Cyrillic (default=Scholarly) |
+| cg3\_str | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
+| hfst\_str | `str` | Analysis stream in the XFST/HFST format |
 
 ### `Reading` object
 
@@ -141,10 +142,10 @@ print(phonetic_doc1)
 
 | Method | Return type | Description |
 | --- | --- | --- |
-| cg3\_str() | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
-| hfst\_str() | `str` | Analysis stream in the XFST/HFST format |
-| generate() | `str` | Generate the wordform from this reading |
-| replace\_tag() | `None` | Replace a tag in this reading |
+| cg3\_str | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
+| hfst\_str | `str` | Analysis stream in the XFST/HFST format |
+| generate | `str` | Generate the wordform from this reading |
+| replace\_tag | `None` | Replace a tag in this reading |
 
 ### `Tag` object
 
@@ -157,7 +158,7 @@ print(phonetic_doc1)
 
 | Method | Return type | Description |
 | --- | --- | --- |
-| info() | `str` | Alias for `Tag.detail` |
+| info | `str` | Alias for `Tag.detail` |
 
 
 ### Convenience functions

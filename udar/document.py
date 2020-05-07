@@ -108,8 +108,8 @@ class Document:
         return ''.join(sent.hfst_str()
                        for sent in self.sentences)
 
-    def conll_str(self) -> str:  # alternative to __str__
-        raise NotImplementedError()
+    # def conll_str(self) -> str:  # alternative to __str__
+    #     raise NotImplementedError()
 
     @classmethod
     def from_cg3(cls, input_stream: str, **kwargs):
