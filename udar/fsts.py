@@ -107,7 +107,7 @@ class Udar:
         in_tok.readings = [r for r in readings if float(r.weight) == rmax]
         in_tok.removed_readings = [r for r in readings
                                    if r not in in_tok.readings]
-        in_tok.update_lemmas_stress_and_phon()
+        in_tok._update_lemmas_stress_and_phon()
         return in_tok
 
     def lookup_one_best(self, in_str: str) -> Token:
@@ -122,7 +122,7 @@ class Udar:
         in_tok.readings = [max(readings, key=lambda r: float(r.weight))]
         in_tok.removed_readings = [r for r in readings
                                    if r not in in_tok.readings]
-        in_tok.update_lemmas_stress_and_phon()
+        in_tok._update_lemmas_stress_and_phon()
         return in_tok
 
 
