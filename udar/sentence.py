@@ -1,7 +1,6 @@
 """Sentence object"""
 
 from collections import Counter
-import os
 from pathlib import Path
 from pkg_resources import resource_filename
 import re
@@ -18,8 +17,9 @@ from typing import Type
 from typing import Union
 from warnings import warn
 
+import pexpect  # type: ignore
+
 from .fsts import get_fst
-from .fsts import HFSTTokenizer
 from .misc import get_stanza_pretokenized_pipeline
 from .misc import destress
 from .misc import result_names
@@ -42,24 +42,6 @@ _pexpect_hfst_tokenize = None
 Tokenizer = Callable[[str], List[str]]
 
 
-def is_exe(fpath):
-    return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-
-
-def which(program):
-    """UNIX `which`, from https://stackoverflow.com/a/377028/2903532"""
-    fpath, fname = os.path.split(program)
-    if fpath:
-        if is_exe(program):
-            return program
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                return exe_file
-    return None
-
-
 def hfst_tokenize(input_str: str) -> List[str]:
     try:
         p = Popen(['hfst-tokenize',
@@ -76,9 +58,35 @@ def hfst_tokenize(input_str: str) -> List[str]:
                                 'the tokenizer.') from e
 
 
+class HFSTTokenizer:
+    """An HFST tokenizer implemented using pexpect. The subprocess is opened
+    once, and then each call to the tokenizer sends input and returns the
+    output.
+    """
+    tokenizer: 'pexpect.pty_spawn.spawn'
+
+    def __init__(self):
+        self.tokenizer = pexpect.spawn(f'hfst-tokenize {RSRC_PATH}/tokeniser-disamb-gt-desc.pmhfst',  # noqa: E501
+                                       echo=False, encoding='utf8'
+                                       # The following two
+                                       # lines might help fix a problem with
+                                       # hanging after hibernation? Not sure...
+                                       # maxread=1,  # TODO performance hit?
+                                       # timeout=None)  # TODO robust?
+                                      )
+        self.tokenizer.delaybeforesend = None
+        # self.tokenizer.logfile = open('/tmp/udar_hfsttokenizer.log', 'w')
+        self.tokenizer.expect('')
+
+    def __call__(self, input_str: str):
+        self.tokenizer.sendline(f'{input_str} >>>\n')  # TODO ℍⓕ𝖘𝒯 delimiter?
+        self.tokenizer.expect(r'(\r\n>){3}(\r\n){2}')
+        return self.tokenizer.before.split('\r\n')
+
+
 def get_tokenizer(use_pexpect=True) -> Tokenizer:
     global _pexpect_hfst_tokenize
-    if which('hfst-tokenize'):
+    if pexpect.which('hfst-tokenize'):
         if use_pexpect:
             if _pexpect_hfst_tokenize is None:
                 _pexpect_hfst_tokenize = HFSTTokenizer()
@@ -136,8 +144,7 @@ class Sentence:
     def __init__(self, input_text='', doc=None, tokenize=True, analyze=True,
                  disambiguate=False, depparse=False, tokenizer=None,
                  analyzer=None, gram_path=None, id=None, experiment=False,
-                 annotation='', features=None, feat_cache=None, filename=None,
-                 orig_text=''):
+                 annotation='', features=None, feat_cache=None, orig_text=''):
         self._analyzed = False
         self._disambiguated = False
         if feat_cache is None:
@@ -157,11 +164,6 @@ class Sentence:
         self.tokens = []
         if tokenizer is None:
             tokenizer = get_tokenizer()
-        if filename is not None:
-            assert input_text == '', ('If filename is specified, input_text '
-                                      "must be ''.")
-            with open(filename) as f:
-                input_text = f.read()
 
         # if input_text is a `str`...
         if isinstance(input_text, str):
@@ -173,9 +175,6 @@ class Sentence:
         elif ((hasattr(input_text, '__iter__')
                or hasattr(input_text, '__getitem__'))
               and isinstance(next(iter(input_text)), str)):
-            if filename is not None:
-                raise ValueError('With filename provided, input_text must '
-                                 "be ''; sequence of `str`s given.")
             self._toks = input_text
             self._tokenized = True
             if orig_text:
@@ -186,9 +185,6 @@ class Sentence:
         elif ((hasattr(input_text, '__iter__')
                or hasattr(input_text, '__getitem__'))
               and isinstance(next(iter(input_text)), Token)):
-            if filename is not None:
-                raise ValueError('With filename provided, input_text must '
-                                 "be ''; sequence of `Token`s given.")
             self._analyzed = True
             self.tokens = input_text
             self._tokenized = True
@@ -484,11 +480,11 @@ class Sentence:
         """
         if experiment is None:
             experiment = self.experiment
-        out_text = [t.stressed(disambiguated=self._disambiguated,
-                               selection=selection, guess=guess,
-                               experiment=experiment,
-                               lemma=lemmas.get(t.text, None))
-                    for t in self]
+        out_text = [token.stressed(disambiguated=self._disambiguated,
+                                   selection=selection, guess=guess,
+                                   experiment=experiment,
+                                   lemma=lemmas.get(token.text, None))
+                    for token in self]
         return self.respace(out_text)
 
     def stress_eval(self, stress_params: StressParams) -> Counter:

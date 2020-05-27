@@ -34,13 +34,23 @@ def test_hfst_tokenize():
     assert toks == ['Мы', 'нашли', 'все', 'проблемы', ',', 'и', 'т.д.']
 
 
+def test_HFSTTokenizer():
+    tokenizer = udar.sentence.HFSTTokenizer()
+    toks = tokenizer('Мы нашли все проблемы, и т.д.')
+    assert toks == ['Мы', 'нашли', 'все', 'проблемы', ',', 'и', 'т.д.']
+    # Repeat to ensure that subsequent `expect`s are working
+    toks = tokenizer('Вы нашли все проблемы, и т.д.')
+    assert toks == ['Вы', 'нашли', 'все', 'проблемы', ',', 'и', 'т.д.']
+
+
 def test_stressed_selection_safe():
     sent1 = udar.Sentence('шепотом')
     sent2 = udar.Sentence('замок')
     sent3 = udar.Sentence('карандаш')
-    assert (sent1.stressed(selection='safe') == 'шёпотом'
-            and sent2.stressed(selection='safe') == 'замок'
-            and sent3.stressed(selection='safe') == 'каранда́ш')
+    print(sent1.tokens, sent2.tokens, sent3.tokens, file=stderr)
+    assert sent1.stressed(selection='safe') == 'шёпотом'
+    assert sent2.stressed(selection='safe') == 'замок'
+    assert sent3.stressed(selection='safe') == 'каранда́ш'
 
 
 def test_stressed_selection_all():

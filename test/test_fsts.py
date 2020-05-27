@@ -8,12 +8,6 @@ import udar
 RSRC_PATH = resource_filename('udar', 'resources/')
 
 
-def test_HFSTTokenizer():
-    t = udar.fsts.HFSTTokenizer()
-    assert t('Мы нашли все проблемы, и т.д.') == ['Мы', 'нашли', 'все',
-                                                  'проблемы', ',', 'и', 'т.д.']
-
-
 def test_parse_tags_with_plus():
     tr = udar.get_fst('analyzer')
     tok = tr.lookup('+')

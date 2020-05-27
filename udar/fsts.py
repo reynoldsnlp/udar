@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 from typing import Union
 
 import hfst  # type: ignore
-import pexpect  # type: ignore
 
 from .misc import destress
 from .tok import Token
@@ -127,34 +126,6 @@ class Udar:
 
 
 fst_cache: Dict[str, Udar] = {}
-
-
-class HFSTTokenizer:
-    """An HFST tokenizer implemented using pexpect. The subprocess is opened
-    once, and then each call to the tokenizer sends input and returns the
-    output.
-    """
-    tokenizer: 'pexpect.pty_spawn.spawn'
-
-    def __init__(self):
-        self.tokenizer = pexpect.spawn(f'hfst-tokenize {RSRC_PATH}/tokeniser-disamb-gt-desc.pmhfst',  # noqa: E501
-                                       echo=False, encoding='utf8')
-                                       # I originally added the following two
-                                       # lines to try to fix a problem with
-                                       # hanging after hibernation. However,
-                                       # it might have been caused by a bug in
-                                       # Sentence.get_tokenizer(). Not sure if
-                                       # they're useful/necessary anymore.
-                                       # maxread=1,  # TODO performance hit?
-                                       # timeout=None)  # TODO robust?
-        self.tokenizer.delaybeforesend = None
-        # self.tokenizer.logfile = open('/tmp/udar_hfsttokenizer.log', 'w')
-        self.tokenizer.expect('')
-
-    def __call__(self, input_str: str):
-        self.tokenizer.sendline(f'{input_str} >>>\n')
-        self.tokenizer.expect('\r\n>\r\n>\r\n>\r\n')
-        return self.tokenizer.before.split('\r\n')
 
 
 def get_fst(flavor: str):
