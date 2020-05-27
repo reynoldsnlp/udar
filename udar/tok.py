@@ -33,18 +33,15 @@ GRAVE = '\u0300'
 
 class Token:
     """Custom token object"""
-    __slots__ = ['_readings', '_stanza_tokens', 'annotation', 'deprel',
-                 'end_char', 'features', 'head', 'id', 'lemmas', 'misc',
-                 'phon_predictions', 'removed_readings', 'start_char',
-                 'stress_ambig', 'stress_predictions', 'text', '_upper_indices']
+    __slots__ = ['_readings', '_stanza_token', 'annotation', 'end_char',
+                 'features', 'lemmas', 'misc', 'phon_predictions',
+                 'removed_readings', 'start_char', 'stress_ambig',
+                 'stress_predictions', 'text', '_upper_indices']
     _readings: List['Reading']
-    _stanza_tokens: List['stanza.models.common.doc.Token']
+    _stanza_token: Optional['stanza.models.common.doc.Token']
     annotation: str
-    deprel: str
     end_char: int  # TODO
     features: Tuple
-    head: int
-    id: str  # 1-based index of word(s) in sentence (e.g., '4' or '7-9')
     lemmas: Set[str]
     misc: str
     phon_predictions: Dict[StressParams, set]
@@ -57,7 +54,7 @@ class Token:
 
     def __init__(self, text, readings=[], removed_readings=[]):
         from .reading import _readify
-        self._stanza_tokens = []
+        self._stanza_token = None
         self.annotation = ''
         self.features = ()
         self.removed_readings = [_readify(r) for r in removed_readings]
@@ -74,6 +71,27 @@ class Token:
     def readings(self, readings):
         self._readings = [r for r in readings if r is not None]
         self._update_lemmas_stress_and_phon()
+
+    @property
+    def deprel(self) -> str:
+        if self._stanza_token is not None:
+            return self._stanza_token.words[0].deprel
+        else:
+            return ''
+
+    @property
+    def head(self) -> int:
+        if self._stanza_token is not None:
+            return self._stanza_token.words[0].head
+        else:
+            return -1
+
+    @property
+    def id(self) -> str:
+        if self._stanza_token is not None:
+            return self._stanza_token.id
+        else:
+            return ''
 
     def _update_lemmas_stress_and_phon(self):
         self.lemmas = set()

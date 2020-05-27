@@ -29,18 +29,19 @@ class FeatureExtractor(OrderedDict):
 
     def _get_cat_and_feat_names(self, feat_names: List[str] = None,
                                 category_names: List[str] = None) -> List[str]:
+        """Return list of all feature names."""  # TODO better docstring
         if category_names is not None:
-            cat_feat_names = list(feat_name for feat_name, feat in self.items()
-                                  if feat.category in category_names)
+            cat_feat_names = [feat_name for feat_name, feat in self.items()
+                              if feat.category in category_names]
         else:
             cat_feat_names = []
         if feat_names is not None:
             feat_names = cat_feat_names + feat_names
         else:
             if category_names is None:
-                feat_names = list(feat_name for feat_name in self
-                                  if not feat_name.startswith('_')
-                                  and not self[feat_name].category.startswith('Absolute'))  # noqa: E501
+                feat_names = [feat_name for feat_name in self
+                              if not feat_name.startswith('_')
+                              and not self[feat_name].category.startswith('Absolute')]  # noqa: E501
             else:
                 feat_names = cat_feat_names
         return feat_names

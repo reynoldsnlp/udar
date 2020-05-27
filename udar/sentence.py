@@ -36,6 +36,7 @@ __all__ = ['hfst_tokenize', 'Sentence']
 
 RSRC_PATH = resource_filename('udar', 'resources/')
 NEWLINE = '\n'
+_pexpect_hfst_tokenize = None
 
 
 Tokenizer = Callable[[str], List[str]]
@@ -76,12 +77,15 @@ def hfst_tokenize(input_str: str) -> List[str]:
 
 
 def get_tokenizer(use_pexpect=True) -> Tokenizer:
+    global _pexpect_hfst_tokenize
     if which('hfst-tokenize'):
         if use_pexpect:
-            return HFSTTokenizer()
+            if _pexpect_hfst_tokenize is None:
+                _pexpect_hfst_tokenize = HFSTTokenizer()
+            return _pexpect_hfst_tokenize
         else:
             return hfst_tokenize
-    else:
+    else:  # TODO use stanza instead of nltk?
         try:
             import nltk  # type: ignore
             assert nltk.download('punkt')
@@ -223,31 +227,10 @@ class Sentence:
     def depparse(self):
         if self._stanza_sent is None:
             self._stanza_sent = self._get_stanza_sent()
-        stanza_iter = iter(self._stanza_sent.tokens)
-        for self_token in self.tokens:
-            stanza_toks = [next(stanza_iter)]
-            while (len(self_token.text) > len(' '.join(tok.text
-                                                       for tok in stanza_toks))
-                   and stanza_toks[-1].text in self_token.text.split(' ')):
-                stanza_toks.append(next(stanza_iter))
-            stanza_ids = {tok.id for tok in stanza_toks if int(tok.id)}
-            self_token.id = f'{min(stanza_ids)}{f"-{max(stanza_ids)}" if len(stanza_ids) > 1 else ""}'  # noqa: E501
-            assert all(len(tok.words) == 1 for tok in stanza_toks)
-            stanza_heads = {tok.words[0].head for tok in stanza_toks}
-            external_head = stanza_heads.difference(stanza_ids)
-            if len(external_head) > 1:
-                warn(f'Stanza tokens ({"/".join(t.text for t in stanza_toks)})'
-                     f' aligned with {self_token.text} have separate external '
-                     f'heads: {external_head}. The lower number will be used.',
-                     stacklevel=2)
-                external_head = set([min(external_head)])
-            self_token.head = external_head.pop()
-            deprels = {tok.words[0].deprel for tok in stanza_toks
-                       if tok.words[0].head == self_token.head}
-            if len(deprels) != 1:
-                warn('Multiple differing deprels are possible. One will be '
-                     f'chosen at random: {stanza_toks}', stacklevel=2)
-            self_token.deprel = deprels.pop()
+        assert len(self.tokens) == len(self._stanza_sent.tokens), f'tokenization mismatch: {self.tokens} {self._stanza_sent.tokens}'  # noqa: E501
+        for self_token, stanza_token in zip(self.tokens,
+                                            self._stanza_sent.tokens):
+            self_token._stanza_token = stanza_token
 
     @classmethod
     def from_cg3(cls: 'Type[Sentence]', input_str: str, disambiguate=False,
