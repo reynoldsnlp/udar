@@ -66,21 +66,18 @@ class HFSTTokenizer:
     tokenizer: 'pexpect.pty_spawn.spawn'
 
     def __init__(self):
-        self.tokenizer = pexpect.spawn(f'hfst-tokenize {RSRC_PATH}/tokeniser-disamb-gt-desc.pmhfst',  # noqa: E501
-                                       echo=False, encoding='utf8'
-                                       # The following two
-                                       # lines might help fix a problem with
-                                       # hanging after hibernation? Not sure...
-                                       # maxread=1,  # TODO performance hit?
-                                       # timeout=None)  # TODO robust?
-                                      )
+        tokenizer_path = f'{RSRC_PATH}/tokeniser-disamb-gt-desc.pmhfst'
+        self.tokenizer = pexpect.spawn(f'hfst-tokenize {tokenizer_path}',
+                                       echo=False, encoding='utf8',
+                                       timeout=None)
         self.tokenizer.delaybeforesend = None
+        # Uncomment the following line for debugging:
         # self.tokenizer.logfile = open('/tmp/udar_hfsttokenizer.log', 'w')
         self.tokenizer.expect('')
 
     def __call__(self, input_str: str):
-        self.tokenizer.sendline(f'{input_str} >>>\n')  # TODO ℍⓕ𝖘𝒯 delimiter?
-        self.tokenizer.expect(r'(\r\n>){3}(\r\n){2}')
+        self.tokenizer.sendline(f'{input_str} НF§Ŧ\n')
+        self.tokenizer.expect(r'\r\nНF§Ŧ(\r\n){2}')
         return self.tokenizer.before.split('\r\n')
 
 
