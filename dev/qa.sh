@@ -13,7 +13,7 @@ fi
 
 echo "Versions with which tests passed for this commit:" \
     > hfst_vislcg3_versions.txt
-hfst-tokenize --version | grep hfst > hfst_vislcg3_versions.txt
+hfst-tokenize --version | grep hfst >> hfst_vislcg3_versions.txt
 vislcg3 --version | grep VISL >> hfst_vislcg3_versions.txt
 
 flake8 *.py test/**/*.py udar/**/*.py
