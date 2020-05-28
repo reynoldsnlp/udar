@@ -18,7 +18,7 @@ For all features to be available, you should have `hfst` and `vislcg3`
 installed as command-line utilities. Specifically, `hfst` is needed for
 FST-based tokenization, and `vislcg3` is needed for grammatical disambiguation.
 The version used to successfully test the code in included in each commit in
-[this file](../blob/master/hfst_vislcg3_versions.txt). The recommended method
+[this file](../master/hfst_vislcg3_versions.txt). The recommended method
 for installing these dependencies is as follows:
 
 #### MacOS
