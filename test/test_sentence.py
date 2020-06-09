@@ -30,7 +30,7 @@ hfst_str = '''Мы	мы+Pron+Pers+Pl1+Nom	50.000000
 
 
 def test_hfst_tokenize():
-    toks = udar.hfst_tokenize('Мы нашли все\xa0проблемы, и т.д.')
+    toks = udar.hfst_tokenize('Мы нашли\u2009все\xa0проблемы,\u200bи т.д.')
     assert toks == ['Мы', 'нашли', 'все', 'проблемы', ',', 'и', 'т.д.']
 
 
