@@ -1,11 +1,14 @@
+from collections import Counter
 from itertools import chain
 import re
+from sys import stderr
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import Union
+import unicodedata
 from warnings import warn
 
 # import nltk (this happens covertly by unpickling nltk_punkt_russian.pkl)
@@ -40,10 +43,12 @@ def _str2Sentences(input_str, **kwargs):
 
 class Document:
     """Document object, which contains a sequence of `Sentence`s."""
-    __slots__ = ['_feat_cache', '_num_tokens', 'features',  # 'num_words',
+    __slots__ = ['_feat_cache', '_num_tokens', '_unexpected_chars', 'features',
+                 # 'num_words',
                  'sentences', 'text']
     _feat_cache: Dict
     _num_tokens: Optional[int]
+    _unexpected_chars: Counter
     features: Tuple
     # num_words: int  # TODO
     sentences: List[Sentence]
@@ -52,8 +57,10 @@ class Document:
     def __init__(self, input_text: Union[str, Sequence[Sentence], 'Document'],
                  **kwargs):
         self._feat_cache = {}
+        self._unexpected_chars = Counter()
         self.features = ()
         if isinstance(input_text, str):
+            self._char_check(input_text)
             self.text = input_text
             self.sentences = _str2Sentences(input_text, doc=self, **kwargs)
         elif ((hasattr(input_text, '__getitem__')
@@ -167,6 +174,20 @@ class Document:
     def transliterate(self, **kwargs) -> str:
         return ' '.join(sent.transliterate(**kwargs)
                         for sent in self.sentences)
+
+    def _char_check(self, input_str) -> None:
+        """Print warning to stderr for unexpected characters."""
+        input_str = re.sub(r'''[ !"#$%&'()*+,\-./0-9:;<=>?[\\\]_`{|}~£«¬°´·»×çś ́‒–—―‘’“”„•…›€№→−А-Яа-яЁё]''',  # noqa: E501
+                           '', input_str, flags=re.I)
+        if not self._unexpected_chars:
+            return
+        self._unexpected_chars.update(input_str)
+        print('DISP', 'REPR', 'ORD', 'HEX', 'NAME', 'COUNT', sep='\t',
+              file=stderr)
+        for char, count in sorted(list(self._unexpected_chars.items())):
+            print(char, repr(char), f'{ord(char):04x}', hex(ord(char)),
+                  unicodedata.name(char, 'MISSING'), count, sep='\t',
+                  file=stderr)
 
     # def to_dict(self) -> List[List[Dict]]:  # TODO
     #     return [sent.to_dict() for sent in self.sentences]

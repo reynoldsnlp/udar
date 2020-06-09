@@ -30,16 +30,16 @@ hfst_str = '''Мы	мы+Pron+Pers+Pl1+Nom	50.000000
 
 
 def test_hfst_tokenize():
-    toks = udar.hfst_tokenize('Мы нашли все проблемы, и т.д.')
+    toks = udar.hfst_tokenize('Мы нашли все\xa0проблемы, и т.д.')
     assert toks == ['Мы', 'нашли', 'все', 'проблемы', ',', 'и', 'т.д.']
 
 
 def test_HFSTTokenizer():
     tokenizer = udar.sentence.HFSTTokenizer()
-    toks = tokenizer('Мы нашли все проблемы, и т.д.')
+    toks = tokenizer('Мы нашли все\xa0проблемы, и т.д.')
     assert toks == ['Мы', 'нашли', 'все', 'проблемы', ',', 'и', 'т.д.']
     # Repeat to ensure that subsequent `expect`s are working
-    toks = tokenizer('Вы нашли все проблемы, и т.д.')
+    toks = tokenizer('Вы нашли все\xa0проблемы, и т.д.')
     assert toks == ['Вы', 'нашли', 'все', 'проблемы', ',', 'и', 'т.д.']
 
 
