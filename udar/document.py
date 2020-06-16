@@ -36,7 +36,10 @@ src = '''Мы все говорили кое о чем с тобой, но по-
 
 def _str2Sentences(input_str, **kwargs):
     stanza_sent = get_stanza_sent_tokenizer()
+    # TODO should the following 2 lines be solved in tokenizer's pmscript?
     input_str = input_str.replace('#', ' ')  # The `#` char is ignored by udar
+    input_str = re.sub(r'([^аэоуыяеёюи])[\u0300\u0301]', r'\1', input_str,
+                       flags=re.I)
     stanza_doc = stanza_sent(input_str)
     return [Sentence(sent.text, **kwargs)
             for i, sent in enumerate(stanza_doc.sentences)]
