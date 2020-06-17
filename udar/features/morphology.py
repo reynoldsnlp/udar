@@ -78,9 +78,11 @@ for tag in tag_dict:  # noqa: E305
                             category='Morphology')
 
 
-def Tag_present(tag: Tag, doc: Document) -> bool:
+def Tag_present(tag: Tag, doc: Document) -> int:
     """Determine whether a given tag is in `doc`."""
-    return any(tag in reading for token in doc for reading in token.readings)
+    return int(any(tag in reading
+                   for token in doc
+                   for reading in token.readings))
 for tag in tag_dict:  # noqa: E305
     name = f'{safe_tag_name(tag)}_present'
     this_partial = partial(Tag_present, tag)
