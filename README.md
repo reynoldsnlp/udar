@@ -24,14 +24,14 @@ for installing these dependencies is as follows:
 #### MacOS
 
 ```bash
-curl https://apertium.projectjj.com/osx/install-nightly.sh | sudo bash
+$ curl https://apertium.projectjj.com/osx/install-nightly.sh | sudo bash
 ```
 
 #### Debian / Ubuntu
 
 ```bash
-wget https://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
-sudo apt-get install cg3 hfst hfst-dev
+$ wget https://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
+$ sudo apt-get install cg3 hfst hfst-dev
 ```
 
 ## Installation
