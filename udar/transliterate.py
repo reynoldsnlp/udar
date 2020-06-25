@@ -38,6 +38,16 @@ iso9_dict = {'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e',
 iso9_dict.update((k.upper(), v.upper()) for k, v in list(iso9_dict.items()))
 iso9_table = str.maketrans(iso9_dict)
 
+# ICAO (passport standard as of 2013)
+icao_dict = {'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e',
+             'ё': 'e', 'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'i', 'к': 'k',
+             'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r',
+             'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
+             'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': 'ie', 'ы': 'y', 'ь': '',
+             'э': 'e', 'ю': 'iu', 'я': 'ia'}
+icao_dict.update((k.upper(), v.upper()) for k, v in list(icao_dict.items()))
+icao_table = str.maketrans(icao_dict)
+
 system_names = {'scholar': scholarly_table,
                 'scholarly': scholarly_table,
                 'scientific': scholarly_table,
@@ -58,6 +68,9 @@ system_names = {'scholar': scholarly_table,
                 'gost7.79': iso9_table,
                 'gost-7.79': iso9_table,
                 'gost 7.79': iso9_table,
+                'icao': icao_table,
+                'passport': icao_table,
+                'ascii': icao_table,
                 }
 
 
@@ -68,5 +81,6 @@ def transliterate(text, system='scholarly'):
         scholarly -- International Scholarly System (DEFAULT)
         loc -- American Library Association and Library of Congress
         iso9 -- ISO 9:1995 and GOST 7.79-2000
+        icao -- ICAO passport standard (since 2013); all ASCII
     """
     return text.translate(system_names[system.lower()])
