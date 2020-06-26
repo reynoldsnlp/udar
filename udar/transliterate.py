@@ -10,7 +10,7 @@ scholar_dict = {'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e'
                 'ѵ': 'i', 'є': 'je', 'ѥ': 'je', 'ѕ': 'dz', 'ꙋ': 'u', 'ѡ': 'ô',
                 'ѿ': 'ôt', 'ѫ': 'ǫ', 'ѧ': 'ę', 'ѭ': 'jǫ', 'ѩ': 'ję', 'ѯ': 'ks',
                 'ѱ': 'ps'}
-scholar_dict.update((k.upper(), v.upper())
+scholar_dict.update((k.title(), v.title())
                     for k, v in list(scholar_dict.items()))
 scholarly_table = str.maketrans(scholar_dict)
 
@@ -24,7 +24,7 @@ loc_dict = {'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e',
             'ѵ': 'ẏ', 'є': 'ē', 'ѥ': 'i͡e', 'ѕ': 'ż', 'ꙋ': 'ū', 'ѡ': 'ō',
             'ѿ': 'ō͡t', 'ѫ': 'ǫ', 'ѧ': 'ę', 'ѭ': 'i͡ǫ', 'ѩ': 'i͡ę', 'ѯ': 'k͡s',
             'ѱ': 'p͡s'}
-loc_dict.update((k.upper(), v.upper()) for k, v in list(loc_dict.items()))
+loc_dict.update((k.title(), v.title()) for k, v in list(loc_dict.items()))
 loc_table = str.maketrans(loc_dict)
 
 # ISO 9:1995 or GOST 7.79-2000(A)
@@ -35,7 +35,7 @@ iso9_dict = {'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e',
              'ч': 'č', 'ш': 'š', 'щ': 'ŝ', 'ъ': 'ʺ', 'ы': 'y', 'ь': 'ʹ',
              'э': 'è', 'ю': 'û', 'я': 'â', 'і': 'ì', 'ѳ': 'f̀', 'ѣ': 'ě',
              'ѵ': 'ỳ', 'ѕ': 'ẑ', 'ѫ': 'ǎ'}
-iso9_dict.update((k.upper(), v.upper()) for k, v in list(iso9_dict.items()))
+iso9_dict.update((k.title(), v.title()) for k, v in list(iso9_dict.items()))
 iso9_table = str.maketrans(iso9_dict)
 
 # ICAO (passport standard as of 2013)
@@ -45,7 +45,7 @@ icao_dict = {'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e',
              'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
              'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': 'ie', 'ы': 'y', 'ь': '',
              'э': 'e', 'ю': 'iu', 'я': 'ia'}
-icao_dict.update((k.upper(), v.upper()) for k, v in list(icao_dict.items()))
+icao_dict.update((k.title(), v.title()) for k, v in list(icao_dict.items()))
 icao_table = str.maketrans(icao_dict)
 
 system_names = {'scholar': scholarly_table,
