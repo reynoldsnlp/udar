@@ -585,11 +585,6 @@ class Sentence:
     def transliterate(self, **kwargs):
         return transliterate(self.text, **kwargs)
 
-    # def readability(approach=None):
-    #     # TODO
-    #     # from .features import ALL
-    #     pass
-
 
 def _get_Sentence(text: Union[str, List[str], Sentence], **kwargs) -> Sentence:
     if isinstance(text, str):
