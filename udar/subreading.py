@@ -33,8 +33,7 @@ class Subreading:
 
     def __contains__(self, key: Union[Tag, str]):
         """Enable `in` Subreading."""
-        return (key == self.lemma
-                or key in self.tagset
+        return (key in self.tagset
                 or (key in tag_dict
                     and tag_dict[key].ambig_alternative in self.tagset))
 
