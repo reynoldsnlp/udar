@@ -11,6 +11,7 @@ from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Union
 
+from .misc import combine_stress
 from .misc import destress
 from .misc import Result
 from .misc import StressParams
@@ -313,21 +314,7 @@ class Token:
                 raise NotImplementedError("The 'freq' selection method is not "
                                           'implemented yet.')
             elif selection == 'all':
-                acutes = [(w.replace(GRAVE, '').index(ACUTE), ACUTE)
-                          for w in stresses if ACUTE in w]
-                graves = [(w.replace(ACUTE, '').index(GRAVE), GRAVE)
-                          for w in stresses if GRAVE in w]
-                yos = [(w.replace(GRAVE, '').replace(ACUTE, '').index('ё'), 'ё')  # noqa: E501
-                       for w in stresses if 'ё' in w]
-                positions = acutes + graves + yos
-                word = list(destress(stresses.pop()))
-                for i, char in sorted(positions, key=lambda x: (-x[0], x[1]),
-                                      reverse=True):
-                    if char in (ACUTE, GRAVE):
-                        word.insert(i, char)
-                    else:  # 'ё'
-                        word[i] = char
-                pred = ''.join(word)
+                pred = combine_stress(stresses)
             else:
                 raise NotImplementedError(f"The '{selection}' selection "
                                           'method does not exist.')

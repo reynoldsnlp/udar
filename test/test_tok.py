@@ -80,7 +80,9 @@ def test_recase():
 def test_tok_stressed():
     t = udar.Token('слова', analyzer=anl)
     assert len(t.stresses()) > 1
-    assert t.stressed(selection='safe', experiment=True) == 'слова'
+    assert t.stressed(selection='safe') == 'слова'
+    assert t.stressed(selection='rand') in {'сло́ва', 'слова́'}
+    assert t.stressed(selection='all') == 'сло́ва́'
 
 
 def test_tok_stressed_no_readings():

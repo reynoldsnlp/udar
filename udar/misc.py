@@ -4,7 +4,9 @@ from collections import namedtuple
 from enum import Enum
 from pkg_resources import resource_filename
 import re
+import sys
 from typing import Dict
+from typing import Iterable
 
 import stanza  # type: ignore
 
@@ -88,8 +90,37 @@ def compute_metrics(results: Dict[Result, int]):
     return Metrics(**out_dict)  # type: ignore
 
 
-def destress(token: str):
+def destress(token: str) -> str:
     return token.replace(ACUTE, '').replace(GRAVE, '').replace('ё', 'е').replace('Ё', 'Е')  # noqa: E501
+
+
+def combine_stress(stresses: Iterable[str]) -> str:
+    """Given a list of stressed word forms, produce a single word with stress
+    marked on all syllables that every have stress in the source list.
+    """
+    if len(set([destress(w) for w in stresses])) > 1:
+        warn(f'combine_stress: words do not match ({stresses})')
+    acutes = [(w.replace(GRAVE, '').index(ACUTE), ACUTE)
+              for w in stresses if ACUTE in w]
+    graves = [(w.replace(ACUTE, '').index(GRAVE), GRAVE)
+              for w in stresses if GRAVE in w]
+    # remove graves that overlap with acutes
+    graves = [(i, grave) for i, grave in graves
+              if i not in {j for j, acute in acutes}]
+    yos = [(w.replace(GRAVE, '').replace(ACUTE, '').index('ё'), 'ё')
+           for w in stresses if 'ё' in w]
+    positions = acutes + graves + yos
+    print(positions, file=sys.stderr)
+    word = list(destress(stresses.pop()))
+    shift = 0
+    for pos, char in sorted(positions):
+        if char in (ACUTE, GRAVE):
+            word.insert(pos + shift, char)
+            shift += 1
+        else:  # 'ё'
+            word[pos + shift] = char
+        print(pos, word, file=sys.stderr)
+    return ''.join(word)
 
 
 def unspace_punct(in_str: str):
