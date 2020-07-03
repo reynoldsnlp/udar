@@ -72,7 +72,6 @@ def test_all_properties_are_documented_in_tables():
                                  'tokenize'},
                     'Token': {'annotation', 'end_char', 'features', 'guess',
                               'guess_freq', 'guess_syllable', 'has_L2',
-                              'has_lemma', 'has_tag',
                               'has_tag_in_most_likely_reading', 'head',
                               'is_L2', 'phon_eval', 'phon_predictions',
                               'phonetic_transcriptions', 'recase',

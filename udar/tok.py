@@ -109,7 +109,7 @@ class Token:
         self.stress_ambig = len(self.stresses())
 
     def __contains__(self, key: Union[str, Tag]):
-        """Enable `in` Token. Checks both lemmas and tags."""
+        """Enable `in` Token."""
         return any(key in r for r in self.readings)
 
     def __repr__(self):
@@ -175,7 +175,7 @@ class Token:
         """If one reading is marked as most likely, return it. Otherwise,
         select a most likely reading, label it as such, and return it.
         """
-        most_likely = [r for r in self.readings if r.most_likely]
+        most_likely = [r for r in self.readings if r.is_most_likely]
         if len(most_likely) == 1:
             return most_likely[0]
         else:
@@ -186,7 +186,7 @@ class Token:
             most_likely_readings = [r for r in self.readings
                                     if float(r.weight) == max_weight]
             lucky_reading = choice(most_likely_readings)
-            lucky_reading.most_likely = True
+            lucky_reading.is_most_likely = True
             return lucky_reading
 
     @property
@@ -215,14 +215,6 @@ class Token:
     def has_L2(self) -> bool:
         """Token has ANY readings that contain an L2 error tag."""
         return any(t.is_L2 for r in self.readings for t in r)
-
-    def has_lemma(self, lemma: str) -> bool:
-        """Token has ANY readings that contain the given lemma."""
-        return lemma in self.lemmas
-
-    def has_tag(self, tag: Union[Tag, str]) -> bool:
-        """Token has ANY readings that contain the given tag."""
-        return any(tag in r for r in self.readings)
 
     def has_tag_in_most_likely_reading(self, tag: Union[Tag, str],
                                        partial=True) -> bool:

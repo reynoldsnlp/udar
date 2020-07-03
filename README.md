@@ -156,7 +156,7 @@ print(phonetic_doc1)
 | grouped\_tags | `List[Tag]` | The part-of-speech, morphosyntactic, semantic and other tags from all subreadings |
 | weight | `str` | Weight indicating the likelihood of the reading, without respect to context |
 | cg\_rule | `str` | Reference to the rule in the constraint grammar that removed/selected/etc. this reading. If no action has been taken on this reading, then `''`. |
-| most\_likely | `bool` | Indicates whether this reading has been selected as the most likely reading of its `Token`. Note that some selection methods are at least partially ***random***. |
+| is\_most\_likely | `bool` | Indicates whether this reading has been selected as the most likely reading of its `Token`. Note that some selection methods may be at least partially ***random***. |
 
 | Method | Return type | Description |
 | --- | --- | --- |
@@ -268,8 +268,8 @@ print(raw_readings2)
 
 ## Working with `Token`s and `Readings`s
 
-You can easily check if a lemma or morphosyntactic tag are in a `Token` or
-`Reading` using `in`:
+You can easily check if a morphosyntactic tag is in a `Token`, `Reading`,
+or `Subreading` using `in`:
  
 ```python
 token2 = udar.Token('слова', analyzer=analyzer)
@@ -279,11 +279,11 @@ print(token2)
 print('Gen' in token2)  # do any of the readings include Genitive case?
 # True
 
-print('слово' in token2)  # do any of the readings have the lemma 'слово'?
-# True
-
-print('новый' in token2)
+print('слово' in token2)  # does not work for lemmas; use `in Token.lemmas`
 # False
+
+print('слово' in token2.lemmas)
+# True
 ```
 
 You can make a filtered list of a `Token`'s readings using the following idiom:

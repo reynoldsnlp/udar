@@ -72,20 +72,6 @@ def test_tok_has_L2():
     assert t.has_L2()
 
 
-def test_tok_has_lemma():
-    t = udar.Token('слово', analyzer=anl)
-    assert not t.has_lemma('а')
-    assert t.has_lemma('слово')
-
-
-def test_tok_has_tag():
-    t = udar.Token('слово', analyzer=anl)
-    assert not t.has_tag('V')
-    assert t.has_tag('N')
-    t = udar.Token('слово')
-    assert not t.has_tag('N')
-
-
 def test_recase():
     tok = udar.Token('Работа', analyzer=L2_anl)
     assert tok.recase('работа') == 'Работа'

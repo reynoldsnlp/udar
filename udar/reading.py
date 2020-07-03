@@ -20,16 +20,16 @@ class Reading:
 
     Typically, a Reading has only one Subreading, but it can have more.
     """
-    __slots__ = ['cg_rule', 'most_likely', 'subreadings', 'weight']
+    __slots__ = ['cg_rule', 'is_most_likely', 'subreadings', 'weight']
     cg_rule: str
-    most_likely: bool
+    is_most_likely: bool
     subreadings: List[Subreading]
     weight: str
 
     def __init__(self, subreadings: str, weight: str, cg_rule: str = ''):
         """Convert HFST tuples to more user-friendly interface."""
         self.cg_rule = cg_rule
-        self.most_likely = False
+        self.is_most_likely = False
         self.subreadings = [Subreading(sub)
                             for sub in re.findall(r'([^+]*[^#]+)#?',
                                                   subreadings)]
