@@ -1,19 +1,19 @@
 """Python wrapper of UDAR, a part-of-speech tagger for (accented) Russian"""
 
 from pkg_resources import resource_filename
-from random import shuffle
 from typing import Dict
 from typing import Optional
+from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Union
 
 import hfst  # type: ignore
 
 from .misc import destress
-from .tok import Token
 
 if TYPE_CHECKING:
     from .reading import Reading
+    import libhfst  # type: ignore
 
 __all__ = ['get_fst', 'get_g2p', 'Udar']
 
@@ -36,17 +36,15 @@ class Udar:
     >>> ana = Udar('analyzer')
     >>> tok = ana.lookup('сло́ва')
     >>> tok
-    Token(text=сло́ва, readings=[Reading(слово+N+Neu+Inan+Sg+Gen, 5.975586, )], removed_readings=[])
-    >>> print(tok)
-    сло́ва [слово_N_Neu_Inan_Sg_Gen]
+    (('слово+N+Neu+Inan+Sg+Gen', 5.9755859375),)
     >>> gen = Udar('accented-generator')
     >>> gen.generate('слово+N+Neu+Inan+Sg+Gen')
     'сло́ва'
-    """  # noqa: E501
+    """
     __slots__ = ['flavor', 'path2fst', 'fst']
     flavor: str
     path2fst: str
-    # fst: 'libhfst.HfstTransducer'
+    fst: 'libhfst.HfstTransducer'
 
     def __init__(self, flavor: str = 'L2-analyzer'):
         """Build fst for lookup. Flavor must be one of the following:
@@ -74,7 +72,7 @@ class Udar:
         self.fst = fst_stream.read()
         assert fst_stream.is_eof()  # be sure the hfstol file only had one fst
 
-    def generate(self, read: 'Union[Reading, str]') -> Optional[str]:
+    def generate(self, read: Union['Reading', str]) -> Optional[str]:
         """Return str from a given lemma+Reading."""
         try:
             if isinstance(read, Reading):
@@ -90,39 +88,10 @@ class Udar:
         except IndexError:
             return None
 
-    def lookup(self, in_tok: str) -> Token:
-        """Return Token with all readings.
-
-        If lookup returns nothing, try lookup with stress removed.
-        """
-        return Token(in_tok, (self.fst.lookup(in_tok) or
-                              self.fst.lookup(destress(in_tok))))
-
-    def lookup_all_best(self, in_str: str) -> Token:
-        """Return Token with only the highest-weighted reading(s)."""
-        in_tok = self.lookup(in_str)
-        readings = in_tok.readings[:]  # copy
-        rmax = max([float(r.weight) for r in readings])
-        in_tok.readings = [r for r in readings if float(r.weight) == rmax]
-        in_tok.removed_readings = [r for r in readings
-                                   if r not in in_tok.readings]
-        in_tok._update_lemmas_stress_and_phon()
-        return in_tok
-
-    def lookup_one_best(self, in_str: str) -> Token:
-        """Return Token with only one highest-weighted output.
-
-        In the case of multiple readings with the same max weight,
-        one is selected at random.
-        """
-        in_tok = self.lookup(in_str)
-        readings = in_tok.readings[:]  # make copy
-        shuffle(readings)
-        in_tok.readings = [max(readings, key=lambda r: float(r.weight))]
-        in_tok.removed_readings = [r for r in readings
-                                   if r not in in_tok.readings]
-        in_tok._update_lemmas_stress_and_phon()
-        return in_tok
+    def lookup(self, in_tok: str) -> Union[Tuple[str, str],
+                                           Tuple[str, str, str]]:
+        """If lookup returns nothing, try lookup with stress removed."""
+        return self.fst.lookup(in_tok) or self.fst.lookup(destress(in_tok))
 
 
 fst_cache: Dict[str, Udar] = {}

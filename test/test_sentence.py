@@ -1,5 +1,6 @@
 from copy import deepcopy
 from pkg_resources import resource_filename
+from pprint import pprint
 from sys import stderr
 
 import udar
@@ -115,9 +116,15 @@ def test_cg3_parse_w_traces():
 
 
 def test_from_hfst():
-    sent = udar.Sentence(example_sent)
-    sent2 = udar.Sentence.from_hfst(sent.hfst_str())
-    assert sent == sent2
+    sent1 = udar.Sentence(example_sent)
+    sent2 = udar.Sentence.from_hfst(sent1.hfst_str())
+    for tok1, tok2 in zip(sent1, sent2):
+        if tok1 != tok2:
+            print('orig:      ', end='', file=stderr)
+            pprint(tok1, stream=stderr)
+            print('from hfst: ', end='', file=stderr)
+            pprint(tok2, stream=stderr)
+    assert sent1 == sent2
 
 
 def test_can_be_pickled():

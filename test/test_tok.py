@@ -9,13 +9,18 @@ def test_empty_tok_contains():
     assert 'N' not in t
 
 
+def test_plus():
+    tok = udar.Token('+', analyzer=anl)
+    assert tok.text == '+' and 'PUNCT' in tok
+
+
 def test_tok_repr():
-    t = anl.lookup('слово')
+    t = udar.Token('слово', analyzer=anl)
     assert repr(t) == 'Token(text=слово, readings=[Reading(слово+N+Neu+Inan+Sg+Acc, 5.975586, ), Reading(слово+N+Neu+Inan+Sg+Nom, 5.975586, )], removed_readings=[])'  # noqa: E501
 
 
 def test_tok_str():
-    t = anl.lookup('слово')
+    t = udar.Token('слово', analyzer=anl)
     assert str(t) == 'слово [слово_N_Neu_Inan_Sg_Acc  слово_N_Neu_Inan_Sg_Nom]'
 
 
@@ -46,7 +51,6 @@ def test_tok_eq():
     w._readings = [0]
     w.removed_readings = [0]
     assert v == w
-    assert v != ''
 
 
 def test_tok_len():
@@ -62,28 +66,19 @@ def test_tok_is_L2():
 def test_tok_has_L2():
     t = udar.Token('слово')
     assert not t.has_L2()
-    t = anl.lookup('слово')
+    t = udar.Token('слово', analyzer=anl)
     assert not t.has_L2()
-    t = L2_anl.lookup('земла')
+    t = udar.Token('земла', analyzer=L2_anl)
     assert t.has_L2()
 
 
-def test_tok_has_lemma():
-    t = anl.lookup('слово')
-    assert not t.has_lemma('а')
-    assert t.has_lemma('слово')
-
-
-def test_tok_has_tag():
-    t = anl.lookup('слово')
-    assert not t.has_tag('V')
-    assert t.has_tag('N')
-    t = udar.Token('слово')
-    assert not t.has_tag('N')
+def test_recase():
+    tok = udar.Token('Работа', analyzer=L2_anl)
+    assert tok.recase('работа') == 'Работа'
 
 
 def test_tok_stressed():
-    t = anl.lookup('слова')
+    t = udar.Token('слова', analyzer=anl)
     assert len(t.stresses()) > 1
     assert t.stressed(selection='safe', experiment=True) == 'слова'
 
@@ -107,5 +102,5 @@ def test_tok_can_be_pickled():
 
 
 def test_transliterate():
-    t = anl.lookup('объясняли')
+    t = udar.Token('объясняли', analyzer=anl)
     assert t.transliterate() == 'obʺjasnjali'

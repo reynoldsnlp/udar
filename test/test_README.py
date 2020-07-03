@@ -43,6 +43,7 @@ def test_blocks():
 
 
 def test_properties_documented_in_tables_actually_exist():
+    failed = []
     ignore = {'Method', 'Property', '---'}
     table_blocks = re.findall(r'^### `([A-Za-z0-9]+)` object\n\n(.+?)(?=^###)',
                               README, flags=re.S | re.M)
@@ -55,9 +56,10 @@ def test_properties_documented_in_tables_actually_exist():
                                     flags=re.M)
         doc_attr_names = {name.replace(r'\_', '_') for name in doc_attr_names
                           if name not in ignore}
-        print(doc_attr_names, file=sys.stderr)
-        for doc_attr_name in doc_attr_names:
-            assert obj_name and doc_attr_name in actual_attr_names
+        bad_attr_names = doc_attr_names.difference(actual_attr_names)
+        if bad_attr_names:
+            failed.append(f'{obj} does not have these attrs: {bad_attr_names}')
+    assert not failed
 
 
 def test_all_properties_are_documented_in_tables():
@@ -70,13 +72,13 @@ def test_all_properties_are_documented_in_tables():
                                  'tokenize'},
                     'Token': {'annotation', 'end_char', 'features', 'guess',
                               'guess_freq', 'guess_syllable', 'has_L2',
-                              'has_lemma', 'has_tag',
                               'has_tag_in_most_likely_reading', 'head',
                               'is_L2', 'phon_eval', 'phon_predictions',
                               'phonetic_transcriptions', 'recase',
                               'start_char', 'stress_ambig', 'stress_eval',
                               'stress_predictions'},
-                    'Reading': {'L2_tags', 'hfst_noL2_str'},
+                    'Reading': {'hfst_noL2_str'},
+                    'Subreading': {'hfst_noL2_str'},
                     'Tag': {'ambig_alternative', 'is_Err', 'is_included_in'}}
     table_blocks = re.findall(r'^### `([A-Za-z0-9]+)` object\n\n(.+?)(?=^###)',
                               README, flags=re.S | re.M)
@@ -94,10 +96,7 @@ def test_all_properties_are_documented_in_tables():
                                     flags=re.M)
         doc_attr_names = {name.replace(r'\_', '_') for name in doc_attr_names
                           if name not in {'Method', 'Property', '---'}}
-        is_you_is = sorted((actual_attr_name,
-                            actual_attr_name in doc_attr_names)
-                           for actual_attr_name in actual_attr_names)
-        if not all(val for name, val in is_you_is):
-            print([(name, val) for name, val in is_you_is if not val],
-                  file=sys.stderr)
-        assert obj_name and all([val for name, val in is_you_is])
+        bad_attr_names = sorted(actual_attr_name
+                                for actual_attr_name in actual_attr_names
+                                if actual_attr_name not in doc_attr_names)
+        assert obj_name and not bad_attr_names

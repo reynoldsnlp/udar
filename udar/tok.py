@@ -14,15 +14,12 @@ from typing import Union
 from .misc import destress
 from .misc import Result
 from .misc import StressParams
-# from .reading import MultiReading
-# from .reading import Reading
+from .reading import Reading
 from .tag import Tag
 from .transliterate import transliterate
 
 if TYPE_CHECKING:
     import stanza  # type: ignore  # noqa: F401
-    from .reading import MultiReading
-    from .reading import Reading
 
 __all__ = ['Token']
 
@@ -52,16 +49,26 @@ class Token:
     text: str
     _upper_indices: Set[int]
 
-    def __init__(self, text, readings=[], removed_readings=[]):
-        from .reading import _readify
+    def __init__(self, text, *, analyzer=None, readings=None,
+                 removed_readings=None):
         self._stanza_token = None
         self.annotation = ''
         self.features = ()
-        self.removed_readings = [_readify(r) for r in removed_readings]
+        if removed_readings:
+            self.removed_readings = [Reading(*r) for r in removed_readings]
+        else:
+            self.removed_readings = []
         self.text = text
         self._upper_indices = self._cap_indices()
         # keep self.readings last, since it calls readings.setter()
-        self.readings = [_readify(r) for r in readings]
+        if readings is not None:
+            self.readings = [Reading(*r) for r in readings
+                             if not r[0].endswith('?')]
+        else:
+            if analyzer is not None:
+                self.readings = [Reading(*r) for r in analyzer.lookup(text)]
+            else:
+                self.readings = []
 
     @property
     def readings(self) -> List['Reading']:
@@ -96,17 +103,14 @@ class Token:
     def _update_lemmas_stress_and_phon(self):
         self.lemmas = set()
         for r in self.readings:
-            self.lemmas.add(r.lemma)
+            self.lemmas.update(r.lemmas)
         self.phon_predictions = {}
         self.stress_predictions = {}
         self.stress_ambig = len(self.stresses())
 
     def __contains__(self, key: Union[str, Tag]):
-        """Enable `in` Token. Checks both lemmas and tags."""
-        if self.readings:
-            return any(key in r for r in self.readings)
-        else:
-            return False
+        """Enable `in` Token."""
+        return any(key in r for r in self.readings)
 
     def __repr__(self):
         return f'Token(text={self.text}, readings={self.readings!r}, removed_readings={self.removed_readings!r})'  # noqa: E501
@@ -141,13 +145,10 @@ class Token:
 
     def __eq__(self, other):
         # Do not include removed_readings in the comparison
-        try:
-            return (self.text == other.text
-                    and len(self.readings) == len(other.readings)
-                    and all(s == o for s, o in zip(sorted(self.readings),
-                                                   sorted(other.readings))))
-        except AttributeError:
-            return False
+        return (self.text == other.text
+                and len(self.readings) == len(other.readings)
+                and all(s == o for s, o in zip(sorted(self.readings),
+                                               sorted(other.readings))))
 
     def __hash__(self):
         return hash((self.text, self.readings))  # pragma: no cover
@@ -155,7 +156,7 @@ class Token:
     def __len__(self):
         return len(self.readings)
 
-    def __getitem__(self, i: int) -> 'Union[MultiReading, Reading]':
+    def __getitem__(self, i: int) -> 'Reading':
         # TODO tests
         return self.readings[i]
 
@@ -174,7 +175,7 @@ class Token:
         """If one reading is marked as most likely, return it. Otherwise,
         select a most likely reading, label it as such, and return it.
         """
-        most_likely = [r for r in self.readings if r.most_likely]
+        most_likely = [r for r in self.readings if r.is_most_likely]
         if len(most_likely) == 1:
             return most_likely[0]
         else:
@@ -185,45 +186,35 @@ class Token:
             most_likely_readings = [r for r in self.readings
                                     if float(r.weight) == max_weight]
             lucky_reading = choice(most_likely_readings)
-            lucky_reading.most_likely = True
+            lucky_reading.is_most_likely = True
             return lucky_reading
 
     @property
-    def most_likely_lemma(self) -> Optional[str]:
-        """If one reading is marked as most likely, return its lemma.
-        Otherwise, select a most likely reading, label it as such, and return
-        its lemma.
+    def most_likely_lemmas(self) -> List[str]:
+        """If one reading is marked as most likely, return list of its
+        lemma(s). Otherwise, select a most likely reading, label it as such,
+        and return list of its lemma(s).
         """
-        try:
-            return self.most_likely_reading.lemma  # type: ignore
-        except AttributeError:
-            return None
+        mlr = self.most_likely_reading
+        if mlr is not None:
+            return mlr.lemmas
+        else:
+            return []
 
     def is_L2(self) -> bool:
         """Token: test if ALL readings contain an L2 error tag."""
         if self.readings:
-            return all(r.L2_tags for r in self.readings)
+            for r in self.readings:
+                for subreading in r.subreadings:
+                    if not any(t.is_L2 for t in subreading):
+                        return False
+            return True
         else:
             return False
 
     def has_L2(self) -> bool:
-        """Token has ANY readings contain an L2 error tag."""
-        if self.readings:
-            return any(r.L2_tags for r in self.readings)
-        else:
-            return False
-
-    def has_lemma(self, lemma: str) -> bool:
-        """Token has ANY readings that contain the given lemma."""
-        return lemma in self.lemmas
-
-    def has_tag(self, tag: Union[Tag, str]) -> bool:
-        """Token has ANY readings that contain the given tag."""
-        # TODO do not need if...else here. any([]) is False.
-        if self.readings:
-            return any(tag in r for r in self.readings)
-        else:
-            return False
+        """Token has ANY readings that contain an L2 error tag."""
+        return any(t.is_L2 for r in self.readings for t in r)
 
     def has_tag_in_most_likely_reading(self, tag: Union[Tag, str],
                                        partial=True) -> bool:
@@ -297,8 +288,8 @@ class Token:
         """
         if lemma:
             self.removed_readings.extend([r for r in self.readings
-                                          if r.lemma != lemma])
-            self.readings = [r for r in self.readings if r.lemma == lemma]
+                                          if lemma not in r.lemmas])
+            self.readings = [r for r in self.readings if lemma in r.lemmas]
         stress_params = StressParams(disambiguated, selection, guess)
         stresses = self.stresses()
         if not stresses:
@@ -413,8 +404,8 @@ class Token:
         g2p = get_g2p()
         if lemma:
             self.removed_readings.extend([r for r in self.readings
-                                          if r.lemma != lemma])
-            self.readings = [r for r in self.readings if r.lemma == lemma]
+                                          if lemma not in r.lemmas])
+            self.readings = [r for r in self.readings if lemma in r.lemmas]
         transcriptions = self.phonetic_transcriptions()
         if not transcriptions:
             if guess:

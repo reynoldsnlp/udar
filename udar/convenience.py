@@ -14,6 +14,7 @@ from .sentence import get_tokenizer
 from .sentence import Sentence
 from .tag import tag_dict
 from .tag import Tag
+from .tok import Token
 
 
 __all__ = ['tag_info', 'stressed', 'noun_distractors', 'stress_distractors',
@@ -57,7 +58,7 @@ def noun_distractors(noun: Union[str, Reading], stressed=True):
     else:
         gen = get_fst('generator')
     if isinstance(noun, str):
-        tok = analyzer.lookup(noun)
+        tok = Token(noun, analyzer=analyzer)
         readings = [r for r in tok.readings if tag_dict['N'] in r]
         try:
             this_reading = readings[0]
@@ -69,7 +70,8 @@ def noun_distractors(noun: Union[str, Reading], stressed=True):
     else:
         raise NotImplementedError('Argument must be str or Reading.')
     out_set = set()
-    current_case = [t for t in this_reading.tags if t.ms_feat == 'CASE'][0]
+    current_case = [t for t in this_reading.grouped_tags
+                    if t.ms_feat == 'CASE'][0]
     for new_case in CASES:
         this_reading.replace_tag(current_case, new_case)
         out_set.add(this_reading.generate(fst=gen))
@@ -96,8 +98,9 @@ def diagnose_L2(in_str: str, tokenizer=None):
     for tok in in_doc:
         if tok.is_L2():
             for r in tok.readings:
-                for t in r.L2_tags:
-                    out_dict[t].add(tok.text)
+                for t in r.grouped_tags:
+                    if t.is_L2:
+                        out_dict[t].add(tok.text)
     return dict(out_dict)
 
 

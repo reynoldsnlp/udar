@@ -132,8 +132,8 @@ print(phonetic_doc1)
 | text | `str` | The original text of this token |
 | misc | `str` | Miscellaneous annotations with regard to this token |
 | lemmas | `Set[str]` | All possible lemmas, based on remaining readings |
-| most\_likely\_reading | `Reading` | "Most likely" reading |
-| most\_likely\_lemma | `str` | Lemma from the "most likely" reading |
+| most\_likely\_reading | `Reading` | "Most likely" reading (may be partially random selection) |
+| most\_likely\_lemmas | `List[str]` | List of lemma(s) from the "most likely" reading |
 | readings | `List[Reading]` | List of readings not removed by the Constraint Grammar |
 | removed\_readings | `List[Reading]` | List of readings removed by the Constraint Grammar | head | `int` | The id of the syntactic head of this token in the sentence, 1-based (0 is reserved for an artificial symbol that represents the root of the syntactic tree). |
 | deprel | `str` | The dependency relation between this word and its syntactic head. Example: ‘nmod’. |
@@ -151,18 +151,32 @@ print(phonetic_doc1)
 
 | Property | Type | Description |
 | --- | --- | --- |
-| lemma | `str` | The lemma of the reading |
-| tags | `List[Tag]` | The part-of-speech, morphosyntactic, semantic and other tags |
-| tagset | `Set[Tag]` | Same as tags, but for faster membership testing (`in` Reading) |
+| subreadings | `List[Subreading]` | Usually only one subreading, but multiple subreadings are possible for complex `Token`s. |
+| lemmas | `List[str]` | Lemmas from all subreadings |
+| grouped\_tags | `List[Tag]` | The part-of-speech, morphosyntactic, semantic and other tags from all subreadings |
 | weight | `str` | Weight indicating the likelihood of the reading, without respect to context |
-| cg\_rule | `str` | Reference to the rule in the constraint grammar that removed/selected/etc. this reading |
-| most\_likely | `bool` | Indicates whether this reading has been selected as the most likely |
+| cg\_rule | `str` | Reference to the rule in the constraint grammar that removed/selected/etc. this reading. If no action has been taken on this reading, then `''`. |
+| is\_most\_likely | `bool` | Indicates whether this reading has been selected as the most likely reading of its `Token`. Note that some selection methods may be at least partially ***random***. |
 
 | Method | Return type | Description |
 | --- | --- | --- |
 | cg3\_str | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
 | hfst\_str | `str` | Analysis stream in the XFST/HFST format |
 | generate | `str` | Generate the wordform from this reading |
+| replace\_tag | `None` | Replace a tag in this reading |
+
+### `Subreading` object
+
+| Property | Type | Description |
+| --- | --- | --- |
+| lemma | `str` | The lemma of the subreading |
+| tags | `List[Tag]` | The part-of-speech, morphosyntactic, semantic and other tags |
+| tagset | `Set[Tag]` | Same as `tags`, but for faster membership testing (`in` Reading) |
+
+| Method | Return type | Description |
+| --- | --- | --- |
+| cg3\_str | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
+| hfst\_str | `str` | Analysis stream in the XFST/HFST format |
 | replace\_tag | `None` | Replace a tag in this reading |
 
 ### `Tag` object
@@ -239,35 +253,37 @@ four flavors:
 analyzer = udar.Udar('analyzer')
 ```
 
-The `Udar.lookup()` method takes a token `str` and returns a `Token`.
+The `Udar.lookup()` method takes a token `str` and returns a sequence of
+reading/weight `tuple`s.
 
 ```python
-token1 = analyzer.lookup('сло́ва')
-print(token1)
-# сло́ва [слово_N_Neu_Inan_Sg_Gen]
+raw_readings1 = analyzer.lookup('сло́ва')
+print(raw_readings1)
+# (('слово+N+Neu+Inan+Sg+Gen', 5.9755859375),)
 
-token2 = analyzer.lookup('слова')
-print(token2)
-# слова [слово_N_Neu_Inan_Pl_Acc  слово_N_Neu_Inan_Pl_Nom  слово_N_Neu_Inan_Sg_Gen]
+raw_readings2 = analyzer.lookup('слова')
+print(raw_readings2)
+# (('слово+N+Neu+Inan+Pl+Acc', 5.9755859375), ('слово+N+Neu+Inan+Pl+Nom', 5.9755859375), ('слово+N+Neu+Inan+Sg+Gen', 5.9755859375))
 ```
 
 ## Working with `Token`s and `Readings`s
 
-You can easily check if a lemma or morphosyntactic tag are in a `Token` or
-`Reading` using `in`:
+You can easily check if a morphosyntactic tag is in a `Token`, `Reading`,
+or `Subreading` using `in`:
  
 ```python
+token2 = udar.Token('слова', analyzer=analyzer)
 print(token2)
 # слова [слово_N_Neu_Inan_Pl_Acc  слово_N_Neu_Inan_Pl_Nom  слово_N_Neu_Inan_Sg_Gen]
 
 print('Gen' in token2)  # do any of the readings include Genitive case?
 # True
 
-print('слово' in token2)  # do any of the readings have the lemma 'слово'?
-# True
-
-print('новый' in token2)
+print('слово' in token2)  # does not work for lemmas; use `in Token.lemmas`
 # False
+
+print('слово' in token2.lemmas)
+# True
 ```
 
 You can make a filtered list of a `Token`'s readings using the following idiom:

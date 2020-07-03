@@ -153,9 +153,10 @@ def morphs_per_word(doc: Document, has_tag='', lower=False, rmv_punc=True,
     toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     tix_morph_count_dict = _get_tix_morph_count_dict()
     try:
-        return mean(tix_morph_count_dict[tok.most_likely_lemma]  # type: ignore  # noqa: E501
+        return mean(tix_morph_count_dict[lem]
                     for tok in toks
-                    if tok.most_likely_lemma in tix_morph_count_dict)  # type: ignore  # noqa: E501
+                    for lem in tok.most_likely_lemmas
+                    if lem in tix_morph_count_dict)
     except StatisticsError:
         return zero_div_val
 
@@ -170,9 +171,10 @@ def max_morphs_per_word(doc: Document, has_tag='', lower=False, rmv_punc=True,
     toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     tix_morph_count_dict = _get_tix_morph_count_dict()
     try:
-        return max(tix_morph_count_dict[tok.most_likely_lemma]  # type: ignore  # noqa: E501
+        return max(tix_morph_count_dict[lem]
                    for tok in toks
-                   if tok.most_likely_lemma in tix_morph_count_dict)  # type: ignore  # noqa: E501
+                   for lem in tok.most_likely_lemmas
+                   if lem in tix_morph_count_dict)
     except ValueError:
         return zero_div_val
 
