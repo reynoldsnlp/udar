@@ -214,7 +214,7 @@ class Token:
 
     def has_L2(self) -> bool:
         """Token has ANY readings that contain an L2 error tag."""
-        return any(any([t.is_L2 for t in r]) for r in self.readings)
+        return any(t.is_L2 for r in self.readings for t in r)
 
     def has_lemma(self, lemma: str) -> bool:
         """Token has ANY readings that contain the given lemma."""
