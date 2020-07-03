@@ -13,6 +13,7 @@ from warnings import warn
 
 # import nltk (this happens covertly by unpickling nltk_punkt_russian.pkl)
 
+from .fsts import get_fst
 from .misc import get_stanza_sent_tokenizer
 from .sentence import Sentence
 
@@ -65,6 +66,8 @@ class Document:
         self.features = ()
         if isinstance(input_text, str):
             self._char_check(input_text)
+            if kwargs.get('analyzer') is None:
+                kwargs['analyzer'] = get_fst('analyzer')
             self.text = input_text
             self.sentences = _str2Sentences(input_text, doc=self, **kwargs)
         elif ((hasattr(input_text, '__getitem__')
@@ -140,11 +143,10 @@ class Document:
             lengths = [len(s) for s in sentences]
             sents_from_cg3 = []
             base = 0
+            kwargs['tokenize'] = False
+            kwargs['analyze'] = False
             for length in lengths:
-                sent = Sentence(super_sentence[base:base + length],
-                                tokenize=False, analyze=False,
-                                **{kw: arg for kw, arg in kwargs.items()
-                                   if kw not in {'tokenize', 'analyzer'}})
+                sent = Sentence(super_sentence[base:base + length], **kwargs)
                 sents_from_cg3.append(sent)
                 base += length
             return cls(sents_from_cg3, **kwargs)
@@ -156,11 +158,10 @@ class Document:
         lengths = [len(s) for s in sentences]
         sents_from_cg3 = []
         base = 0
+        kwargs['tokenize'] = False
+        kwargs['analyze'] = False
         for length in lengths:
-            sent = Sentence(super_sentence[base:base + length], tokenize=False,
-                            analyze=False,
-                            **{kw: arg for kw, arg in kwargs.items()
-                               if kw not in {'tokenize', 'analyzer'}})
+            sent = Sentence(super_sentence[base:base + length], **kwargs)
             sents_from_cg3.append(sent)
             base += length
         return cls(sents_from_cg3, **kwargs)

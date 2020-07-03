@@ -24,17 +24,10 @@ def num_types_ms_feat(ms_feat: str, doc: Document, rmv_punc=False) -> int:
     toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     counter = 0
     for tok in toks:
-        try:
-            for tag in tok.most_likely_reading.tagset:
-                if tag.ms_feat == ms_feat:
-                    counter += 1
-                    break
-        except AttributeError:
-            for r in tok.most_likely_reading.readings:
-                for tag in r.tagset:
-                    if tag.ms_feat == ms_feat:
-                        counter += 1
-                        break
+        for tag in tok.most_likely_reading.grouped_tags:
+            if tag.ms_feat == ms_feat:
+                counter += 1
+                break
     return counter
 for ms_feat in ms_feats - {'POS'}:  # noqa: E305
     name = f'num_types_ms_feat_{safe_ms_feat_name(ms_feat)}'
@@ -50,8 +43,9 @@ def num_abstract_nouns(doc: Document, rmv_punc=True) -> int:
     """Count the number of abstract tokens on the basis of endings."""
     toks = ALL['_filter_toks'](doc, has_tag='N', rmv_punc=rmv_punc)
     abstract_re = r'(?:ье|ие|ство|ация|ость|изм|изна|ота|ина|ика|ива)[¹²³⁴⁵⁶⁷⁸⁹⁰⁻]*$'  # noqa: E501
-    return len([t for t in toks if re.search(abstract_re,
-                                             t.most_likely_lemma)])
+    return len([t for t in toks
+                if any(re.search(abstract_re, lem)
+                       for lem in t.most_likely_lemmas)])
 
 
 def tag_ms_feat_ratio_Tag(tag: str, doc: Document, rmv_punc=False,

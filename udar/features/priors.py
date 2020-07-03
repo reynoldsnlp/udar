@@ -92,8 +92,9 @@ def _lemma_frequencies(doc: Document,
     """Make list of lemma frequencies."""
     toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     Sharoff_lem_freq_dict = _get_Sharoff_lem_freq_dict()
-    return [Sharoff_lem_freq_dict.get(t.most_likely_lemma, 0)  # type: ignore  # noqa: E501
-            for t in toks]
+    return [Sharoff_lem_freq_dict.get(lem, 0)
+            for t in toks
+            for lem in t.most_likely_lemmas]
 
 
 @add_to_ALL('_lemma_frequency_ranks', category='_prior')
@@ -103,8 +104,9 @@ def _lemma_frequency_ranks(doc: Document,
     """Make list of lemma frequency ranks."""
     toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     Sharoff_lem_freq_rank_dict = _get_Sharoff_lem_freq_rank_dict()
-    return [Sharoff_lem_freq_rank_dict.get(t.most_likely_lemma, 0)  # type: ignore  # noqa: E501
-            for t in toks]
+    return [Sharoff_lem_freq_rank_dict.get(lem, 0)
+            for t in toks
+            for lem in t.most_likely_lemmas]
 
 
 @add_to_ALL('_token_frequencies', category='_prior')

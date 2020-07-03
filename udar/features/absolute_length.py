@@ -168,9 +168,13 @@ def num_lemma_types(doc: Document, has_tag='', lower=False,
     """Count number of unique lemmas in a Document."""
     toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     if lower:
-        return len(set([t.most_likely_lemma.lower() for t in toks]))
+        return len(set([lem.lower()
+                        for t in toks
+                        for lem in t.most_likely_lemmas]))
     else:
-        return len(set([t.most_likely_lemma for t in toks]))
+        return len(set([lem
+                        for t in toks
+                        for lem in t.most_likely_lemmas]))
 
 
 def num_types_Tag(tag: str, doc: Document, lower=True, rmv_punc=False) -> int:

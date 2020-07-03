@@ -230,20 +230,18 @@ class Sentence:
                  **kwargs) -> 'Sentence':
         """Initialize Sentence object from CG3 stream."""
         tokens = cls.parse_cg3(input_str)
-        return cls(tokens, tokenize=False, analyze=False,
-                   disambiguate=disambiguate,
-                   **{kw: arg for kw, arg in kwargs.items()
-                      if kw not in {'tokenize', 'analyze'}})
+        kwargs['tokenize'] = False
+        kwargs['analyze'] = False
+        return cls(tokens, disambiguate=disambiguate, **kwargs)
 
     @classmethod
     def from_hfst(cls: 'Type[Sentence]', input_str: str, disambiguate=False,
                   **kwargs) -> 'Sentence':
         """Initialize Sentence object from HFST stream."""
         tokens = cls.parse_hfst(input_str)
-        return cls(tokens, tokenize=False, analyze=False,
-                   disambiguate=disambiguate,
-                   **{kw: arg for kw, arg in kwargs.items()
-                      if kw not in {'tokenize', 'analyze'}})
+        kwargs['tokenize'] = False
+        kwargs['analyze'] = False
+        return cls(tokens, disambiguate=disambiguate, **kwargs)
 
     def __format__(self, format_spec: str):
         tok_count = len(self)
@@ -331,9 +329,11 @@ class Sentence:
         if experiment is None:
             experiment = self.experiment
         if experiment:
-            self.tokens = [analyzer.lookup(destress(t)) for t in self._toks]
+            self.tokens = [Token(destress(t), analyzer=analyzer)
+                           for t in self._toks]
         else:
-            self.tokens = [analyzer.lookup(t) for t in self._toks]
+            self.tokens = [Token(t, analyzer=analyzer)
+                           for t in self._toks]
         self._analyzed = True
         self._toks = []
 
@@ -383,7 +383,7 @@ class Sentence:
                 except ValueError as e:
                     raise ValueError(line) from e
                 readings.append((reading, weight, ''))
-            output.append(Token(token, readings))
+            output.append(Token(token, readings=readings))
         return output
 
     @staticmethod
@@ -408,7 +408,8 @@ class Sentence:
                         readings.append((o_read, o_weight, o_rule))
                     else:
                         rm_readings.append((o_read, o_weight, o_rule))
-                    t = Token(o_tok, readings, removed_readings=rm_readings)
+                    t = Token(o_tok, readings=readings,
+                              removed_readings=rm_readings)
                     output.append(t)
                 except ValueError:  # float('') occurs on the first line
                     pass
@@ -447,7 +448,7 @@ class Sentence:
             readings.append((o_read, o_weight, o_rule))
         else:
             rm_readings.append((o_read, o_weight, o_rule))
-        t = Token(o_tok, readings, removed_readings=rm_readings)
+        t = Token(o_tok, readings=readings, removed_readings=rm_readings)
         output.append(t)
         return output
 
@@ -480,7 +481,7 @@ class Sentence:
         out_text = [token.stressed(disambiguated=self._disambiguated,
                                    selection=selection, guess=guess,
                                    experiment=experiment,
-                                   lemma=lemmas.get(token.text, None))
+                                   lemma=lemmas.get(token.text))
                     for token in self]
         return self.respace(out_text)
 

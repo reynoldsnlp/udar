@@ -25,7 +25,8 @@ def num_words_at_lexmin_level(level, doc: Document) -> int:
     """
     lexmin_dict = _get_lexmin_dict()
     return len([1 for tok in doc
-                if lexmin_dict.get(tok.most_likely_lemma) == level])  # type: ignore  # noqa: E501
+                if any(lexmin_dict.get(lem) == level
+                       for lem in tok.most_likely_lemmas)])  # type: ignore  # noqa: E501
 for level in ['A1', 'A2', 'B1', 'B2']:  # noqa: E305
     name = f'num_words_at_lexmin_{level}'
     this_partial = partial(num_words_at_lexmin_level, level)  # type: ignore
@@ -67,7 +68,8 @@ def num_words_at_kelly_level(level, doc: Document) -> int:
     """
     kelly_dict = _get_kelly_dict()
     return len([1 for tok in doc
-                if kelly_dict.get(tok.most_likely_lemma) == level])  # type: ignore  # noqa: E501
+                if any(kelly_dict.get(lem) == level
+                       for lem in tok.most_likely_lemmas)])  # type: ignore  # noqa: E501
 for level in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']:  # noqa: E305
     name = f'num_words_at_kelly_{level}'
     this_partial = partial(num_words_at_kelly_level, level)  # type: ignore
