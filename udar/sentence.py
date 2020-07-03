@@ -8,7 +8,10 @@ from subprocess import PIPE
 from subprocess import Popen
 import sys
 from time import strftime
+from typing import Any
 from typing import Callable
+from typing import Dict
+from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -31,6 +34,7 @@ from .transliterate import transliterate
 if TYPE_CHECKING:
     import stanza  # type: ignore  # noqa: F401
     from .document import Document
+    from .fsts import Udar
 
 __all__ = ['hfst_tokenize', 'Sentence']
 
@@ -108,9 +112,9 @@ def get_tokenizer(use_pexpect=True) -> Tokenizer:
 
 
 class Sentence:
-    """Sequence of `Token`s.
+    """Sequence of `Token` objects.
 
-    An abbreviated `repr` can be achieved using string formatting:
+    An abbreviated `repr` can be achieved using string formatting::
 
     >>> s = Sentence('Мы хотим сократить repr этого объекта.')
     >>> repr(s)
@@ -130,18 +134,55 @@ class Sentence:
     _toks: List[str]
     annotation: str
     # dependencies: List[Tuple[Word, str, Word]]  # TODO
-    doc: 'Document'
+    doc: Optional['Document']
     experiment: bool
     features: Tuple
-    id: str
+    id: Union[int, str, None]
     text: str
     tokens: List[Token]
-    # words: List[Word]  # TODO
 
-    def __init__(self, input_text='', doc=None, tokenize=True, analyze=True,
-                 disambiguate=False, depparse=False, tokenizer=None,
-                 analyzer=None, gram_path=None, id=None, experiment=False,
-                 annotation='', features=None, feat_cache=None, orig_text=''):
+    def __init__(self,
+                 input_text: Union[str, Iterable[str], Iterable[Token]] = '',
+                 doc: 'Document' = None, tokenize: bool = True,
+                 analyze: bool = True, disambiguate: bool = False,
+                 depparse: bool = False,
+                 tokenizer: Callable[[str], List[str]] = None,
+                 # TODO make Udar objects callable
+                 analyzer: 'Udar' = None, gram_path: str = '',
+                 id: Union[int, str, None] = None,
+                 experiment: bool = False, annotation: str = '',
+                 features: Tuple = None,
+                 feat_cache: Dict[str, Any] = None,
+                 orig_text: str = ''):
+        """Build an instance of the Sentence class.
+
+        :param input_text: The text to be processed
+        :param doc: (Optional) Pointer to the parent `Document`
+        :param tokenize: (Optional) Whether to apply tokenization
+        :param analyze: (Optional) Whether to apply morphological analysis
+        :param disambiguate: (Optional) Whether to apply Constraint Grammar
+        :param depparse: (Optional) Whether to apply `stanza` 's
+            dependency parsing
+        :param tokenizer: (Optional) Custom tokenizer. If ``None``,
+            ``hfst-tokenize`` will be used.
+        :param analyzer: (Optional) Custom morphological analyzer. If ``None``,
+            ``hfst-lookup`` will be used with udar's default analysis
+            transducer.
+        :param gram_path: (Optional) Path to a Constraint Grammar. If
+            unspecified, ``udar`` 's bundled CG will be used.
+        :param id: (Optional) ID
+        :param experiment: (Optional) Whether this sentence should be tracked
+            as part of an `Experiment`. (experimental feature, no pun intended)
+        :param annotation: (Optional) Annotation for CG3 stream. (see
+            cg3_str())
+        :param features: (Optional) Tuple of features extracted from this
+            sentence.
+        :param feat_cache: (Optional) Dictionary for memoized feature
+            extraction.
+        :param orig_text: (Optional) Original text of the sentence. This can be
+            used when ``input_text`` is a list of `Token`
+            objects.
+        """
         self._analyzed = False
         self._disambiguated = False
         if feat_cache is None:
@@ -172,23 +213,23 @@ class Sentence:
         elif ((hasattr(input_text, '__iter__')
                or hasattr(input_text, '__getitem__'))
               and isinstance(next(iter(input_text)), str)):
-            self._toks = input_text
+            self._toks = list(input_text)  # type: ignore
             self._tokenized = True
             if orig_text:
                 self.text = orig_text
             else:
-                self.text = ' '.join(input_text)
+                self.text = ' '.join(input_text)  # type: ignore
         # elif input_text is a sequence of `Token`s...
         elif ((hasattr(input_text, '__iter__')
                or hasattr(input_text, '__getitem__'))
               and isinstance(next(iter(input_text)), Token)):
             self._analyzed = True
-            self.tokens = input_text
+            self.tokens = input_text  # type: ignore
             self._tokenized = True
             if orig_text:
                 self.text = orig_text
             else:
-                self.text = ' '.join([t.text for t in input_text])
+                self.text = ' '.join([t.text for t in input_text])  # type: ignore
             if tokenize or analyze:
                 warn('When constructing a Sentence from a list of Tokens, '
                      '`tokenize` and `analyze` are ignored. The following '
@@ -337,9 +378,9 @@ class Sentence:
         self._analyzed = True
         self._toks = []
 
-    def disambiguate(self, gram_path=None, traces=True) -> None:
+    def disambiguate(self, gram_path='', traces=True) -> None:
         """Remove Sentence's readings using CG3 grammar at gram_path."""
-        if gram_path is None:
+        if gram_path == '':
             gram_path = f'{RSRC_PATH}disambiguator.cg3'
         elif isinstance(gram_path, str):
             pass
@@ -373,7 +414,9 @@ class Sentence:
 
     @staticmethod
     def parse_hfst(stream: str) -> List[Token]:
-        """Convert hfst stream into list of `Token`s."""
+        """Convert hfst stream into list of `Token`
+        objects.
+        """
         output = []
         for cohort in stream.strip().split('\n\n'):
             readings = []
@@ -388,7 +431,7 @@ class Sentence:
 
     @staticmethod
     def parse_cg3(stream: str) -> List[Token]:
-        """Convert cg3 stream into list of `Token`s."""
+        """Convert cg3 stream into list of `Token` objects."""
         output = []
         readings = []
         rm_readings = []
@@ -472,9 +515,9 @@ class Sentence:
         lemmas -- dict of {token: lemma} pairs.
             Limit readings of given tokens to the lemma value.
             For example, lemmas={'моя': 'мой'} would limit readings for every
-            instance of the token `моя` to those with the lemma `мой`, thereby
-            ignoring readings with the lemma `мыть`. Currently, the token is
-            case-sensitive!
+            instance of the token ``'моя'`` to those with the lemma ``'мой'``,
+            thereby ignoring readings with the lemma ``'мыть'``. Currently, the
+            token is case-sensitive!
         """
         if experiment is None:
             experiment = self.experiment

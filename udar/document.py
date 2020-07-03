@@ -47,7 +47,7 @@ def _str2Sentences(input_str, **kwargs):
 
 
 class Document:
-    """Document object, which contains a sequence of `Sentence`s."""
+    """Document object; contains a sequence of `Sentence` objects."""
     __slots__ = ['_feat_cache', '_num_tokens', '_unexpected_chars', 'features',
                  # 'num_words',
                  'sentences', 'text']
@@ -61,6 +61,13 @@ class Document:
 
     def __init__(self, input_text: Union[str, Sequence[Sentence], 'Document'],
                  **kwargs):
+        """
+        Args:
+
+        :param input_text: Text to be processed.
+        :param **kwargs: All keyword arguments accepted by
+            `Sentence.__init__`
+        """
         self._feat_cache = {}
         self._unexpected_chars = Counter()
         self.features = ()
