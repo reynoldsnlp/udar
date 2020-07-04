@@ -4,9 +4,9 @@ from collections import namedtuple
 from enum import Enum
 from pkg_resources import resource_filename
 import re
-import sys
 from typing import Dict
 from typing import Iterable
+from warnings import warn
 
 import stanza  # type: ignore
 
@@ -99,7 +99,7 @@ def combine_stress(stresses: Iterable[str]) -> str:
     marked on all syllables that every have stress in the source list.
     """
     if len(set([destress(w) for w in stresses])) > 1:
-        warn(f'combine_stress: words do not match ({stresses})')
+        warn(f'combine_stress: words do not match ({stresses})', stacklevel=3)
     acutes = [(w.replace(GRAVE, '').index(ACUTE), ACUTE)
               for w in stresses if ACUTE in w]
     graves = [(w.replace(ACUTE, '').index(GRAVE), GRAVE)
@@ -110,7 +110,6 @@ def combine_stress(stresses: Iterable[str]) -> str:
     yos = [(w.replace(GRAVE, '').replace(ACUTE, '').index('ё'), 'ё')
            for w in stresses if 'ё' in w]
     positions = acutes + graves + yos
-    print(positions, file=sys.stderr)
     word = list(destress(stresses.pop()))
     shift = 0
     for pos, char in sorted(positions):
@@ -119,7 +118,6 @@ def combine_stress(stresses: Iterable[str]) -> str:
             shift += 1
         else:  # 'ё'
             word[pos + shift] = char
-        print(pos, word, file=sys.stderr)
     return ''.join(word)
 
 
