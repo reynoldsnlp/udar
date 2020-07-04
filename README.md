@@ -10,6 +10,12 @@ A python wrapper for the [Russian finite-state
 transducer](https://victorio.uit.no/langtech/trunk/langs/rus/) described
 originally in chapter 2 of [my dissertation](http://hdl.handle.net/10037/9685).
 
+If you use this work in your research please cite the following:
+
+---
+> Reynolds, Robert J. "Russian natural language processing for computer-assisted language learning: capturing the benefits of deep morphological analysis in real-life applications" PhD Diss., UiT–The Arctic University of Norway, 2016. https://hdl.handle.net/10037/9685
+---
+
 #### Feature requests, issues, and pull requests are welcome!
 
 ## Non-python dependencies

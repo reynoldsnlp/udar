@@ -10,13 +10,8 @@ Welcome to udar's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-.. autoclass:: udar.Document
-   :members:
-   :undoc-members:
-
-.. autoclass:: udar.Sentence
-   :members:
-   :undoc-members:
+   class/Document
+   class/Sentence
 
 
 Indices and tables
