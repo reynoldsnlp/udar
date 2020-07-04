@@ -12,17 +12,11 @@ Welcome to udar's documentation!
 
 .. autoclass:: udar.Document
    :members:
-   :special-members:
    :undoc-members:
-   :inherited-members:
-   :show-inheritance:
 
 .. autoclass:: udar.Sentence
    :members:
-   :special-members:
    :undoc-members:
-   :inherited-members:
-   :show-inheritance:
 
 
 Indices and tables

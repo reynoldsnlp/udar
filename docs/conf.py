@@ -29,7 +29,7 @@ author = 'Rob Reynolds'
 # ones.
 extensions = ['sphinx.ext.autodoc',
               'sphinx_autodoc_typehints']
-set_type_checking_flag = True
+autoclass_content = 'both'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

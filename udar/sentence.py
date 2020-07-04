@@ -112,9 +112,9 @@ def get_tokenizer(use_pexpect=True) -> Tokenizer:
 
 
 class Sentence:
-    """Sequence of `Token` objects.
+    """Sequence of :py:class:`Token` objects.
 
-    An abbreviated `repr` can be achieved using string formatting::
+    An abbreviated `repr` can be achieved using string formatting:
 
     >>> s = Sentence('Мы хотим сократить repr этого объекта.')
     >>> repr(s)
@@ -157,7 +157,7 @@ class Sentence:
         """Build an instance of the Sentence class.
 
         :param input_text: The text to be processed
-        :param doc: (Optional) Pointer to the parent `Document`
+        :param doc: (Optional) Pointer to the parent :py:class:`Document`
         :param tokenize: (Optional) Whether to apply tokenization
         :param analyze: (Optional) Whether to apply morphological analysis
         :param disambiguate: (Optional) Whether to apply Constraint Grammar
@@ -180,7 +180,7 @@ class Sentence:
         :param feat_cache: (Optional) Dictionary for memoized feature
             extraction.
         :param orig_text: (Optional) Original text of the sentence. This can be
-            used when ``input_text`` is a list of `Token`
+            used when ``input_text`` is a list of :py:class:`Token`
             objects.
         """
         self._analyzed = False
@@ -357,14 +357,14 @@ class Sentence:
     #     raise NotImplementedError
 
     def tokenize(self, tokenizer=None) -> None:
-        """Tokenize Sentence using `tokenizer`."""
+        """Tokenize Sentence using ``tokenizer``."""
         if tokenizer is None:
             tokenizer = get_tokenizer()
         self._toks = tokenizer(self.text)
         self._tokenized = True
 
     def analyze(self, analyzer=None, experiment=None) -> None:
-        """Analyze Sentence's self._toks."""
+        """Analyze self._toks."""
         if analyzer is None:
             analyzer = get_fst('analyzer')
         if experiment is None:
@@ -414,9 +414,7 @@ class Sentence:
 
     @staticmethod
     def parse_hfst(stream: str) -> List[Token]:
-        """Convert hfst stream into list of `Token`
-        objects.
-        """
+        """Convert hfst stream into list of :py:class:`Token` objects."""
         output = []
         for cohort in stream.strip().split('\n\n'):
             readings = []
@@ -431,7 +429,7 @@ class Sentence:
 
     @staticmethod
     def parse_cg3(stream: str) -> List[Token]:
-        """Convert cg3 stream into list of `Token` objects."""
+        """Convert cg3 stream into list of :py:class:`Token` objects."""
         output = []
         readings = []
         rm_readings = []
@@ -496,7 +494,7 @@ class Sentence:
         return output
 
     def stressed(self, selection='safe', guess=False, experiment=None,
-                 lemmas={}) -> str:
+                 lemmas=None) -> str:
         """Return str of running text with stress marked.
 
         selection  (Applies only to words in the lexicon.)
@@ -509,22 +507,26 @@ class Sentence:
             Applies only to out-of-lexicon words. Makes an "intelligent" guess.
 
         experiment
-            1) Remove stress from Token.text
-            2) Save prediction in each Token.stress_predictions[stress_params]
+            1) Remove stress from each :py:attr:`Token.text`
+            2) Save prediction in each :py:attr:`Token.stress_predictions[stress_params]`
 
         lemmas -- dict of {token: lemma} pairs.
             Limit readings of given tokens to the lemma value.
             For example, lemmas={'моя': 'мой'} would limit readings for every
             instance of the token ``'моя'`` to those with the lemma ``'мой'``,
-            thereby ignoring readings with the lemma ``'мыть'``. Currently, the
-            token is case-sensitive!
+            thereby ignoring readings with the lemma ``'мыть'``. Note that the
+            lemma is case-sensitive.
         """
         if experiment is None:
             experiment = self.experiment
+        if lemmas is None:
+            lemmas = {}
+        else:
+            lemmas = {key.casefold(): val for key, val in lemmas.items()}
         out_text = [token.stressed(disambiguated=self._disambiguated,
                                    selection=selection, guess=guess,
                                    experiment=experiment,
-                                   lemma=lemmas.get(token.text))
+                                   lemma=lemmas.get(token.text.casefold()))
                     for token in self]
         return self.respace(out_text)
 
@@ -594,8 +596,8 @@ class Sentence:
             Applies only to out-of-lexicon words. Makes an "intelligent" guess.
 
         experiment
-            1) Remove stress from Token.text
-            2) Save prediction in each Token.stress_predictions[stress_params]
+            1) Remove stress from each :py:attr:`Token.text`
+            2) Save prediction in each :py:attr:`Token.stress_predictions[stress_params]`
 
         context
             Applies phonetic transcription based on context between words
