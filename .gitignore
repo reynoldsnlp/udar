@@ -7,3 +7,6 @@ coverage.xml
 cov_annotate/
 .mypy_cache
 tmp/
+_build
+_static
+_templates

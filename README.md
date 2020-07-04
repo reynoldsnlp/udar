@@ -45,6 +45,11 @@ $ python3 -m pip install --user git+https://github.com/reynoldsnlp/udar
 
 ## Introduction
 
+> NB! Documentation is currently limited to docstrings. I recommend that you
+> use `help()` frequently to see how to use classes and methods. For example,
+> to see what options are available for building a `Document`, try
+> `help(Document)`.
+
 The most common use-case is to use the `Document` constructor to automatically
 tokenize and analyze a text. If you `print()` a `Document` object, the result
 is an `XFST`/`HFST` stream:
