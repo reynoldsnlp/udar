@@ -3,4 +3,5 @@ hfst
 nltk
 pandas
 pexpect
+sphinx_autodoc_typehints
 stanza
