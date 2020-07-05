@@ -3,9 +3,9 @@ from itertools import chain
 import re
 from sys import stderr
 from typing import Dict
+from typing import Iterable
 from typing import List
 from typing import Optional
-from typing import Sequence
 from typing import Tuple
 from typing import Union
 import unicodedata
@@ -59,12 +59,16 @@ class Document:
     sentences: List[Sentence]
     text: str
 
-    def __init__(self, input_text: Union[str, Sequence[Sentence], 'Document'],
+    def __init__(self, input_text: Union[str, Iterable[Sentence], 'Document'],
                  **kwargs):
         r"""
-        :param input_text: Text to be processed.
-        :param \*\*kwargs: All the same keyword arguments accepted by
-            :py:class:`Sentence`
+        Parameters
+        ----------
+
+        input_text
+            Text to be processed (typically a :obj:`str` )
+        \*\*kwargs
+            All the same keyword arguments accepted by :py:class:`Sentence`
         """
         self._feat_cache = {}
         self._unexpected_chars = Counter()

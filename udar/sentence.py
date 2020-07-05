@@ -154,34 +154,46 @@ class Sentence:
                  features: Tuple = None,
                  feat_cache: Dict[str, Any] = None,
                  orig_text: str = ''):
-        """Build an instance of the Sentence class.
+        """
+        Parameters
+        ----------
 
-        :param input_text: The text to be processed
-        :param doc: (Optional) Pointer to the parent :py:class:`Document`
-        :param tokenize: (Optional) Whether to apply tokenization
-        :param analyze: (Optional) Whether to apply morphological analysis
-        :param disambiguate: (Optional) Whether to apply Constraint Grammar
-        :param depparse: (Optional) Whether to apply `stanza` 's
-            dependency parsing
-        :param tokenizer: (Optional) Custom tokenizer. If ``None``,
-            ``hfst-tokenize`` will be used.
-        :param analyzer: (Optional) Custom morphological analyzer. If ``None``,
-            ``hfst-lookup`` will be used with udar's default analysis
-            transducer.
-        :param gram_path: (Optional) Path to a Constraint Grammar. If
-            unspecified, ``udar`` 's bundled CG will be used.
-        :param id: (Optional) ID
-        :param experiment: (Optional) Whether this sentence should be tracked
-            as part of an `Experiment`. (experimental feature, no pun intended)
-        :param annotation: (Optional) Annotation for CG3 stream. (see
-            cg3_str())
-        :param features: (Optional) Tuple of features extracted from this
-            sentence.
-        :param feat_cache: (Optional) Dictionary for memoized feature
-            extraction.
-        :param orig_text: (Optional) Original text of the sentence. This can be
-            used when ``input_text`` is a list of :py:class:`Token`
-            objects.
+        input_text
+            The text to be processed (typically a :obj:`str` )
+        doc
+            (Optional) Pointer to the parent :py:class:`Document`
+        tokenize
+            (Optional) Whether to apply tokenization
+        analyze
+            (Optional) Whether to apply morphological analysis
+        disambiguate
+            (Optional) Whether to apply Constraint Grammar
+        depparse
+            (Optional) Whether to apply `stanza` 's dependency parsing
+        tokenizer
+            (Optional) Custom tokenizer. If ``None``, ``hfst-tokenize`` will be
+            used.
+        analyzer
+            (Optional) Custom morphological analyzer. If ``None``,
+            ``hfst-lookup`` will be used with :py:mod:`udar` 's default
+            analysis transducer.
+        gram_path
+            (Optional) Path to a Constraint Grammar. If unspecified,
+            :py:mod:`udar` 's bundled CG will be used.
+        id
+            (Optional) ID
+        experiment
+            (Optional) Whether this sentence should be tracked as part of an
+            `Experiment`. (experimental feature, no pun intended)
+        annotation
+            (Optional) Annotation for CG3 stream. (see :py:meth:`cg3_str()` )
+        features
+            (Optional) Tuple of features extracted from this sentence.
+        feat_cache
+            (Optional) Dictionary for memoized feature extraction.
+        orig_text
+            (Optional) Original text of the sentence. This can be used when
+            ``input_text`` is a list of :py:class:`Token` objects.
         """
         self._analyzed = False
         self._disambiguated = False
