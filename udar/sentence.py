@@ -122,9 +122,9 @@ class Sentence:
     >>> f'{s:8}'
     "Sentence('Мы хотим', 7 tokens)"
     """
-    __slots__ = ['_analyzed', '_disambiguated', '_feat_cache', '_from_str',
-                 '_stanza_sent', '_tokenized', '_toks', 'annotation',
-                 'doc', 'experiment', 'features', 'id', 'text', 'tokens']
+    __slots__ = ['_analyzed', '_disambiguated', '_experiment', '_feat_cache',
+                 '_from_str', '_stanza_sent', '_tokenized', '_toks',
+                 'annotation', 'doc', 'features', 'id', 'text', 'tokens']
     _analyzed: bool
     _disambiguated: bool
     _feat_cache: dict
@@ -135,7 +135,7 @@ class Sentence:
     annotation: str
     # dependencies: List[Tuple[Word, str, Word]]  # TODO
     doc: Optional['Document']
-    experiment: bool
+    _experiment: bool
     features: Tuple
     id: Union[int, str, None]
     text: str
@@ -150,7 +150,7 @@ class Sentence:
                  # TODO make Udar objects callable
                  analyzer: 'Udar' = None, gram_path: str = '',
                  id: Union[int, str, None] = None,
-                 experiment: bool = False, annotation: str = '',
+                 _experiment: bool = False, annotation: str = '',
                  features: Tuple = None,
                  feat_cache: Dict[str, Any] = None,
                  orig_text: str = ''):
@@ -182,7 +182,7 @@ class Sentence:
             :py:mod:`udar` 's bundled CG will be used.
         id
             (Optional) ID
-        experiment
+        _experiment
             (Optional) Whether this sentence should be tracked as part of an
             `Experiment`. (experimental feature, no pun intended)
         annotation
@@ -205,7 +205,7 @@ class Sentence:
         self._stanza_sent = None
         self.annotation = annotation
         self.doc = doc
-        self.experiment = experiment
+        self._experiment = _experiment
         if features is None:
             self.features = ()
         else:
@@ -271,6 +271,7 @@ class Sentence:
         return doc.sentences[0]
 
     def depparse(self):
+        """Get dependency parse using :py:mod:`stanza`."""
         if self._stanza_sent is None:
             self._stanza_sent = self._get_stanza_sent()
         assert len(self.tokens) == len(self._stanza_sent.tokens), f'tokenization mismatch: {self.tokens} {self._stanza_sent.tokens}'  # noqa: E501
@@ -279,22 +280,48 @@ class Sentence:
             self_token._stanza_token = stanza_token
 
     @classmethod
-    def from_cg3(cls: 'Type[Sentence]', input_str: str, disambiguate=False,
+    def from_cg3(cls: 'Type[Sentence]', input_str: str,
                  **kwargs) -> 'Sentence':
-        """Initialize Sentence object from CG3 stream."""
+        r"""Construct :py:class:`Sentence` from CG3 stream.
+
+        Parameters
+        ----------
+
+        input_stream
+            CG3-style analysis stream
+        \*\*kwargs
+            All the same keyword arguments accepted by
+            :py:class:`Sentence`. (``disambiguate`` defaults to False)
+        """
         tokens = cls.parse_cg3(input_str)
         kwargs['tokenize'] = False
         kwargs['analyze'] = False
-        return cls(tokens, disambiguate=disambiguate, **kwargs)
+        # Override Sentence.__init__'s default for `disambiguate`
+        if 'disambiguate' not in kwargs:
+            kwargs['disambiguate'] = False
+        return cls(tokens, **kwargs)
 
     @classmethod
-    def from_hfst(cls: 'Type[Sentence]', input_str: str, disambiguate=False,
+    def from_hfst(cls: 'Type[Sentence]', input_str: str,
                   **kwargs) -> 'Sentence':
-        """Initialize Sentence object from HFST stream."""
+        r"""Construct :py:class:`Sentence` from HFST/XFST stream.
+
+        Parameters
+        ----------
+
+        input_stream
+            HFST-/XFST-style analysis stream
+        \*\*kwargs
+            All the same keyword arguments accepted by
+            :py:class:`Sentence`. (``disambiguate`` defaults to False)
+        """
         tokens = cls.parse_hfst(input_str)
         kwargs['tokenize'] = False
         kwargs['analyze'] = False
-        return cls(tokens, disambiguate=disambiguate, **kwargs)
+        # Override Sentence.__init__'s default for `disambiguate`
+        if 'disambiguate' not in kwargs:
+            kwargs['disambiguate'] = False
+        return cls(tokens, **kwargs)
 
     def __format__(self, format_spec: str):
         tok_count = len(self)
@@ -310,14 +337,25 @@ class Sentence:
         return self.hfst_str()
 
     def hfst_str(self) -> str:
-        """HFST-/XFST-style stream."""
+        """HFST-/XFST-style analysis stream."""
         try:
             return '\n\n'.join(t.hfst_str() for t in self) + '\n\n'
         except TypeError:
             return f'(Sentence (not tokenized) {self.text[:30]})'
 
-    def cg3_str(self, traces=False, annotated=True) -> str:
-        """Sentence CG3-style stream."""
+    def cg3_str(self, traces: bool = False, annotated: bool = True) -> str:
+        """CG3-style analysis stream.
+
+        Parameters
+        ----------
+
+        traces
+            Whether to display removed readings (prefixed by ``;``), the same
+            as the would be returned by ``vislcg3 -t``.
+        annotated
+            Whether to add sentence annotations (ID, annotation, original text)
+            in the stream
+        """
         if annotated and self.annotation:
             ann = (f'\n# SENT ID: {self.id}\n'
                    f'# ANNOTATION: {self.annotation}\n'
@@ -338,13 +376,13 @@ class Sentence:
     def __len__(self):
         return len(self.tokens)
 
-    def __getitem__(self, i) -> Token:
+    def __getitem__(self, i: Union[int, slice]) -> Union[Token, List[Token]]:
         try:
             return self.tokens[i]
-        except TypeError as e:
-            raise TypeError('Sentence not yet tokenized. Try '
-                            'Sentence.tokenize() or Sentence.analyze() '
-                            'first.') from e
+        except IndexError as e:
+            raise IndexError('Sentence not yet tokenized. Try '
+                             'Sentence.tokenize() or Sentence.analyze() '
+                             'first.') from e
 
     def __iter__(self):
         try:
@@ -368,20 +406,38 @@ class Sentence:
     #     # TODO
     #     raise NotImplementedError
 
-    def tokenize(self, tokenizer=None) -> None:
-        """Tokenize Sentence using ``tokenizer``."""
+    def tokenize(self, tokenizer: Callable[[str], List[str]] = None):
+        """Tokenize original text and store list of tokens in ``self._toks``.
+        Note that after grammatical analysis, :py:meth:`Sentence.analyze`
+        automatically empties ``self._toks``.
+
+        Parameters
+        ----------
+
+        tokenizer
+            Function or other callable that accepts a string and returns a list
+            of strings.
+        """
         if tokenizer is None:
             tokenizer = get_tokenizer()
         self._toks = tokenizer(self.text)
         self._tokenized = True
 
-    def analyze(self, analyzer=None, experiment=None) -> None:
-        """Analyze self._toks."""
+    def analyze(self, analyzer: 'Udar' = None,
+                _experiment: bool = None):
+        """Perform morphological analysis of tokens in ``self._toks``.
+
+        Parameters
+        ----------
+
+        analyzer
+            Morphological analyzer. (default: bundled analyzer)
+        """
         if analyzer is None:
             analyzer = get_fst('analyzer')
-        if experiment is None:
-            experiment = self.experiment
-        if experiment:
+        if _experiment is None:
+            _experiment = self._experiment
+        if _experiment:
             self.tokens = [Token(destress(t), analyzer=analyzer)
                            for t in self._toks]
         else:
@@ -390,16 +446,25 @@ class Sentence:
         self._analyzed = True
         self._toks = []
 
-    def disambiguate(self, gram_path='', traces=True) -> None:
-        """Remove Sentence's readings using CG3 grammar at gram_path."""
+    def disambiguate(self, gram_path: Union[str, Path] = '',
+                     traces: bool = True):
+        """Use Constraint Grammar to remove as many ambiguous readings as
+        possible.
+
+        Parameters
+        ----------
+
+        gram_path
+            Path to Constraint Grammar file. (default: the bundled grammar)
+        traces
+            Whether to keep track of readings that are *removed* by the
+            Constraint Grammar. Removed readings can be found in
+            :py:attr:`Token.removed_readings`. (default: True)
+        """
         if gram_path == '':
             gram_path = f'{RSRC_PATH}disambiguator.cg3'
-        elif isinstance(gram_path, str):
-            pass
-        elif isinstance(gram_path, Path):
+        if isinstance(gram_path, Path):
             gram_path = repr(gram_path)
-        else:
-            raise NotImplementedError('Unexpected grammar path. Use str.')
         if traces:
             cmd = ['vislcg3', '-t', '-g', gram_path]
         else:
@@ -426,7 +491,14 @@ class Sentence:
 
     @staticmethod
     def parse_hfst(stream: str) -> List[Token]:
-        """Convert hfst stream into list of :py:class:`Token` objects."""
+        """Convert hfst stream into list of :py:class:`Token` objects.
+
+        Parameters
+        ----------
+
+        stream
+            HFST-/XFST-style analysis stream
+        """
         output = []
         for cohort in stream.strip().split('\n\n'):
             readings = []
@@ -441,7 +513,14 @@ class Sentence:
 
     @staticmethod
     def parse_cg3(stream: str) -> List[Token]:
-        """Convert cg3 stream into list of :py:class:`Token` objects."""
+        """Convert cg3 stream into list of :py:class:`Token` objects.
+
+        Parameters
+        ----------
+
+        stream
+            CG3-style analysis stream
+        """
         output = []
         readings = []
         rm_readings = []
@@ -505,40 +584,42 @@ class Sentence:
         output.append(t)
         return output
 
-    def stressed(self, selection='safe', guess=False, experiment=None,
-                 lemmas=None) -> str:
+    def stressed(self, selection: str = 'safe', guess: bool = False,
+                 lemmas: Dict[str, str] = None,
+                 _experiment: bool = None) -> str:
         """Return str of running text with stress marked.
 
-        selection  (Applies only to words in the lexicon.)
-            safe   -- Only add stress if it is unambiguous.
-            freq   -- lemma+reading > lemma > reading
-            rand   -- Randomly choose between specified stress positions.
-            all    -- Add stress to all possible specified stress positions.
+        Parameters
+        ----------
+        selection
+            Applies only to words in the lexicon.
 
+            * 'safe' -- Only add stress if it is unambiguous.
+            * 'freq' -- lemma+reading > lemma > reading
+            * 'rand' -- Randomly choose between specified stress positions.
+            * 'all'  -- Add stress to all possible specified stress positions.
         guess
             Applies only to out-of-lexicon words. Makes an "intelligent" guess.
-
-        experiment
+        lemmas
+            Limit readings of given tokens to the lemma value.
+            For example, ``lemmas={'моя': 'мой'}`` would limit readings for
+            every instance of the token ``'моя'`` to those with the lemma
+            ``'мой'``, thereby ignoring readings with the lemma ``'мыть'``.
+            Note that the lemma is case-sensitive.
+        _experiment
             1) Remove stress from each :py:attr:`Token.text`
             2) Save prediction in each :py:attr:`Token.stress_predictions[stress_params]`
-
-        lemmas -- dict of {token: lemma} pairs.
-            Limit readings of given tokens to the lemma value.
-            For example, lemmas={'моя': 'мой'} would limit readings for every
-            instance of the token ``'моя'`` to those with the lemma ``'мой'``,
-            thereby ignoring readings with the lemma ``'мыть'``. Note that the
-            lemma is case-sensitive.
         """
-        if experiment is None:
-            experiment = self.experiment
+        if _experiment is None:
+            _experiment = self._experiment
         if lemmas is None:
             lemmas = {}
         else:
             lemmas = {key.casefold(): val for key, val in lemmas.items()}
-        out_text = [token.stressed(disambiguated=self._disambiguated,
-                                   selection=selection, guess=guess,
-                                   experiment=experiment,
-                                   lemma=lemmas.get(token.text.casefold()))
+        out_text = [token.stressed(selection=selection, guess=guess,
+                                   lemma=lemmas.get(token.text.casefold()),
+                                   _experiment=_experiment,
+                                   _disambiguated=self._disambiguated)
                     for token in self]
         return self.respace(out_text)
 
@@ -554,7 +635,7 @@ class Sentence:
         return counts
 
     def stress_preds2tsv(self, path=None, timestamp=True,
-                         filename=None) -> None:
+                         filename=None):
         """Write a tab-separated file with aligned predictions
         from experiment.
 
@@ -594,34 +675,35 @@ class Sentence:
                       f'{t.readings} ||| {t.removed_readings}',
                       sep='\t', file=f)
 
-    def phonetic(self, selection='safe', guess=False, experiment=False,
-                 context=False) -> str:
+    def phonetic(self, selection='safe', guess=False, context=False,
+                 _experiment=False) -> str:
         """Return str of running text of phonetic transcription.
 
-        selection  (Applies only to words in the lexicon.)
-            safe   -- Only add stress if it is unambiguous.
-            freq   -- lemma+reading > lemma > reading
-            rand   -- Randomly choose between specified stress positions.
-            all    -- Add stress to all possible specified stress positions.
+        Parameters
+        ----------
+        selection
+            Applies only to words in the lexicon.
 
+            * 'safe' -- Only add stress if it is unambiguous.
+            * 'freq' -- lemma+reading > lemma > reading
+            * 'rand' -- Randomly choose between specified stress positions.
+            * 'all'  -- Add stress to all possible specified stress positions.
         guess
             Applies only to out-of-lexicon words. Makes an "intelligent" guess.
-
-        experiment
-            1) Remove stress from each :py:attr:`Token.text`
-            2) Save prediction in each :py:attr:`Token.stress_predictions[stress_params]`
-
         context
             Applies phonetic transcription based on context between words
+        _experiment
+            1) Remove stress from each :py:attr:`Token.text`
+            2) Save prediction in each :py:attr:`Token.stress_predictions[stress_params]`
         """
         if context:
             raise NotImplementedError('The context keyword argument is not '
                                       'implemented yet.')
         out_text = []
         for t in self:
-            out_text.append(t.phonetic(disambiguated=self._disambiguated,
-                                       selection=selection, guess=guess,
-                                       experiment=experiment))
+            out_text.append(t.phonetic(selection=selection, guess=guess,
+                                       _experiment=_experiment,
+                                       _disambiguated=self._disambiguated))
         return self.respace(out_text)
 
     def respace(self, tokens: List[str]) -> str:
@@ -641,16 +723,13 @@ class Sentence:
             return unspace_punct(' '.join(tokens))
 
     def transliterate(self, **kwargs):
+        r"""Transliterate original text to the latin alphabet.
+
+        Parameters
+        ----------
+
+        \*\*kwargs
+            All the same keyword arguments accepted by
+            :py:func:`~udar.transliterate.transliterate`
+        """
         return transliterate(self.text, **kwargs)
-
-
-def _get_Sentence(text: Union[str, List[str], Sentence], **kwargs) -> Sentence:
-    if isinstance(text, str):
-        return Sentence(text, **kwargs)
-    elif isinstance(text, list):
-        return Sentence(' '.join(text), **kwargs)  # TODO more robust respace
-    elif isinstance(text, Sentence):
-        return text
-    else:
-        raise ValueError('Expected str, List[str], or Sentence. '
-                         f'Got {type(text)}.')

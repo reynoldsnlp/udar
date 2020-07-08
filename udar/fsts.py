@@ -88,8 +88,8 @@ class Udar:
         except IndexError:
             return None
 
-    def lookup(self, in_tok: str) -> Union[Tuple[str, str],
-                                           Tuple[str, str, str]]:
+    def lookup(self, in_tok: str) -> Union[Tuple[str, str, str],
+                                           Tuple[str, str]]:
         """If lookup returns nothing, try lookup with stress removed."""
         return self.fst.lookup(in_tok) or self.fst.lookup(destress(in_tok))
 

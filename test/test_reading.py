@@ -28,9 +28,9 @@ def test_multiple_subreadings():
 
 def test_replace_tag():
     r = udar.reading.Reading(*('и т.д.+Abbr#.+SENT', '0.000000'))
-    r.replace_tag('Abbr', 'A', which_reading=0)
+    r.replace_tag('Abbr', 'A', which_subreading=0)
     assert r.subreadings[0].tags == ['A'] and r.subreadings[1].tags == ['SENT']
-    r.replace_tag('SENT', 'A', which_reading=0)
+    r.replace_tag('SENT', 'A', which_subreading=0)
     assert r.subreadings[0].tags == ['A'] and r.subreadings[1].tags == ['SENT']
     r.replace_tag('SENT', 'A')
     assert r.subreadings[0].tags == ['A'] and r.subreadings[1].tags == ['A']

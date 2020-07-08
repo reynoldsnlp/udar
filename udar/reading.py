@@ -4,10 +4,14 @@ from math import isclose
 import re
 from typing import List
 from typing import Optional
+from typing import TYPE_CHECKING
 from typing import Union
 
 from .subreading import Subreading
 from .tag import Tag
+
+if TYPE_CHECKING:
+    from .fsts import Udar
 
 
 __all__ = ['Reading']
@@ -26,8 +30,25 @@ class Reading:
     subreadings: List[Subreading]
     weight: str
 
-    def __init__(self, subreadings: str, weight: str, cg_rule: str = ''):
-        """Convert HFST tuples to more user-friendly interface."""
+    def __init__(self, subreadings: str, weight: Union[float, str],
+                 cg_rule: str = ''):
+        """Convert HFST tuples to more user-friendly interface.
+
+        Parameters
+        ----------
+
+        subreadings
+            Raw reading(s) from HFST/XFST. Typically, this is only one lemma
+            and tags (e.g. ``слово+N+Neu+Inan+Sg+Nom``), but it can also be a
+            complex reading, separated by ``#``s (e.g.
+            ``за+Pr#нечего+Pron+Neg+Acc`` for *не за что*).
+        weight
+            The weight of this reading. Can be :py:obj:`float` or a float-like
+            :py:obj:`str`.
+        cg_rule
+            (Optional) The Constraint Grammar rule responsible for this
+            reading's removal/selection/etc.
+        """
         self.cg_rule = cg_rule
         self.is_most_likely = False
         self.subreadings = [Subreading(sub)
@@ -48,12 +69,9 @@ class Reading:
         """Tags from all subreadings."""
         return [t for s in self.subreadings for t in s.tags]
 
-    def __contains__(self, key: Union[Tag, str]):
-        """Enable `in` Reading.
-
-        Fastest if `key` is a Tag, but it can also be a str.
-        """
-        return any(key in subreading for subreading in self.subreadings)
+    def __contains__(self, tag: Union[Tag, str]):
+        """Enable `in` Reading."""
+        return any(tag in subreading for subreading in self.subreadings)
 
     def __iter__(self):
         """Iterator over *tags* in all subreadings."""
@@ -74,7 +92,15 @@ class Reading:
         return f'''{'#'.join(f"""{s.hfst_noL2_str()}""" for s in self.subreadings)}'''  # noqa: E501
 
     def cg3_str(self, traces=False) -> str:
-        """Reading CG3-style stream"""
+        """CG3-style stream
+
+        Parameters
+        ----------
+
+        traces
+            Whether to display removed readings (prefixed by ``;``), the same
+            as would be returned by ``vislcg3 -t``.
+        """
         if traces:
             rule = self.cg_rule
         else:
@@ -97,19 +123,38 @@ class Reading:
     def __hash__(self):  # pragma: no cover
         return hash([(s.lemma, s.tags) for s in self.subreadings])
 
-    def generate(self, fst=None) -> str:
+    def generate(self, fst: 'Udar' = None) -> Optional[str]:
+        """Generate surface from from this reading.
+
+        Parameters
+        ----------
+
+        fst
+            Transducer to get output from. (default: bundled generator)
+        """
         if fst is None:
             from .fsts import get_fst
             fst = get_fst('generator')
         return fst.generate(self.hfst_noL2_str())
 
     def replace_tag(self, orig_tag: Union[Tag, str], new_tag: Union[Tag, str],
-                    which_reading: Optional[int] = None):
+                    which_subreading: Union[int, slice] = slice(None)):
         """Attempt to replace tag in reading indexed by `which_reading`.
         If which_reading is not supplied, replace tag in all subreadings.
+
+        Parameters
+        ----------
+
+        orig_tag
+            Tag to be replaced
+        new_tag
+            Tag to replace the ``orig_tag`` with
+        which_subreading
+            Index or slice of :py:attr:`self.subreadings` of the subreading(s)
+            in which to replace the tag.
         """
-        if which_reading is None:
-            for s in self.subreadings:
+        if isinstance(which_subreading, slice):
+            for s in self.subreadings[which_subreading]:
                 s.replace_tag(orig_tag, new_tag)
         else:
-            self.subreadings[which_reading].replace_tag(orig_tag, new_tag)
+            self.subreadings[which_subreading].replace_tag(orig_tag, new_tag)

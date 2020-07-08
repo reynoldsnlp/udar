@@ -5,7 +5,9 @@ from enum import Enum
 from pkg_resources import resource_filename
 import re
 from typing import Dict
-from typing import Iterable
+from typing import List
+from typing import Set
+from typing import Union
 from warnings import warn
 
 import stanza  # type: ignore
@@ -94,7 +96,7 @@ def destress(token: str) -> str:
     return token.replace(ACUTE, '').replace(GRAVE, '').replace('ё', 'е').replace('Ё', 'Е')  # noqa: E501
 
 
-def combine_stress(stresses: Iterable[str]) -> str:
+def combine_stress(stresses: Union[List[str], Set[str]]) -> str:
     """Given a list of stressed word forms, produce a single word with stress
     marked on all syllables that every have stress in the source list.
     """

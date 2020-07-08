@@ -22,7 +22,15 @@ class Subreading:
     tagset: Set[Tag]
 
     def __init__(self, subreading: str):
-        """Convert HFST tuples to more user-friendly interface."""
+        """Convert HFST tuples to more user-friendly interface.
+
+        Parameters
+        ----------
+
+        subreading
+            Lemma and tags, separated by ``+``s, e.g.
+            ``слово+N+Neu+Inan+Sg+Nom``
+        """
         self._lemma, *tags = re.split(r'\+(?=[^+])', subreading)  # TODO timeit
         self.tags = [tag_dict[t] for t in tags]
         self.tagset = set(self.tags)
@@ -31,11 +39,10 @@ class Subreading:
     def lemma(self):
         return self._lemma
 
-    def __contains__(self, key: Union[Tag, str]):
-        """Enable `in` Subreading."""
-        return (key in self.tagset
-                or (key in tag_dict
-                    and tag_dict[key].ambig_alternative in self.tagset))
+    def __contains__(self, tag: Union[Tag, str]):
+        return (tag in self.tagset
+                or (tag in tag_dict
+                    and tag_dict[tag].ambig_alternative in self.tagset))
 
     def __iter__(self):
         return (t for t in self.tags)
@@ -47,18 +54,18 @@ class Subreading:
         return f'{self.lemma}_{"_".join(t.name for t in self.tags)}'
 
     def cg3_str(self) -> str:
-        """Subreading CG3-style stream."""
+        """CG3-style stream."""
         return f'\t"{self.lemma}" {" ".join(t.name for t in self.tags)}'
 
     def hfst_str(self) -> str:
-        """Subreading HFST-/XFST-style stream."""
+        """HFST-/XFST-style stream."""
         return f'{self.lemma}+{"+".join(t.name for t in self.tags)}'
 
     def hfst_noL2_str(self) -> str:
-        """Subreading HFST-/XFST-style stream, excluding L2 error tags."""
+        """HFST-/XFST-style stream, excluding L2 error tags."""
         return f'{self.lemma}+{"+".join(t.name for t in self.tags if not t.is_L2)}'  # noqa: E501
 
-    def __lt__(self, other: 'Subreading'):
+    def __lt__(self, other):
         return (self.lemma, self.tags) < (other.lemma, other.tags)
 
     def __eq__(self, other):
@@ -73,7 +80,16 @@ class Subreading:
         return hash((self.lemma, self.tags))
 
     def replace_tag(self, orig_tag: Union[Tag, str], new_tag: Union[Tag, str]):
-        """Replace a given tag in Subreading with new tag."""
+        """Replace a given tag with new tag.
+
+        Parameters
+        ----------
+
+        orig_tag
+            Tag to be replaced
+        new_tag
+            Tag to replace the ``orig_tag`` with
+        """
         # if given tags are `str`s, convert them to `Tag`s.
         # (`Tag`s are mapped to themselves.)
         orig_tag = tag_dict[orig_tag]

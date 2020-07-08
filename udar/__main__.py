@@ -17,7 +17,7 @@ def parse_input(input_str: str, args: argparse.Namespace) -> Document:
         raise NotImplementedError
 
 
-def print_output(doc: Document, args: argparse.Namespace) -> None:
+def print_output(doc: Document, args: argparse.Namespace):
     """Print output to stdout according to `args.output_type`."""
     if args.output_type == 'C':
         print(doc.cg3_str())

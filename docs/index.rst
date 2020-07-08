@@ -12,7 +12,10 @@ Welcome to udar's documentation!
 
    class/Document
    class/Sentence
-
+   class/Token
+   class/Reading
+   class/Subreading
+   class/Tag
 
 Indices and tables
 ==================

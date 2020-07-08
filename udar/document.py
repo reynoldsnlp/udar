@@ -93,7 +93,7 @@ class Document:
                 sent.doc = self
         else:
             raise ValueError('Expected str or List[Sentence] or Document, got '
-                             f'{type(input_text)}: {input_text[:10]}')
+                             f'{type(input_text)}: {input_text}')
         self._num_tokens = None
         # self.num_words = self.num_tokens  # TODO  are we doing words?
         # self.num_words = sum(len(sent.words) for sent in self.sentences)
@@ -124,10 +124,20 @@ class Document:
         return '\n'.join(str(sent) for sent in self.sentences)
 
     def cg3_str(self, **kwargs) -> str:  # alternative to __str__
+        r"""CG3-style analysis stream.
+
+        Parameters
+        ----------
+
+        \*\*kwargs
+            All the same keyword arguments accepted by
+            :py:meth:`Sentence.cg_str`
+        """
         return ''.join(f'{sent.cg3_str(**kwargs)}\n'
                        for sent in self.sentences)
 
     def hfst_str(self) -> str:  # alternative to __str__
+        """HFST-/XFST-style analysis stream."""
         return ''.join(sent.hfst_str()
                        for sent in self.sentences)
 
@@ -136,6 +146,17 @@ class Document:
 
     @classmethod
     def from_cg3(cls, input_stream: str, **kwargs):
+        r"""Construct Document from CG3 stream.
+
+        Parameters
+        ----------
+
+        input_stream
+            CG3-style analysis stream
+        \*\*kwargs
+            All the same keyword arguments accepted by
+            :py:class:`Sentence`
+        """
         split_by_sentence = re.findall(r'\n# SENT ID: ([^\n]*)\n'
                                        r'# ANNOTATION: ([^\n]*)\n'
                                        r'# TEXT: ([^\n]*)\n'
@@ -162,6 +183,16 @@ class Document:
 
     @classmethod
     def from_hfst(cls, input_stream: str, **kwargs):
+        r"""Construct Document from CG3 stream.
+
+        Parameters
+        ----------
+
+        input_stream
+            HFST-/XFST-style analysis stream
+        \*\*kwargs
+            All the same keyword arguments accepted by :py:class:`Sentence`
+        """
         super_sentence = Sentence.from_hfst(input_stream, **kwargs)
         sentences = _str2Sentences(super_sentence.text, **kwargs)
         lengths = [len(s) for s in sentences]
@@ -176,20 +207,58 @@ class Document:
         return cls(sents_from_cg3, **kwargs)
 
     def disambiguate(self, **kwargs):
+        r"""Use Constraint Grammar to remove as many ambiguous readings as
+        possible.
+
+        Parameters
+        ----------
+
+        \*\*kwargs
+            All the same keyword arguments accepted by
+            :py:meth:`Sentence.disambiguate`
+        """
         for sent in self.sentences:
             sent.disambiguate(**kwargs)
 
     def phonetic(self, **kwargs) -> str:
+        r"""Return original text converted to phonetic transcription (Russian
+        Phonetic Alphabet.
+
+        Parameters
+        ----------
+
+        \*\*kwargs
+            All the same keyword arguments accepted by
+            :py:meth:`Sentence.phonetic`
+        """
         return ' '.join(sent.phonetic(**kwargs) for sent in self.sentences)
 
     def stressed(self, **kwargs) -> str:
+        r"""Return original text with stress marks added.
+
+        Parameters
+        ----------
+
+        \*\*kwargs
+            All the same keyword arguments accepted by
+            :py:meth:`Sentence.stressed`
+        """
         return ' '.join(sent.stressed(**kwargs) for sent in self.sentences)
 
     def transliterate(self, **kwargs) -> str:
+        r"""Transliterate original text to the latin alphabet.
+
+        Parameters
+        ----------
+
+        \*\*kwargs
+            All the same keyword arguments accepted by
+            :py:func:`~udar.transliterate.transliterate`
+        """
         return ' '.join(sent.transliterate(**kwargs)
                         for sent in self.sentences)
 
-    def _char_check(self, input_str) -> None:
+    def _char_check(self, input_str):
         """Print warning to stderr for unexpected characters."""
         input_str = re.sub(r'''[ !"#$%&'()*+,\-./0-9:;<=>?[\\\]_`{|}~£«¬°´·»×çś ́‒–—―‘’“”„•…›€№→−А-Яа-яЁё]''',  # noqa: E501
                            '', input_str, flags=re.I)

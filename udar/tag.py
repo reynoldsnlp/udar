@@ -24,6 +24,18 @@ class Tag:
     name: str
 
     def __init__(self, name: str, ms_feat: str, detail: str):
+        """
+        Parameters
+        ----------
+
+        name
+            The name of the tag (without leading ``+``)
+        ms_feat
+            The morphosyntactic feature this tag expresses, e.g. ``Acc`` is an
+            expression of ``CASE``.
+        detail
+            Explanation of the meaning of the tag
+        """
         self.ambig_alternative = None
         self.detail = detail
         self.is_L2 = name.startswith('Err/L2')
@@ -48,8 +60,9 @@ class Tag:
             return self.name == other
 
     def is_included_in(self, other):
-        """Like __eq__, but allow matches with ambiguous tags,
-        e.g. Anim is included in AnIn.
+        """Like __eq__, but also allow matches with ambiguous tags,
+        e.g. Anim is included in AnIn, so ``Anim.is_included_in(AnIn)``
+        evaluates to ``True``.
         """
         return self == other or self.name in ambiguous_tag_dict.get(other, ())
 

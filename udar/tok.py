@@ -21,6 +21,7 @@ from .transliterate import transliterate
 
 if TYPE_CHECKING:
     import stanza  # type: ignore  # noqa: F401
+    from .fsts import Udar
 
 __all__ = ['Token']
 
@@ -30,7 +31,7 @@ GRAVE = '\u0300'
 
 
 class Token:
-    """Custom token object"""
+    # TODO class docstring
     __slots__ = ['_readings', '_stanza_token', 'annotation', 'end_char',
                  'features', 'lemmas', 'misc', 'phon_predictions',
                  'removed_readings', 'start_char', 'stress_ambig',
@@ -50,8 +51,27 @@ class Token:
     text: str
     _upper_indices: Set[int]
 
-    def __init__(self, text, *, analyzer=None, readings=None,
-                 removed_readings=None):
+    def __init__(self, text: str, *, analyzer: 'Udar' = None,
+                 readings: Union[List[Tuple[str, str, str]],
+                                 List[Tuple[str, str]]] = None,
+                 removed_readings: Union[List[Tuple[str, str, str]],
+                                         List[Tuple[str, str]]] = None):
+        """
+        Parameters
+        ----------
+
+        text
+            Original text of the token
+        analyzer
+            (Optional) Morphological analyzer to use for grammatical analysis
+        readings
+            (Optional) List of raw hfst readings, i.e. tuples. Tuples must have
+            either 2 or 3 members: (lemma+tags, weight(, CG-rule)).
+        removed_readings
+            (Optional) List of raw hfst readings that have been removed,
+            presumably by a constraint grammar. Tuples must have either 2 or 3
+            members: (lemma+tags, weight(, CG-rule)).
+        """
         self._stanza_token = None
         self.annotation = ''
         self.features = ()
@@ -76,7 +96,7 @@ class Token:
         return self._readings
 
     @readings.setter
-    def readings(self, readings):
+    def readings(self, readings: List['Reading']):
         self._readings = [r for r in readings if r is not None]
         self._update_lemmas_stress_and_phon()
 
@@ -120,13 +140,23 @@ class Token:
         return f'{self.text} [{"  ".join(str(r) for r in self.readings)}]'
 
     def hfst_str(self) -> str:
-        """Token HFST-/XFST-style stream."""
+        """HFST-/XFST-style cohort."""
         return '\n'.join(f'{self.text}\t{r.hfst_str()}\t{float(r.weight):.6f}'
                          for r in self.readings) \
                or f'{self.text}\t{self.text}+?\tinf'
 
-    def cg3_str(self, traces=False, annotated=False) -> str:
-        """Token CG3-style stream."""
+    def cg3_str(self, traces: bool = False, annotated: bool = False) -> str:
+        """CG3-style cohort.
+
+        Parameters
+        ----------
+
+        traces
+            Whether to display removed readings (prefixed by ``;``), the same
+            as would be returned by ``vislcg3 -t``.
+        annotated
+            Whether to add token annotations in the stream
+        """
         output = '\n'.join(f'{r.cg3_str(traces=traces)}'
                            for r in self.readings) \
                  or f'\t"{self.text}" ? <W:{281474976710655.000000:.6f}>'
@@ -157,7 +187,8 @@ class Token:
     def __len__(self):
         return len(self.readings)
 
-    def __getitem__(self, i: int) -> 'Reading':
+    def __getitem__(self, i: Union[int, slice]) -> Union['Reading',
+                                                         List['Reading']]:
         # TODO tests
         return self.readings[i]
 
@@ -233,7 +264,16 @@ class Token:
         return {i for i, char in enumerate(self.text) if char.isupper()}
 
     def recase(self, in_str: Optional[str]) -> Optional[str]:
-        """Capitalize each letter in `in_str` indicated in `indices`."""
+        """Capitalize each letter in ``in_str``, as indicated by
+        ``self._upper_indices``.
+
+        Parameters
+        ----------
+
+        in_str
+            Input string to process, typically a generated wordform from the
+            same paradigm as the readings of this Token.
+        """
         if not self._upper_indices or in_str is None:
             return in_str
         grave_i = in_str.find(GRAVE)
@@ -248,8 +288,17 @@ class Token:
                         else char
                         for i, char in enumerate(in_str)])
 
-    def stresses(self, recase=True) -> Set[str]:
-        """Return set of all surface forms from a Token's readings."""
+    def stresses(self, recase: bool = True) -> Set[str]:
+        """Return set of all possible stressed forms, based on the Token's
+        readings.
+
+        Parameters
+        ----------
+
+        recase
+            If ``True``, make each word match the capitalization of the
+            original text (default: ``True``)
+        """
         from .fsts import get_fst
         acc_gen = get_fst('acc-generator')
         if recase:
@@ -264,39 +313,44 @@ class Token:
         stresses = {s for s in stresses if s is not None}
         return stresses  # type: ignore
 
-    def stressed(self, disambiguated: bool = None, selection='safe',
-                 guess=False, experiment=False, lemma=None) -> str:
-        """Set of Token's surface forms with stress marked.
+    def stressed(self, *, selection: str = 'safe', guess: bool = False,
+                 lemma: str = None, _experiment: bool = False,
+                 _disambiguated: bool = None) -> str:
+        """Predict a single stressed wordform for this Token.
 
-        disambiguated
-            Boolean indicating whether the Token has undergone CG3 disamb.
+        Parameters
+        ----------
+        selection
+            Applies only to words in the lexicon
 
-        selection  (Applies only to words in the lexicon.)
-            safe   -- Only add stress if it is unambiguous.
-            freq   -- lemma+reading > lemma > reading
-            rand   -- Randomly choose between specified stress positions.
-            all    -- Add stress to all possible specified stress positions.
-
+            * 'safe' (default) -- Only add stress if it is unambiguous.
+            * 'freq' -- lemma+reading > lemma > reading (Not yet implemented)
+            * 'rand' -- Randomly choose between specified stress positions.
+            * 'all'  -- Add stress to all possible specified stress positions.
         guess
-            Applies only to out-of-lexicon words. Makes an "intelligent" guess.
-
-        experiment
-            1) Remove stress from Token.text
-            2) Save prediction in each Token.stress_predictions[stress_params]
-
+            If ``True``, make an "intelligent" guess for out-of-vocabulary
+            words, i.e. when :py:attr:`self.readings` is empty.
         lemma
-            Limit readings to those with the given lemma.
+            (Optional) Limit readings to those with the given lemma.
+        _experiment
+            Used for evaluation of stress placement. If ``True``, do the
+            following:
+                1) Remove stress from Token.text
+                2) Save prediction in Token.stress_predictions[stress_params]
+        _disambiguated
+            Used with experiments. Indicates whether the parent
+            :py:class:`Sentence` has undergone CG3 disambiguation.
         """
         if lemma:
             self.removed_readings.extend([r for r in self.readings
                                           if lemma not in r.lemmas])
             self.readings = [r for r in self.readings if lemma in r.lemmas]
-        stress_params = StressParams(disambiguated, selection, guess)
+        stress_params = StressParams(_disambiguated, selection, guess)
         stresses = self.stresses()
         if not stresses:
             if guess:
                 pred = self.guess_syllable()
-            elif experiment:
+            elif _experiment:
                 pred = destress(self.text)
             else:
                 pred = self.text
@@ -304,7 +358,7 @@ class Token:
             pred = stresses.pop()
         else:
             if selection == 'safe':
-                if experiment:
+                if _experiment:
                     pred = destress(self.text)
                 else:
                     pred = self.text
@@ -318,17 +372,23 @@ class Token:
             else:
                 raise NotImplementedError(f"The '{selection}' selection "
                                           'method does not exist.')
-        if experiment:
+        if _experiment:
             self.stress_predictions[stress_params] = (pred,
                                                       self.stress_eval(pred))
         return pred
 
-    def stress_eval(self, pred: str, ignore_monosyll=True) -> Result:
+    def stress_eval(self, pred: str, ignore_monosyll: bool = True) -> Result:
         """Token's stress prediction Result Enum value.
 
-        If ignore_monosyll is True, then monosyllabic original forms always
-        receive a score of SKIP. This is because many corpora make the (bad)
-        assumption that all monosyllabic words are stressed.
+        Parameters
+        ----------
+
+        pred
+            Predicted wordform
+        ignore_monosyll
+            If True, then monosyllabic original forms always receive a score of
+            SKIP. This is useful for evaluating against corpora that make the
+            (bad) assumption that all monosyllabic words are stressed.
         """
         V = 'аэоуыяеёюи'
         if ignore_monosyll and len(re.findall(f'[{V}]', self.text)) < 2:
@@ -367,26 +427,52 @@ class Token:
             raise NotImplementedError(f'Bad Result: {orig_prim} {pred_prim}')
 
     def phonetic_transcriptions(self) -> Set[str]:
-        """Return set of all phonetic transcriptions from self.readings."""
+        """Return set of all phonetic transcriptions from
+        :py:attr:`self.readings`.
+        """
         from .fsts import get_fst
         phon_gen = get_fst('phonetic-generator')
         phon_transcriptions = {r.generate(fst=phon_gen) for r in self.readings}
         return {t for t in phon_transcriptions if t is not None}
 
-    def phonetic(self, disambiguated=None, selection='safe', guess=False,
-                 experiment=False, lemma=None) -> str:
-        """Token's phonetic transcription.
-
-        selection  (Applies only to words in the lexicon.)
-            safe   -- Only add stress if it is unambiguous.
-            freq   -- lemma+reading > lemma > reading
-            rand   -- Randomly choose between specified stress positions.
-            all    -- Add stress to all possible specified stress positions.
-
-        guess
-            Applies only to out-of-lexicon words. Makes an "intelligent" guess.
+    def phonetic(self, *, selection: str = 'safe', guess: bool = False,
+                 lemma: str = None, _experiment: bool = False,
+                 _disambiguated: bool = None) -> str:
+        """Predict the phonetic transcription of this Token, based on its
+        readings.
         """
+        # Parameters
+        # ----------
+
+        # selection
+        #     If a token has readings that indicate different transcriptions,
+        #     which method should be used to select which transcription to
+        #     return. (applies only to words in the lexicon)
+        #
+        #     * 'safe' (default) -- Only add stress if it is unambiguous.
+        #     * 'freq' -- lemma+reading > lemma > reading (Not yet implemented)
+        #     * 'rand' -- Randomly choose between specified stress positions.
+        #     * 'all'  -- Add stress to all possible specified stress positions
+
+        # guess
+        #     If ``True``, make an "intelligent" guess for out-of-lexicon words
+        #     (i.e. when :py:attr:`self.readings` is empty).
+
+        # lemma
+        #     (Optional) Limit readings to those with the given lemma.
+
+        # _experiment
+        #     Used for evaluation of stress placement. If ``True``, do the
+        #     following:
+        #         1) Remove stress from Token.text
+        #         2) Save prediction in Token.stress_predictions[stress_params]
+
+        # _disambiguated
+        #     Used with experiments. Indicates whether the parent
+        #     :py:class:`Sentence` has undergone CG3 disambiguation.
+        # """
         # TODO check if `all` selection is compatible with g2p.hfstol
+        # TODO make this function suck less
         from .fsts import get_g2p
         g2p = get_g2p()
         if lemma:
@@ -397,7 +483,7 @@ class Token:
         if not transcriptions:
             if guess:
                 stress_pred = self.guess_syllable()
-            elif experiment:
+            elif _experiment:
                 stress_pred = destress(self.text)
             else:
                 stress_pred = self.text
@@ -405,7 +491,7 @@ class Token:
             return transcriptions.pop()
         else:  # if there are more than one possible transcription
             if selection == 'safe':
-                if experiment:
+                if _experiment:
                     stress_pred = destress(self.text)
                 else:
                     stress_pred = self.text
@@ -441,15 +527,22 @@ class Token:
         # elif out_token.endswith("ясь") or out_token.endswith("ЯСЬ"):
         #     out_token += "S"
 
-    def phon_eval(self, pred: str):
-        """Token Results of phonetic transcription predictions."""
-        # raise NotImplementedError
-        pass
+    # def phon_eval(self, pred: str):
+    #     """Results of phonetic transcription predictions."""
+    #     # raise NotImplementedError
+    #     pass
 
     def guess(self, backoff=None) -> Optional[str]:
+        """If there are readings, randomly select one and generate stressed
+        wordform from it. Otherwise, return result of
+        :py:meth:`~Token.guess_syllable`.
+        """
+        # TODO make this function suck less
+        from .fsts import get_fst
+        acc_gen = get_fst('accented-generator')
         if len(self.readings) > 0:
             random_reading = choice(self.readings)
-            return random_reading.generate(fst='accented-generator')
+            return random_reading.generate(fst=acc_gen)
         else:
             return self.guess_syllable()
 
@@ -491,7 +584,7 @@ class Token:
         '''
 
     def guess_syllable(self) -> str:
-        """Token: Place stress on the last vowel followed by a consonant.
+        """Place stress on the last vowel followed by a consonant.
 
         This is a (bad) approximation of the last syllable of the stem. Not
         reliable at all, especially for forms with a consonant in the
@@ -506,4 +599,13 @@ class Token:
                           self.text)
 
     def transliterate(self, **kwargs) -> str:
+        r"""Transliterate original text to the latin alphabet.
+
+        Parameters
+        ----------
+
+        \*\*kwargs
+            All the same keyword arguments accepted by
+            :py:func:`~udar.transliterate.transliterate`
+        """
         return transliterate(self.text, **kwargs)

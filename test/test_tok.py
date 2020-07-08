@@ -89,7 +89,7 @@ def test_tok_stressed_no_readings():
     t = udar.Token('слово')
     assert '\u0301' in t.stressed(guess=True)
     t = udar.Token('сло́во')
-    assert '\u0301' not in t.stressed(experiment=True)
+    assert '\u0301' not in t.stressed(_experiment=True)
     assert t.stressed() == 'сло́во'
 
 

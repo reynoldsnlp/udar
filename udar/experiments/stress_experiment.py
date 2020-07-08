@@ -67,7 +67,7 @@ class StressExperiment:
                     disambiguated = True
                 kwargs = sp._asdict()
                 del kwargs['disambiguate']
-                text.stressed(experiment=True, **kwargs)
+                text.stressed(_experiment=True, **kwargs)
             if tsvs:
                 text.stress_preds2tsv(path='tmp/')
         metrics = [self.param_eval(sp) for sp in self.par_space]
