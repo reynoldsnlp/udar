@@ -143,8 +143,6 @@ print(phonetic_doc1)
 | text | `str` | The original text of this token |
 | misc | `str` | Miscellaneous annotations with regard to this token |
 | lemmas | `Set[str]` | All possible lemmas, based on remaining readings |
-| most\_likely\_reading | `Reading` | "Most likely" reading (may be partially random selection) |
-| most\_likely\_lemmas | `List[str]` | List of lemma(s) from the "most likely" reading |
 | readings | `List[Reading]` | List of readings not removed by the Constraint Grammar |
 | removed\_readings | `List[Reading]` | List of readings removed by the Constraint Grammar | head | `int` | The id of the syntactic head of this token in the sentence, 1-based (0 is reserved for an artificial symbol that represents the root of the syntactic tree). |
 | deprel | `str` | The dependency relation between this word and its syntactic head. Example: ‘nmod’. |
@@ -154,6 +152,8 @@ print(phonetic_doc1)
 | stresses | `Set[str]` | All possible stressed wordforms, based on remaining readings |
 | stressed | `str` | The original text of the sentence with stress marks |
 | phonetic | `str` | The original text converted to phonetic transcription |
+| most\_likely\_reading | `Reading` | "Most likely" reading (may be partially random selection) |
+| most\_likely\_lemmas | `List[str]` | List of lemma(s) from the "most likely" reading |
 | transliterate | `str` | The original text converted to Romanized Cyrillic (default=Scholarly) |
 | cg3\_str | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
 | hfst\_str | `str` | Analysis stream in the XFST/HFST format |
@@ -175,6 +175,7 @@ print(phonetic_doc1)
 | hfst\_str | `str` | Analysis stream in the XFST/HFST format |
 | generate | `str` | Generate the wordform from this reading |
 | replace\_tag | `None` | Replace a tag in this reading |
+| does\_not\_conflict | `bool` | Determine whether reading from external tagset (e.g. Universal Dependencies) conflicts with this reading |
 
 ### `Subreading` object
 

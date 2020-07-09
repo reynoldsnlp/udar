@@ -7,6 +7,7 @@ from .feature import Feature
 from .features import add_to_ALL
 from .features import ALL
 from .features import ms_feats
+from .features import MOST_LIKELY
 from .features import NaN
 from .features import safe_ms_feat_name
 from .features import safe_tag_name
@@ -24,7 +25,7 @@ def num_types_ms_feat(ms_feat: str, doc: Document, rmv_punc=False) -> int:
     toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     counter = 0
     for tok in toks:
-        for tag in tok.most_likely_reading.grouped_tags:
+        for tag in tok.most_likely_reading(method=MOST_LIKELY).grouped_tags:
             if tag.ms_feat == ms_feat:
                 counter += 1
                 break
@@ -45,7 +46,7 @@ def num_abstract_nouns(doc: Document, rmv_punc=True) -> int:
     abstract_re = r'(?:ье|ие|ство|ация|ость|изм|изна|ота|ина|ика|ива)[¹²³⁴⁵⁶⁷⁸⁹⁰⁻]*$'  # noqa: E501
     return len([t for t in toks
                 if any(re.search(abstract_re, lem)
-                       for lem in t.most_likely_lemmas)])
+                       for lem in t.most_likely_lemmas(method=MOST_LIKELY))])
 
 
 def tag_ms_feat_ratio_Tag(tag: str, doc: Document, rmv_punc=False,

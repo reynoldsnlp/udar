@@ -16,8 +16,16 @@ echo "Versions with which tests passed for this commit:" \
 hfst-tokenize --version | grep hfst >> hfst_vislcg3_versions.txt
 vislcg3 --version | grep VISL >> hfst_vislcg3_versions.txt
 
+echo "Checking for unnecessary noqa's..."
+egrep "^.{,76}[^\"]{3}# noqa: E501" test/*.py udar/**/*.py
+
+echo "Running flake8..."
 flake8 *.py test/**/*.py udar/**/*.py
+
+echo "Running mypy..."
 mypy udar
+
+echo "Running pytest..."
 pytest --cov=udar --cov-append --cov-report term-missing --doctest-modules
 
 rm .coverage  # can conflict with tox

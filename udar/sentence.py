@@ -567,7 +567,7 @@ class Sentence:
                         if not o_rm:
                             readings.append((o_read, o_weight, o_rule))
                         else:
-                            rm_readings.append((o_read, o_weight, o_rule))  # noqa: E501
+                            rm_readings.append((o_read, o_weight, o_rule))
                     n_read = f"{n_lemma}+{n_tags.replace(' ', '+')}"
                     # rotate values from new to old
                     o_rm, o_weight, o_rule, o_read, o_state = n_rm, n_weight, n_rule, n_read, n_state  # noqa: E501

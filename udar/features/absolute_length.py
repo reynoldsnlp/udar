@@ -7,6 +7,7 @@ from .feature import Feature
 from .features import add_to_ALL
 from .features import ALL
 from .features import MAX_SYLL
+from .features import MOST_LIKELY
 from .features import ms_feats
 from .features import safe_ms_feat_name
 from .features import safe_tag_name
@@ -164,17 +165,17 @@ def num_types(doc: Document, lower=True, rmv_punc=False) -> int:
 
 @add_to_ALL('num_lemma_types', category='Absolute length')
 def num_lemma_types(doc: Document, has_tag='', lower=False,
-                    rmv_punc=False) -> int:
+                    method=MOST_LIKELY, rmv_punc=False) -> int:
     """Count number of unique lemmas in a Document."""
     toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     if lower:
         return len(set([lem.lower()
                         for t in toks
-                        for lem in t.most_likely_lemmas]))
+                        for lem in t.most_likely_lemmas(method=MOST_LIKELY)]))  # noqa: E501
     else:
         return len(set([lem
                         for t in toks
-                        for lem in t.most_likely_lemmas]))
+                        for lem in t.most_likely_lemmas(method=MOST_LIKELY)]))  # noqa: E501
 
 
 def num_types_Tag(tag: str, doc: Document, lower=True, rmv_punc=False) -> int:

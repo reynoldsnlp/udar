@@ -36,7 +36,7 @@ class Token:
                  'features', 'lemmas', 'misc', 'phon_predictions',
                  'removed_readings', 'start_char', 'stress_ambig',
                  'stress_predictions', 'text', '_upper_indices']
-    _readings: List['Reading']
+    _readings: List[Reading]
     _stanza_token: Optional['stanza.models.common.doc.Token']
     annotation: str
     end_char: int  # TODO
@@ -44,7 +44,7 @@ class Token:
     lemmas: Set[str]
     misc: str
     phon_predictions: Dict[StressParams, set]
-    removed_readings: List['Reading']
+    removed_readings: List[Reading]
     start_char: int  # TODO
     stress_ambig: int  # number of stressed alternatives
     stress_predictions: Dict[StressParams, Tuple[str, Result]]
@@ -92,11 +92,11 @@ class Token:
                 self.readings = []
 
     @property
-    def readings(self) -> List['Reading']:
+    def readings(self) -> List[Reading]:
         return self._readings
 
     @readings.setter
-    def readings(self, readings: List['Reading']):
+    def readings(self, readings: List[Reading]):
         self._readings = [r for r in readings if r is not None]
         self._update_lemmas_stress_and_phon()
 
@@ -187,8 +187,8 @@ class Token:
     def __len__(self):
         return len(self.readings)
 
-    def __getitem__(self, i: Union[int, slice]) -> Union['Reading',
-                                                         List['Reading']]:
+    def __getitem__(self, i: Union[int, slice]) -> Union[Reading,
+                                                         List[Reading]]:
         # TODO tests
         return self.readings[i]
 
@@ -202,32 +202,87 @@ class Token:
     #     # TODO
     #     raise NotImplementedError
 
-    @property
-    def most_likely_reading(self) -> Optional['Reading']:
+    def _filter_readings_using_stanza(self) -> List[Reading]:
+        """Return list of Readings that do not conflict with stanza's analysis
+        of this token.
+        """
+        if len(self.readings) < 2:
+            return self.readings
+        elif (self._stanza_token is not None
+              and self._stanza_token.words[0].feats is not None):
+            stanza_tags = set([self._stanza_token.words[0].upos])
+            stanza_tags.update(re.findall(r'\w+=(\w+)\|?',
+                                          self._stanza_token.words[0].feats))
+            most_likely_readings = [r for r in self.readings
+                                    if r.does_not_conflict(stanza_tags, 'UD')]
+            if len(most_likely_readings) != 1:
+                with open('/tmp/stanza_filter.log', 'a') as f:
+                    print(self._stanza_token.words[0].feats,
+                          ','.join(stanza_tags), self.readings, file=f)
+            return most_likely_readings or self.readings
+        else:
+            return self.readings
+
+    def most_likely_reading(self, method=None) -> Optional[Reading]:
         """If one reading is marked as most likely, return it. Otherwise,
         select a most likely reading, label it as such, and return it.
+
+        Parameters
+        ----------
+
+        method
+            If most likely reading has not already been selected, which method
+            to use to select the most likely reading. If it has already been
+            selected, then this argument is ignored. (default: ``weight``)
+
+            * 'random' -- randomly select from readings
+            * 'stanza' -- pick reading that is compatible with the Universal
+              Dependency reading given by :py:mod:`stanza`. If more than one
+              reading is compatible, randomly pick between them.
+            * 'weight' -- pick the reading with the highest weight value. If
+              more than one reading shares the highest weight, randomly pick
+              between them.
         """
-        most_likely = [r for r in self.readings if r.is_most_likely]
-        if len(most_likely) == 1:
-            return most_likely[0]
-        else:
+        if not self.readings:
+            return None
+        for r in self.readings:
+            if r.is_most_likely:
+                return r
+
+        if method is None:
+            method = 'weight'
+        if method == 'random':
+            lucky_reading = choice(self.readings)
+        elif method == 'stanza':
+            most_likely_readings = self._filter_readings_using_stanza()
+            lucky_reading = choice(most_likely_readings)
+        elif method == 'weight':
             try:
                 max_weight = max(float(r.weight) for r in self.readings)
             except ValueError:
                 return None
-            most_likely_readings = [r for r in self.readings
-                                    if float(r.weight) == max_weight]
-            lucky_reading = choice(most_likely_readings)
-            lucky_reading.is_most_likely = True
-            return lucky_reading
+            else:
+                most_likely_readings = [r for r in self.readings
+                                        if float(r.weight) == max_weight]
+                lucky_reading = choice(most_likely_readings)
+        else:
+            raise ValueError('`method` must be in {random, stanza, weight}.')
+        lucky_reading.is_most_likely = True
+        return lucky_reading
 
-    @property
-    def most_likely_lemmas(self) -> List[str]:
-        """If one reading is marked as most likely, return list of its
+    def most_likely_lemmas(self, **kwargs) -> List[str]:
+        r"""If one reading is marked as most likely, return list of its
         lemma(s). Otherwise, select a most likely reading, label it as such,
         and return list of its lemma(s).
+
+        Parameters
+        ----------
+
+        \*\*kwargs
+            The same arguments that can be passed to
+            :py:meth:`most_likely_reading`
         """
-        mlr = self.most_likely_reading
+        mlr = self.most_likely_reading(**kwargs)
         if mlr is not None:
             return mlr.lemmas
         else:
@@ -249,12 +304,22 @@ class Token:
         return any(t.is_L2 for r in self.readings for t in r)
 
     def has_tag_in_most_likely_reading(self, tag: Union[Tag, str],
-                                       partial=True) -> bool:
-        """Token's most likely reading contains the given tag."""
+                                       **kwargs) -> bool:
+        r"""Token's most likely reading contains the given tag.
+
+        Parameters
+        ----------
+
+        tag
+            Tag (or name of tag) to check for
+        \*\*kwargs
+            The same arguments that can be passed to
+            :py:meth:`most_likely_reading`
+        """
         if self.readings:
             try:
-                return tag in self.most_likely_reading  # type: ignore
-            except TypeError:
+                return tag in self.most_likely_reading(**kwargs)  # type: ignore  # noqa: E501
+            except TypeError:  # if most_likely_reading returns None
                 return False
         else:
             return False

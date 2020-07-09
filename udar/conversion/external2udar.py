@@ -3,7 +3,6 @@
 import argparse
 from glob import glob
 import os
-import re
 import sys
 
 from bs4 import BeautifulSoup  # type: ignore
@@ -18,9 +17,12 @@ from ..document import Document
 HOME = os.path.expanduser('~')
 
 parser = argparse.ArgumentParser()
+parser.add_argument('-t', '--tagset', type=str,
+                    help='Which tagset is used in the input. Must be either '
+                    'OC (opencorpora) or UD (universal dependencies)')
 parser.add_argument('-i', '--input', type=str,
                     default=f'{HOME}/corpora/opencorpora/annot.opcorpora.no_ambig_strict.xml',  # noqa: E501
-                    help="path to opencorpora xml file")
+                    help='path to opencorpora xml file')
 parser.add_argument('-o', '--output-dir', type=str, default='corp/OC',
                     help='path to output directory. If it already exists, all '
                     '*.out files therein will be deleted.')
@@ -37,41 +39,8 @@ def readable_sent(sentence):
                      for t in sentence.tokens.find_all('token'))
 
 
-OC2udar_constraints = {
-                # OC_tag: regex to match incompatible udar tag
-                'ADJF': r'\+N\+',
-                'ADJS': r'\+N\+',
-                'ADVB': r'\+A\+|\+CS|\+Pcle',
-                'CONJ': r'\+Pron|\+N\+|\+Interj|\+Adv',
-                'NOUN': r'\+A\+|\+Pr(?:$|\+)',
-                'NPRO': r'\+N\+|\+Pred(?:$|\s)|\+Pcle|\+Det',
-                'PREP': r'\+Interj|\+N\+|\+V\+',
-                'VERB': r'\+A\+|\+Pred(?:$|\s)',
-                'masc': r'\+Neu|\+Fem',
-                'femn': r'\+Msc',
-                'neut': r'\+Msc',
-                'sing': r'\+Pl',
-                'plur': r'\+Sg',
-                'nomn': r'\+Acc|\+Gen|\+Loc|\+Dat|\+Ins|\+Voc',
-                'gent': r'\+Nom|\+Acc|\+Loc|\+Dat|\+Ins|\+Voc',
-                'datv': r'\+Nom|\+Acc|\+Gen|\+Loc|\+Ins|\+Voc',
-                'accs': r'\+Nom|\+Gen|\+Loc|\+Dat|\+Ins|\+Voc',
-                'ablt': r'\+Nom|\+Acc|\+Gen|\+Loc|\+Dat|\+Voc',
-                'loct': r'\+Nom|\+Acc|\+Gen|\+Dat|\+Ins|\+Voc',
-                'voct': r'\+Nom|\+Acc|\+Gen|\+Loc|\+Dat|\+Ins',
-                'gen1': r'\+Nom|\+Acc|\+Loc|\+Dat|\+Ins|\+Voc',
-                'gen2': r'\+Nom|\+Acc|\+Loc|\+Dat|\+Ins|\+Voc',
-                'acc2': r'\+Nom|\+Gen|\+Loc|\+Dat|\+Ins|\+Voc',
-                'loc1': r'\+Nom|\+Acc|\+Gen|\+Dat|\+Ins|\+Voc',
-                'loc2': r'\+Nom|\+Acc|\+Gen|\+Dat|\+Ins|\+Voc',
-                'tran': r'\+IV',
-                'intr': r'\+TV',
-                }
-
-
 if __name__ == '__main__':
     args = parser.parse_args()
-
     out_dir = args.output_dir + '/'
     mistoken_dir = args.output_dir + '/mistoken/'
     for d in (out_dir, mistoken_dir):
@@ -134,13 +103,12 @@ if __name__ == '__main__':
                 #     print('\t', r.lemma, r, file=sys.stderr)
                 #     for g in oc_tok_tags:
                 #         print('\t\t', g,
-                #               re.search(OC2udar_constraints[g],
+                #               re.search(constraints[g],
                 #                         r.hfst_str()),
                 #               file=sys.stderr)
                 new_readings = [r for r in u_tok.readings
                                 if  # r.lemma == oc_tok_lem and
-                                all([not re.search(OC2udar_constraints.get(g, '#%@!&' * 99), r.hfst_str())  # noqa: E501
-                                     for g in oc_tok_tags])
+                                r.does_not_conflict(oc_tok_tags, 'OC')
                                 and 'Der' not in r and 'Lxc' not in r]
                 # assert len(new_readings) > 0, f'{u_tok}\n{oc_tok}\n{new_readings}'  # noqa: E501
                 len_new_readings = len(new_readings)

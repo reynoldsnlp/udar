@@ -11,6 +11,7 @@ from .feature import Feature
 from .feature_extractor import FeatureExtractor
 
 MAX_SYLL = 8
+MOST_LIKELY = 'stanza'  # `method` argument to Token.most_likely_reading()
 NaN = float('nan')
 punc_re = r'[\\!"#$%&\'()*+,\-./:;<=>?@[\]^_`{|}~]+'
 vowel_re = r'[аэоуыяеёюиaeiou]'  # TODO make latin vowels optional?

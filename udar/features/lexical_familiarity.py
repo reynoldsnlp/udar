@@ -13,6 +13,7 @@ from .features import _get_lexmin_dict
 from .features import _get_kelly_dict
 from .features import add_to_ALL
 from .features import ALL
+from .features import MOST_LIKELY
 from .features import NaN
 from .features import warn_about_irrelevant_argument
 
@@ -26,7 +27,7 @@ def num_words_at_lexmin_level(level, doc: Document) -> int:
     lexmin_dict = _get_lexmin_dict()
     return len([1 for tok in doc
                 if any(lexmin_dict.get(lem) == level
-                       for lem in tok.most_likely_lemmas)])  # type: ignore  # noqa: E501
+                       for lem in tok.most_likely_lemmas(method=MOST_LIKELY))])  # type: ignore  # noqa: E501
 for level in ['A1', 'A2', 'B1', 'B2']:  # noqa: E305
     name = f'num_words_at_lexmin_{level}'
     this_partial = partial(num_words_at_lexmin_level, level)  # type: ignore
@@ -69,7 +70,7 @@ def num_words_at_kelly_level(level, doc: Document) -> int:
     kelly_dict = _get_kelly_dict()
     return len([1 for tok in doc
                 if any(kelly_dict.get(lem) == level
-                       for lem in tok.most_likely_lemmas)])  # type: ignore  # noqa: E501
+                       for lem in tok.most_likely_lemmas(method=MOST_LIKELY))])  # type: ignore  # noqa: E501
 for level in ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']:  # noqa: E305
     name = f'num_words_at_kelly_{level}'
     this_partial = partial(num_words_at_kelly_level, level)  # type: ignore

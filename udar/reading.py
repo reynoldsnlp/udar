@@ -2,13 +2,17 @@
 
 from math import isclose
 import re
+import sys
 from typing import List
 from typing import Optional
+from typing import Set
 from typing import TYPE_CHECKING
 from typing import Union
 
 from .subreading import Subreading
 from .tag import Tag
+from .conversion.OC_conflicts import OC_conflicts
+from .conversion.UD_conflicts import UD_conflicts
 
 if TYPE_CHECKING:
     from .fsts import Udar
@@ -158,3 +162,39 @@ class Reading:
                 s.replace_tag(orig_tag, new_tag)
         else:
             self.subreadings[which_subreading].replace_tag(orig_tag, new_tag)
+
+    def _is_compatible_with_stanza_reading(self, stanza_tags: Set[str]):
+        """Check whether the given stanza reading information conflicts with
+        the values in :py:attr:`self.subreadings`.
+        """
+        return
+
+    def does_not_conflict(self, tags: Set[str], tagset: str) -> bool:
+        """Whether reading from an external tagset conflicts with this Reading.
+
+        Here, "conflict" is defined as expressing different values of the
+        same morphosyntactic feature. For example, ``noun`` and ``adjective``
+        are both parts of speech, so they conflict. Similarly, ``nominative``
+        and ``accusative`` both express ``Case``, so they conflict.
+
+        Parameters
+        ----------
+
+        tags
+            A set of tags from opencorpora (OC), universal dependencies (UD),
+            etc.
+        tagset
+            Which corpus or analyzer produced the tags? Must be in ``{OC, UD}``
+        """
+        if tagset == 'OC':
+            conflicts = OC_conflicts
+        elif tagset == 'UD':
+            conflicts = UD_conflicts
+        else:
+            raise ValueError('tagset must be in {OC, UD}, got ' f'{tagset}')
+        for external_tag in tags:
+            for conflicting_tag in conflicts.get(external_tag, ()):
+                if conflicting_tag in self:
+                    print('CONFLICT:', self, conflicting_tag, file=sys.stderr)
+                    return False
+        return True

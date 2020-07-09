@@ -13,6 +13,7 @@ from .features import _get_Sharoff_lem_freq_dict
 from .features import _get_Sharoff_lem_freq_rank_dict
 from .features import ALL
 from .features import add_to_ALL
+from .features import MOST_LIKELY
 from .features import punc_re
 
 side_effects = None  # import this and get all the side effects for free!
@@ -72,10 +73,12 @@ def _filter_toks(doc: Document,
     if has_tag:
         if isinstance(has_tag, str) or isinstance(has_tag, Tag):
             toks = [t for t in toks
-                    if t.has_tag_in_most_likely_reading(has_tag)]
+                    if t.has_tag_in_most_likely_reading(has_tag,
+                                                        method=MOST_LIKELY)]
         elif isinstance(has_tag, tuple):
             toks = [t for t in toks
-                    if any(t.has_tag_in_most_likely_reading(tag)
+                    if any(t.has_tag_in_most_likely_reading(tag,
+                                                            method=MOST_LIKELY)
                            for tag in has_tag)]
         else:
             raise NotImplementedError('has_tag argument must be a str or Tag, '
@@ -94,7 +97,7 @@ def _lemma_frequencies(doc: Document,
     Sharoff_lem_freq_dict = _get_Sharoff_lem_freq_dict()
     return [Sharoff_lem_freq_dict.get(lem, 0)
             for t in toks
-            for lem in t.most_likely_lemmas]
+            for lem in t.most_likely_lemmas(method=MOST_LIKELY)]
 
 
 @add_to_ALL('_lemma_frequency_ranks', category='_prior')
@@ -106,7 +109,7 @@ def _lemma_frequency_ranks(doc: Document,
     Sharoff_lem_freq_rank_dict = _get_Sharoff_lem_freq_rank_dict()
     return [Sharoff_lem_freq_rank_dict.get(lem, 0)
             for t in toks
-            for lem in t.most_likely_lemmas]
+            for lem in t.most_likely_lemmas(method=MOST_LIKELY)]
 
 
 @add_to_ALL('_token_frequencies', category='_prior')

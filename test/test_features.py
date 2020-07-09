@@ -47,7 +47,7 @@ def test_feature_keywords_declared_in_alphabetical_order():
 def test_feature_keywords_are_exhaustive_for_dependencies():
     """Ensure that all arguments of dependent functions can be overridden."""
     for name, feat in ALL.items():
-        ignore_keywords = {'has_tag', 'n'}
+        ignore_keywords = {'has_tag', 'n', 'method'}
         parent_keywords = set(feat.default_kwargs).union(ignore_keywords)
         posterity_keywords = _get_all_dependent_keyword_arguments(name)
         assert name and posterity_keywords.issubset(parent_keywords)

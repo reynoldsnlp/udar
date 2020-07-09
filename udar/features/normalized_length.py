@@ -8,6 +8,7 @@ from ..document import Document
 from .features import _get_tix_morph_count_dict
 from .features import add_to_ALL
 from .features import ALL
+from .features import MOST_LIKELY
 from .features import NaN
 from .features import vowel_re
 from .features import warn_about_irrelevant_argument
@@ -155,7 +156,7 @@ def morphs_per_word(doc: Document, has_tag='', lower=False, rmv_punc=True,
     try:
         return mean(tix_morph_count_dict[lem]
                     for tok in toks
-                    for lem in tok.most_likely_lemmas
+                    for lem in tok.most_likely_lemmas(method=MOST_LIKELY)
                     if lem in tix_morph_count_dict)
     except StatisticsError:
         return zero_div_val
@@ -173,7 +174,7 @@ def max_morphs_per_word(doc: Document, has_tag='', lower=False, rmv_punc=True,
     try:
         return max(tix_morph_count_dict[lem]
                    for tok in toks
-                   for lem in tok.most_likely_lemmas
+                   for lem in tok.most_likely_lemmas(method=MOST_LIKELY)
                    if lem in tix_morph_count_dict)
     except ValueError:
         return zero_div_val

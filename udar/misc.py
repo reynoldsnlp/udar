@@ -12,6 +12,8 @@ from warnings import warn
 
 import stanza  # type: ignore
 
+# This module should not import anything from udar. Modules that need to
+# import from udar should either be in convenience.py or in util/
 
 __all__ = ['StressParams', 'Result', 'result_names', 'destress',
            'compute_metrics', 'unspace_punct']
