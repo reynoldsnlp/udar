@@ -119,6 +119,8 @@ ambig_doc = udar.Document('Твои слова ничего не значат.',
 print(sorted(ambig_doc[1].stresses()))  # Note that слова is still ambiguous
 # ['сло́ва', 'слова́']
 
+print(ambig_doc.stressed(selection='safe'))  # 'safe' skips сло́ва and слова́
+# Твои́ слова ничего́ не зна́чат.
 print(ambig_doc.stressed(selection='all'))  # 'all' combines сло́ва and слова́
 # Твои́ сло́ва́ ничего́ не зна́чат.
 
