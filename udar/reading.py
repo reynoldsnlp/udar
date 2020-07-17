@@ -6,16 +6,14 @@ import sys
 from typing import List
 from typing import Optional
 from typing import Set
-from typing import TYPE_CHECKING
 from typing import Union
 
+from .fsts import Generator
+from .fsts import get_generator
 from .subreading import Subreading
 from .tag import Tag
 from .conversion.OC_conflicts import OC_conflicts
 from .conversion.UD_conflicts import UD_conflicts
-
-if TYPE_CHECKING:
-    from .fsts import Udar
 
 
 __all__ = ['Reading']
@@ -127,19 +125,23 @@ class Reading:
     def __hash__(self):  # pragma: no cover
         return hash([(s.lemma, s.tags) for s in self.subreadings])
 
-    def generate(self, fst: 'Udar' = None) -> Optional[str]:
-        """Generate surface from from this reading.
+    def generate(self,
+                 _generator: 'Generator' = None,
+                 **kwargs) -> Optional[str]:
+        r"""Generate surface from from this reading.
 
         Parameters
         ----------
 
-        fst
-            Transducer to get output from. (default: bundled generator)
+        \*\*kwargs
+            The same arguments accepted by :py:meth:`Generator.__init__`.
+            (default: bundled generator)
         """
-        if fst is None:
-            from .fsts import get_fst
-            fst = get_fst('generator')
-        return fst.generate(self.hfst_noL2_str())
+        try:
+            return _generator(self.hfst_noL2_str())  # type: ignore
+        except TypeError:
+            _generator = get_generator(**kwargs)
+            return _generator(self.hfst_noL2_str())  # type: ignore
 
     def replace_tag(self, orig_tag: Union[Tag, str], new_tag: Union[Tag, str],
                     which_subreading: Union[int, slice] = slice(None)):

@@ -11,6 +11,9 @@ from typing import Tuple
 from typing import TYPE_CHECKING
 from typing import Union
 
+from .fsts import get_analyzer
+from .fsts import get_g2p
+from .fsts import get_generator
 from .misc import combine_stress
 from .misc import destress
 from .misc import Result
@@ -21,7 +24,6 @@ from .transliterate import transliterate
 
 if TYPE_CHECKING:
     import stanza  # type: ignore  # noqa: F401
-    from .fsts import Udar
 
 __all__ = ['Token']
 
@@ -51,7 +53,8 @@ class Token:
     text: str
     _upper_indices: Set[int]
 
-    def __init__(self, text: str, *, analyzer: 'Udar' = None,
+    def __init__(self, text: str, *, _analyzer=None, analyze=False,
+                 analyze_L2_errors=False,
                  readings: Union[List[Tuple[str, str, str]],
                                  List[Tuple[str, str]]] = None,
                  removed_readings: Union[List[Tuple[str, str, str]],
@@ -62,8 +65,11 @@ class Token:
 
         text
             Original text of the token
-        analyzer
-            (Optional) Morphological analyzer to use for grammatical analysis
+        analyze
+            (Optional) Whether to perform morphological analysis on the token
+        analyze_L2_errors
+            (Optional) Whether to include readings that describe learner
+            errors. If ``analyze`` is False, this argument is ignored.
         readings
             (Optional) List of raw hfst readings, i.e. tuples. Tuples must have
             either 2 or 3 members: (lemma+tags, weight(, CG-rule)).
@@ -86,8 +92,11 @@ class Token:
             self.readings = [Reading(*r) for r in readings
                              if not r[0].endswith('?')]
         else:
-            if analyzer is not None:
-                self.readings = [Reading(*r) for r in analyzer.lookup(text)]
+            if _analyzer is not None:
+                self.readings = [Reading(*r) for r in _analyzer(text)]
+            elif analyze:
+                _analyzer = get_analyzer(L2_errors=analyze_L2_errors)
+                self.readings = [Reading(*r) for r in _analyzer(text)]
             else:
                 self.readings = []
 
@@ -288,20 +297,20 @@ class Token:
         else:
             return []
 
-    def is_L2(self) -> bool:
+    def is_L2_error(self) -> bool:
         """Token: test if ALL readings contain an L2 error tag."""
         if self.readings:
             for r in self.readings:
                 for subreading in r.subreadings:
-                    if not any(t.is_L2 for t in subreading):
+                    if not any(t.is_L2_error for t in subreading):
                         return False
             return True
         else:
             return False
 
-    def has_L2(self) -> bool:
+    def might_be_L2_error(self) -> bool:
         """Token has ANY readings that contain an L2 error tag."""
-        return any(t.is_L2 for r in self.readings for t in r)
+        return any(t.is_L2_error for r in self.readings for t in r)
 
     def has_tag_in_most_likely_reading(self, tag: Union[Tag, str],
                                        **kwargs) -> bool:
@@ -364,17 +373,16 @@ class Token:
             If ``True``, make each word match the capitalization of the
             original text (default: ``True``)
         """
-        from .fsts import get_fst
-        acc_gen = get_fst('acc-generator')
+        acc_gen = get_generator(stressed=True)
         if recase:
             try:
-                stresses = {self.recase(r.generate(fst=acc_gen))
+                stresses = {self.recase(r.generate(_generator=acc_gen))
                             for r in self.readings}
             except AttributeError as e:  # pragma: no cover
                 raise AttributeError('Problem generating stresses from: '
                                      f'{self} {self.readings}.') from e
         else:
-            stresses = {r.generate(fst=acc_gen) for r in self.readings}
+            stresses = {r.generate(_generator=acc_gen) for r in self.readings}
         stresses = {s for s in stresses if s is not None}
         return stresses  # type: ignore
 
@@ -495,9 +503,9 @@ class Token:
         """Return set of all phonetic transcriptions from
         :py:attr:`self.readings`.
         """
-        from .fsts import get_fst
-        phon_gen = get_fst('phonetic-generator')
-        phon_transcriptions = {r.generate(fst=phon_gen) for r in self.readings}
+        phon_gen = get_generator(phonetic=True)
+        phon_transcriptions = {r.generate(_generator=phon_gen)
+                               for r in self.readings}
         return {t for t in phon_transcriptions if t is not None}
 
     def phonetic(self, *, selection: str = 'safe', guess: bool = False,
@@ -538,7 +546,6 @@ class Token:
         # """
         # TODO check if `all` selection is compatible with g2p.hfstol
         # TODO make this function suck less
-        from .fsts import get_g2p
         g2p = get_g2p()
         if lemma:
             self.removed_readings.extend([r for r in self.readings
@@ -603,11 +610,10 @@ class Token:
         :py:meth:`~Token.guess_syllable`.
         """
         # TODO make this function suck less
-        from .fsts import get_fst
-        acc_gen = get_fst('accented-generator')
+        acc_gen = get_generator(stressed=True)
         if len(self.readings) > 0:
             random_reading = choice(self.readings)
-            return random_reading.generate(fst=acc_gen)
+            return random_reading.generate(_generator=acc_gen)
         else:
             return self.guess_syllable()
 

@@ -63,7 +63,7 @@ class Subreading:
 
     def hfst_noL2_str(self) -> str:
         """HFST-/XFST-style stream, excluding L2 error tags."""
-        return f'{self.lemma}+{"+".join(t.name for t in self.tags if not t.is_L2)}'  # noqa: E501
+        return f'{self.lemma}+{"+".join(t.name for t in self.tags if not t.is_L2_error)}'  # noqa: E501
 
     def __lt__(self, other):
         return (self.lemma, self.tags) < (other.lemma, other.tags)
