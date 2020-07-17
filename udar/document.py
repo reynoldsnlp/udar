@@ -13,7 +13,7 @@ from warnings import warn
 
 # import nltk (this happens covertly by unpickling nltk_punkt_russian.pkl)
 
-from .fsts import get_fst
+from .fsts import get_analyzer
 from .misc import get_stanza_sent_tokenizer
 from .sentence import Sentence
 
@@ -75,8 +75,8 @@ class Document:
         self.features = ()
         if isinstance(input_text, str):
             self._char_check(input_text)
-            if kwargs.get('analyzer') is None:
-                kwargs['analyzer'] = get_fst('analyzer')
+            if kwargs.get('analyze', True) and kwargs.get('_analyzer') is None:
+                kwargs['_analyzer'] = get_analyzer(L2_errors=kwargs.get('analyze_L2_errors', False))  # noqa: E501
             self.text = input_text
             self.sentences = _str2Sentences(input_text, doc=self, **kwargs)
         elif ((hasattr(input_text, '__getitem__')

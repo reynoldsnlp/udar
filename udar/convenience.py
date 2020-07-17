@@ -7,7 +7,8 @@ from typing import Union
 
 from .document import Document
 from .features import ALL
-from .fsts import get_fst
+from .fsts import get_analyzer
+from .fsts import get_generator
 from .misc import destress
 from .reading import Reading
 from .sentence import get_tokenizer
@@ -52,13 +53,10 @@ def noun_distractors(noun: Union[str, Reading], stressed=True):
     >>> pl_paradigm == {'слова́м', 'слова́', 'слова́х', 'слова́ми', 'сло́в'}
     True
     """
-    analyzer = get_fst('analyzer')
-    if stressed:
-        gen = get_fst('acc-generator')
-    else:
-        gen = get_fst('generator')
+    analyzer = get_analyzer(L2_errors=True)
+    gen = get_generator(stressed=stressed)
     if isinstance(noun, str):
-        tok = Token(noun, analyzer=analyzer)
+        tok = Token(noun, _analyzer=analyzer)
         readings = [r for r in tok.readings if tag_dict['N'] in r]
         try:
             this_reading = readings[0]
@@ -74,7 +72,7 @@ def noun_distractors(noun: Union[str, Reading], stressed=True):
                     if t.ms_feat == 'CASE'][0]
     for new_case in CASES:
         this_reading.replace_tag(current_case, new_case)
-        out_set.add(this_reading.generate(fst=gen))
+        out_set.add(this_reading.generate(_generator=gen))
         current_case = new_case
     return out_set - {None}
 
@@ -93,13 +91,13 @@ def diagnose_L2(in_str: str, tokenizer=None):
     if tokenizer is None:
         tokenizer = get_tokenizer()
     out_dict: Dict[Tag, set] = defaultdict(set)
-    L2an = get_fst('L2-analyzer')
-    in_doc = Document(in_str, analyze=True, analyzer=L2an)
+    L2an = get_analyzer(L2_errors=True)
+    in_doc = Document(in_str, _analyzer=L2an)
     for tok in in_doc:
-        if tok.is_L2():
+        if tok.is_L2_error():
             for r in tok.readings:
                 for t in r.grouped_tags:
-                    if t.is_L2:
+                    if t.is_L2_error:
                         out_dict[t].add(tok.text)
     return dict(out_dict)
 

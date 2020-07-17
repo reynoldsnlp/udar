@@ -198,7 +198,7 @@ print(phonetic_doc1)
 | name | `str` | The name of this tag |
 | ms\_feat | `str` | Morphosyntactic feature that this tag is associated with (e.g. `Dat` has ms\_feat `CASE`) |
 | detail | `str` | Description of the tag's purpose or meaning |
-| is\_L2 | `bool` | Whether this tag indicates a second-language learner error |
+| is\_L2\_error | `bool` | Whether this tag indicates a second-language learner error |
 
 | Method | Return type | Description |
 | --- | --- | --- |
@@ -250,32 +250,53 @@ print(udar.tag_info('Err/L2_ii'))
 # L2 error: Failure to change ending ие to ии in +Sg+Loc or +Sg+Dat, e.g. к Марие, о кафетерие, о знание
 ```
 
-### Using the transducer manually
+### Using the transducers manually
 
-The transducer itself is the `Udar` class, which can be initialized as one of
-four flavors:
+The transducers come in two varieties: the `Analyzer` class and the `Generator`
+class. For memory efficiency, I recommend using the `get_analyzer` and
+`get_generator` functions, which ensure that each flavor of the transducers
+remains a singleton in memory.
 
-1. `L2-analyzer` [default]: General analyzer with second-language learner
-   errors added
-1. `analyzer`: General-purpose analyzer
-1. `generator`: Generator of unstressed wordforms
-1. `accented-generator`: Generator of stressed wordforms
+#### Analyzer
+
+The `Analyzer` can be initialized with or without analyses for second-language
+learner errors using the keyword `L2_errors`.
 
 ```python
-analyzer = udar.Udar('analyzer')
+analyzer = udar.get_analyzer()  # by default, L2_errors is False
+L2_analyzer = udar.get_analyzer(L2_errors=True)
 ```
 
-The `Udar.lookup()` method takes a token `str` and returns a sequence of
+`Analyzer`s are callable. They take a token `str` and return a sequence of
 reading/weight `tuple`s.
 
 ```python
-raw_readings1 = analyzer.lookup('сло́ва')
+raw_readings1 = analyzer('сло́ва')
 print(raw_readings1)
 # (('слово+N+Neu+Inan+Sg+Gen', 5.9755859375),)
 
-raw_readings2 = analyzer.lookup('слова')
+raw_readings2 = analyzer('слова')
 print(raw_readings2)
 # (('слово+N+Neu+Inan+Pl+Acc', 5.9755859375), ('слово+N+Neu+Inan+Pl+Nom', 5.9755859375), ('слово+N+Neu+Inan+Sg+Gen', 5.9755859375))
+```
+
+#### Generator
+
+The `Generator` can be initialized in three varieties: unstressed, stressed,
+and phonetic.
+
+```python
+generator = udar.get_generator()  # unstressed by default
+stressed_generator = udar.get_generator(stressed=True)
+phonetic_generator = udar.get_generator(phonetic=True)
+```
+
+`Generator`s are callable. They take a `Reading` or raw reading `str` and
+return a surface form.
+
+```python
+print(stressed_generator('слово+N+Neu+Inan+Pl+Nom'))
+# слова́
 ```
 
 ## Working with `Token`s and `Readings`s
@@ -284,7 +305,7 @@ You can easily check if a morphosyntactic tag is in a `Token`, `Reading`,
 or `Subreading` using `in`:
  
 ```python
-token2 = udar.Token('слова', analyzer=analyzer)
+token2 = udar.Token('слова', analyze=True)
 print(token2)
 # слова [слово_N_Neu_Inan_Pl_Acc  слово_N_Neu_Inan_Pl_Nom  слово_N_Neu_Inan_Sg_Gen]
 

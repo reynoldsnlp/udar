@@ -3,7 +3,7 @@ import sys
 import udar
 
 if __name__ == '__main__':
-    L2analyzer = udar.Udar('L2-analyzer')
+    L2analyzer = udar.Analyzer(L2_errors=True)
     text = udar.Document(sys.stdin.read(), analyzer=L2analyzer)
     print(text)
     for tok in text:

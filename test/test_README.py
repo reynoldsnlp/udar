@@ -70,15 +70,15 @@ def test_all_properties_are_documented_in_tables():
                                  'respace', 'stress_eval', 'stress_preds2tsv',
                                  'tokenize'},
                     'Token': {'annotation', 'end_char', 'features', 'guess',
-                              'guess_freq', 'guess_syllable', 'has_L2',
+                              'guess_freq', 'guess_syllable',
                               'has_tag_in_most_likely_reading', 'head',
-                              'is_L2', 'phon_predictions',
-                              'phonetic_transcriptions', 'recase',
-                              'start_char', 'stress_ambig', 'stress_eval',
-                              'stress_predictions'},
+                              'is_L2_error', 'might_be_L2_error',
+                              'phon_predictions', 'phonetic_transcriptions',
+                              'recase', 'start_char', 'stress_ambig',
+                              'stress_eval', 'stress_predictions'},
                     'Reading': {'hfst_noL2_str'},
                     'Subreading': {'hfst_noL2_str'},
-                    'Tag': {'ambig_alternative', 'is_Err', 'is_included_in'}}
+                    'Tag': {'ambig_alternative', 'is_included_in'}}
     table_blocks = re.findall(r'^### `([A-Za-z0-9]+)` object\n\n(.+?)(?=^###)',
                               README, flags=re.S | re.M)
     for obj_name, entry in table_blocks:

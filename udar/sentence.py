@@ -22,7 +22,7 @@ from warnings import warn
 
 import pexpect  # type: ignore
 
-from .fsts import get_fst
+from .fsts import get_analyzer
 from .misc import get_stanza_pretokenized_pipeline
 from .misc import destress
 from .misc import result_names
@@ -34,7 +34,6 @@ from .transliterate import transliterate
 if TYPE_CHECKING:
     import stanza  # type: ignore  # noqa: F401
     from .document import Document
-    from .fsts import Udar
 
 __all__ = ['hfst_tokenize', 'Sentence']
 
@@ -143,14 +142,19 @@ class Sentence:
 
     def __init__(self,
                  input_text: Union[str, Iterable[str], Iterable[Token]] = '',
-                 doc: 'Document' = None, tokenize: bool = True,
-                 analyze: bool = True, disambiguate: bool = False,
-                 depparse: bool = False,
+                 doc: 'Document' = None,
+                 tokenize: bool = True,
                  tokenizer: Callable[[str], List[str]] = None,
-                 # TODO make Udar objects callable
-                 analyzer: 'Udar' = None, gram_path: str = '',
+                 analyze: bool = True,
+                 _analyzer: Callable[[str], Union[Tuple[str, str, str],
+                                                  Tuple[str, str]]] = None,
+                 analyze_L2_errors: bool = False,
+                 disambiguate: bool = False,
+                 gram_path: str = '',
+                 depparse: bool = False,
                  id: Union[int, str, None] = None,
-                 _experiment: bool = False, annotation: str = '',
+                 _experiment: bool = False,
+                 annotation: str = '',
                  features: Tuple = None,
                  feat_cache: Dict[str, Any] = None,
                  orig_text: str = ''):
@@ -173,18 +177,15 @@ class Sentence:
         tokenizer
             (Optional) Custom tokenizer. If ``None``, ``hfst-tokenize`` will be
             used.
-        analyzer
-            (Optional) Custom morphological analyzer. If ``None``,
-            ``hfst-lookup`` will be used with :py:mod:`udar` 's default
-            analysis transducer.
+        analyze_L2_errors
+            (Optional) Whether morphological analysis should include readings
+            that are learner errors, such as земла. If ``analyze`` is False,
+            this argument is ignored.
         gram_path
             (Optional) Path to a Constraint Grammar. If unspecified,
             :py:mod:`udar` 's bundled CG will be used.
         id
             (Optional) ID
-        _experiment
-            (Optional) Whether this sentence should be tracked as part of an
-            `Experiment`. (experimental feature, no pun intended)
         annotation
             (Optional) Annotation for CG3 stream. (see :py:meth:`cg3_str()` )
         features
@@ -241,12 +242,12 @@ class Sentence:
             if orig_text:
                 self.text = orig_text
             else:
-                self.text = ' '.join([t.text for t in input_text])  # type: ignore
+                self.text = ' '.join([t.text for t in input_text])  # type: ignore  # noqa: E501
             if tokenize or analyze:
                 warn('When constructing a Sentence from a list of Tokens, '
                      '`tokenize` and `analyze` are ignored. The following '
                      f'were passed as True: {"tokenize" if tokenize else ""} '
-                     f'{"analyze" if analyzer else ""}', stacklevel=2)
+                     f'{"analyze" if analyze else ""}', stacklevel=2)
             tokenize = False
             analyze = False
         else:
@@ -259,7 +260,7 @@ class Sentence:
         if tokenize and not self._toks:
             self.tokenize(tokenizer=tokenizer)
         if analyze:
-            self.analyze(analyzer=analyzer)
+            self.analyze(_analyzer=_analyzer, L2_errors=analyze_L2_errors)
         if disambiguate:
             self.disambiguate(gram_path=gram_path)
         if depparse:
@@ -423,25 +424,27 @@ class Sentence:
         self._toks = tokenizer(self.text)
         self._tokenized = True
 
-    def analyze(self, analyzer: 'Udar' = None,
+    def analyze(self, L2_errors: bool, _analyzer=None,
                 _experiment: bool = None):
         """Perform morphological analysis of tokens in ``self._toks``.
 
         Parameters
         ----------
 
-        analyzer
-            Morphological analyzer. (default: bundled analyzer)
+        L2_errors
+            Passed as argument to :py:meth:`Analyzer.__init__`
         """
-        if analyzer is None:
-            analyzer = get_fst('analyzer')
+        if _analyzer is None:
+            _analyzer = get_analyzer(L2_errors=L2_errors)
         if _experiment is None:
             _experiment = self._experiment
         if _experiment:
-            self.tokens = [Token(destress(t), analyzer=analyzer)
+            self.tokens = [Token(destress(t), _analyzer=_analyzer,
+                                 analyze=True, analyze_L2_errors=L2_errors)
                            for t in self._toks]
         else:
-            self.tokens = [Token(t, analyzer=analyzer)
+            self.tokens = [Token(t, _analyzer=_analyzer, analyze=True,
+                                 analyze_L2_errors=L2_errors)
                            for t in self._toks]
         self._analyzed = True
         self._toks = []
@@ -608,7 +611,8 @@ class Sentence:
             Note that the lemma is case-sensitive.
         _experiment
             1) Remove stress from each :py:attr:`Token.text`
-            2) Save prediction in each :py:attr:`Token.stress_predictions[stress_params]`
+            2) Save prediction in each
+               :py:attr:`Token.stress_predictions[stress_params]`
         """
         if _experiment is None:
             _experiment = self._experiment
@@ -694,7 +698,8 @@ class Sentence:
             Applies phonetic transcription based on context between words
         _experiment
             1) Remove stress from each :py:attr:`Token.text`
-            2) Save prediction in each :py:attr:`Token.stress_predictions[stress_params]`
+            2) Save prediction in each
+               :py:attr:`Token.stress_predictions[stress_params]`
         """
         if context:
             raise NotImplementedError('The context keyword argument is not '

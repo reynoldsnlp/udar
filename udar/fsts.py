@@ -12,109 +12,137 @@ import hfst  # type: ignore
 from .misc import destress
 
 if TYPE_CHECKING:
-    from .reading import Reading
+    from .reading import Reading  # noqa: F401
     import libhfst  # type: ignore
 
-__all__ = ['get_fst', 'get_g2p', 'Udar']
+__all__ = ['Analyzer', 'Generator', 'get_analyzer', 'get_generator', 'get_g2p']
 
 RSRC_PATH = resource_filename('udar', 'resources/')
 G2P_FNAME = f'{RSRC_PATH}g2p.hfstol'
 
-ALIAS = {'analyser': 'analyzer',
-         'L2-analyser': 'L2-analyzer',
-         'acc-generator': 'accented-generator',
-         'phon-generator': 'phonetic-generator'}
-
 
 class Udar:
-    # TODO make Analyzer(L2=True) and Generator(stress=True)
-    """UDAR Does Accented Russian: a finite-state detailed part-of-speech
-    tagger for (accented) Russian.
-
-    Example:
-
-    >>> ana = Udar('analyzer')
-    >>> tok = ana.lookup('сло́ва')
-    >>> tok
-    (('слово+N+Neu+Inan+Sg+Gen', 5.9755859375),)
-    >>> gen = Udar('accented-generator')
-    >>> gen.generate('слово+N+Neu+Inan+Sg+Gen')
-    'сло́ва'
-    """
-    __slots__ = ['flavor', 'path2fst', 'fst']
-    flavor: str
+    """Parent class for Analyzer and Generator."""
+    __slots__ = ['path2fst', 'fst']
     path2fst: str
     fst: 'libhfst.HfstTransducer'
 
-    def __init__(self, flavor: str = 'L2-analyzer'):
-        """Build fst for lookup. Flavor must be one of the following:
-            - 'analyzer' (or 'analyser')
-            - 'L2-analyzer' (or 'L2-analyser')
-            - 'generator'
-            - 'accented-generator' (or 'acc-generator')
-            - 'phonetic-generator' (or 'phon-generator')
-        """
-        if flavor == 'g2p':
-            raise ValueError('For g2p, use get_g2p().')
-        self.flavor = flavor
-        fnames = {'analyzer': 'analyser-gt-desc.hfstol',
-                  'L2-analyzer': 'analyser-gt-desc-L2.hfstol',
-                  'generator': 'generator-gt-norm.hfstol',
-                  'accented-generator': 'generator-gt-norm.accented.hfstol',
-                  'phonetic-generator': 'generator-gt-norm.phonetic.hfstol'}
-        for alias, actual in ALIAS.items():
-            fnames[alias] = fnames[actual]
-        try:
-            self.path2fst = f'{RSRC_PATH}{fnames[flavor]}'
-        except KeyError as e:
-            raise KeyError(f'flavor must be in {set(fnames.keys())}') from e
+    def __init__(self, fname: str):
+        self.path2fst = f'{RSRC_PATH}{fname}'
         fst_stream = hfst.HfstInputStream(self.path2fst)
         self.fst = fst_stream.read()
         assert fst_stream.is_eof()  # be sure the hfstol file only had one fst
 
-    def generate(self, read: Union['Reading', str]) -> Optional[str]:
+
+class Analyzer(Udar):
+    """HFST transducer that takes string and returns grammatical readings.
+
+    It is generally recommended to use :py:func:`get_generator` to obtain an
+    Analyzer object.
+
+    Example
+    -------
+
+    >>> ana = Analyzer()
+    >>> ana = get_analyzer()  # this is better
+    >>> tok = ana('сло́ва')
+    >>> tok
+    (('слово+N+Neu+Inan+Sg+Gen', 5.9755859375),)
+    """
+    __slots__ = ['L2_errors']
+    L2: bool
+
+    def __init__(self, *, L2_errors=False):
+        if L2_errors:
+            fname = 'analyser-gt-desc-L2.hfstol'
+        else:
+            fname = 'analyser-gt-desc.hfstol'
+        super().__init__(fname=fname)
+        self.L2_errors = L2_errors
+
+    def __call__(self, in_tok: str) -> Union[Tuple[str, str, str],
+                                             Tuple[str, str]]:
+        """If lookup returns nothing, try lookup with stress removed."""
+        return self.fst.lookup(in_tok) or self.fst.lookup(destress(in_tok))
+
+
+class Generator(Udar):
+    """HFST transducer that takes grammatical readings, returns wordforms.
+
+    It is generally recommended to use :py:func:`get_generator` to obtain a
+    Generator object.
+
+    Example
+    -------
+
+    >>> gen = Generator(stressed=True)
+    >>> gen = get_generator(stressed=True)  # this is better
+    >>> gen('слово+N+Neu+Inan+Sg+Gen')
+    'сло́ва'
+    """
+    __slots__ = ['phonetic', 'stressed']
+    phonetic: bool
+    stressed: bool
+
+    def __init__(self, *, phonetic=False, stressed=False):
+        if phonetic:
+            fname = 'generator-gt-norm.phonetic.hfstol'
+        elif stressed:
+            fname = 'generator-gt-norm.accented.hfstol'
+        else:
+            fname = 'generator-gt-norm.hfstol'
+        super().__init__(fname=fname)
+        self.phonetic = phonetic
+        self.stressed = stressed
+
+    def __call__(self, read: Union['Reading', str]) -> Optional[str]:
         """Return str from a given lemma+Reading."""
         try:
-            if isinstance(read, Reading):
-                read = read.hfst_noL2_str()  # TODO add L2 tags to generator
-        except NameError:
-            # fancy stuff to import Reading in *global* scope
-            from importlib import import_module
-            globals()['Reading'] = import_module('.reading', 'udar').Reading  # type: ignore  # noqa: E501
-            if isinstance(read, Reading):
-                read = read.hfst_noL2_str()  # TODO add L2 tags to generator
+            # TODO add L2 tags to generator
+            read = read.hfst_noL2_str()  # type: ignore
+        except AttributeError:
+            pass
         try:
             return self.fst.lookup(read)[0][0]
         except IndexError:
             return None
 
-    def lookup(self, in_tok: str) -> Union[Tuple[str, str, str],
-                                           Tuple[str, str]]:
-        """If lookup returns nothing, try lookup with stress removed."""
-        return self.fst.lookup(in_tok) or self.fst.lookup(destress(in_tok))
+
+analyzer_cache: Dict[str, Udar] = {}
+generator_cache: Dict[str, Udar] = {}
+g2p = None
 
 
-fst_cache: Dict[str, Udar] = {}
-
-
-def get_fst(flavor: str):
-    global fst_cache
+def get_analyzer(**kwargs):
+    global analyzer_cache
+    signature = ['='.join((key, str(val)))
+                 for key, val in sorted(kwargs.items())]
+    flavor = '_'.join(signature)
     try:
-        return fst_cache[flavor]
+        return analyzer_cache[flavor]
     except KeyError:
-        try:
-            return fst_cache[ALIAS[flavor]]
-        except KeyError:
-            fst_cache[flavor] = Udar(flavor)
-            return fst_cache[flavor]
+        analyzer_cache[flavor] = Analyzer(**kwargs)
+        return analyzer_cache[flavor]
+
+
+def get_generator(**kwargs):
+    global generator_cache
+    signature = ['='.join((key, str(val)))
+                 for key, val in sorted(kwargs.items())]
+    flavor = f'generator_{"_".join(signature)}'
+    try:
+        return generator_cache[flavor]
+    except KeyError:
+        generator_cache[flavor] = Generator(**kwargs)
+        return generator_cache[flavor]
 
 
 def get_g2p():
-    global fst_cache
-    try:
-        return fst_cache['g2p']
-    except KeyError:
+    global g2p
+    if g2p is None:
         input_stream = hfst.HfstInputStream(G2P_FNAME)
         g2p = input_stream.read()
-        fst_cache['g2p'] = g2p
-        return fst_cache['g2p']
+        assert input_stream.is_eof()  # hfstol file should only have one fst
+        return g2p
+    else:
+        return g2p

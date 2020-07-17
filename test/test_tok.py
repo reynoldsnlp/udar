@@ -1,7 +1,7 @@
 import udar
 
-anl = udar.get_fst('analyzer')
-L2_anl = udar.get_fst('L2-analyzer')
+anl = udar.get_analyzer(L2_errors=False)
+L2_anl = udar.get_analyzer(L2_errors=True)
 
 
 def test_empty_tok_contains():
@@ -10,17 +10,17 @@ def test_empty_tok_contains():
 
 
 def test_plus():
-    tok = udar.Token('+', analyzer=anl)
+    tok = udar.Token('+', _analyzer=anl)
     assert tok.text == '+' and 'PUNCT' in tok
 
 
 def test_tok_repr():
-    t = udar.Token('слово', analyzer=anl)
+    t = udar.Token('слово', _analyzer=anl)
     assert repr(t) == 'Token(text=слово, readings=[Reading(слово+N+Neu+Inan+Sg+Acc, 5.975586, ), Reading(слово+N+Neu+Inan+Sg+Nom, 5.975586, )], removed_readings=[])'  # noqa: E501
 
 
 def test_tok_str():
-    t = udar.Token('слово', analyzer=anl)
+    t = udar.Token('слово', _analyzer=anl)
     assert str(t) == 'слово [слово_N_Neu_Inan_Sg_Acc  слово_N_Neu_Inan_Sg_Nom]'
 
 
@@ -58,27 +58,27 @@ def test_tok_len():
     assert len(t) == 0
 
 
-def test_tok_is_L2():
+def test_tok_is_L2_error():
     t = udar.Token('слово')
-    assert not t.is_L2()
+    assert not t.is_L2_error()
 
 
-def test_tok_has_L2():
+def test_tok_might_be_L2_error():
     t = udar.Token('слово')
-    assert not t.has_L2()
-    t = udar.Token('слово', analyzer=anl)
-    assert not t.has_L2()
-    t = udar.Token('земла', analyzer=L2_anl)
-    assert t.has_L2()
+    assert not t.might_be_L2_error()
+    t = udar.Token('слово', _analyzer=anl)
+    assert not t.might_be_L2_error()
+    t = udar.Token('земла', _analyzer=L2_anl)
+    assert t.might_be_L2_error()
 
 
 def test_recase():
-    tok = udar.Token('Работа', analyzer=L2_anl)
+    tok = udar.Token('Работа', _analyzer=L2_anl)
     assert tok.recase('работа') == 'Работа'
 
 
 def test_tok_stressed():
-    t = udar.Token('слова', analyzer=anl)
+    t = udar.Token('слова', _analyzer=anl)
     assert len(t.stresses()) > 1
     assert t.stressed(selection='safe') == 'слова'
     assert t.stressed(selection='rand') in {'сло́ва', 'слова́'}
@@ -104,5 +104,5 @@ def test_tok_can_be_pickled():
 
 
 def test_transliterate():
-    t = udar.Token('объясняли', analyzer=anl)
+    t = udar.Token('объясняли', _analyzer=anl)
     assert t.transliterate() == 'obʺjasnjali'
