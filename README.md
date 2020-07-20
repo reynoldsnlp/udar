@@ -123,6 +123,9 @@ print(ambig_doc.stressed(selection='safe'))  # 'safe' skips сло́ва and с�
 # Твои́ слова ничего́ не зна́чат.
 print(ambig_doc.stressed(selection='all'))  # 'all' combines сло́ва and слова́
 # Твои́ сло́ва́ ничего́ не зна́чат.
+print(ambig_doc.stressed(selection='rand') in {'Твои́ сло́ва ничего́ не зна́чат.', 'Твои́ слова́ ничего́ не зна́чат.'})  # 'rand' randomly chooses between сло́ва and слова́
+# True
+
 
 phonetic_doc1 = doc1.phonetic()
 print(phonetic_doc1)
