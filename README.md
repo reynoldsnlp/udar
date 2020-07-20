@@ -78,6 +78,11 @@ print(doc1)
 # .	.+CLB	0.000000
 ```
 
+Passing the argument `disambiguate=True`, or running `doc1.disambiguate()`
+after the fact will run a Constraint Grammar to remove as many ambiguous
+readings as possible. ***This grammar is far from complete, so some ambiguous
+readings will remain.***
+
 ## Data objects
 
 ### `Document` object
@@ -109,6 +114,18 @@ phonetic transcription.
 stressed_doc1 = doc1.stressed()
 print(stressed_doc1)
 # Мы́ удиви́лись простоте́ систе́мы.
+
+ambig_doc = udar.Document('Твои слова ничего не значат.', disambiguate=True)
+print(sorted(ambig_doc[1].stresses()))  # Note that слова is still ambiguous
+# ['сло́ва', 'слова́']
+
+print(ambig_doc.stressed(selection='safe'))  # 'safe' skips сло́ва and слова́
+# Твои́ слова ничего́ не зна́чат.
+print(ambig_doc.stressed(selection='all'))  # 'all' combines сло́ва and слова́
+# Твои́ сло́ва́ ничего́ не зна́чат.
+print(ambig_doc.stressed(selection='rand') in {'Твои́ сло́ва ничего́ не зна́чат.', 'Твои́ слова́ ничего́ не зна́чат.'})  # 'rand' randomly chooses between сло́ва and слова́
+# True
+
 
 phonetic_doc1 = doc1.phonetic()
 print(phonetic_doc1)
