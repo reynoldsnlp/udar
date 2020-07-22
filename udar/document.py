@@ -4,6 +4,7 @@ import re
 from sys import stderr
 from typing import Dict
 from typing import Iterable
+from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -16,6 +17,7 @@ from warnings import warn
 from .fsts import get_analyzer
 from .misc import get_stanza_sent_tokenizer
 from .sentence import Sentence
+from .tok import Token
 
 
 __all__ = ['Document']
@@ -35,14 +37,14 @@ src = '''Мы все говорили кое о чем с тобой, но по-
 #         return nltk_sent_tokenizer
 
 
-def _str2Sentences(input_str, **kwargs):
+def _str2Sentences(input_str, **kwargs) -> List[Sentence]:
     stanza_sent = get_stanza_sent_tokenizer()
     # TODO should the following 2 lines be solved in tokenizer's pmscript?
     input_str = input_str.replace('#', ' ')  # The `#` char is ignored by udar
     input_str = re.sub(r'([^аэоуыяеёюи])[\u0300\u0301]', r'\1', input_str,
                        flags=re.I)
     stanza_doc = stanza_sent(input_str)
-    return [Sentence(sent.text, **kwargs)
+    return [Sentence(sent.text, id=i, **kwargs)
             for i, sent in enumerate(stanza_doc.sentences)]
 
 
@@ -83,7 +85,7 @@ class Document:
                or hasattr(input_text, '__iter__'))
               and isinstance(next(iter(input_text)), Sentence)):
             self.text = ' '.join(sent.text for sent in input_text)
-            self.sentences = list(input_text)
+            self.sentences = list(input_text)  # type: ignore
             for sent in self.sentences:
                 sent.doc = self
         elif isinstance(input_text, Document):
@@ -109,12 +111,16 @@ class Document:
                 and all(s == o
                         for s, o in zip(self.sentences, other.sentences)))
 
-    def __getitem__(self, i: Union[int, slice]):
-        warn('Indexing on a Document object is slow.', stacklevel=2)
+    def __getitem__(self, i: Union[int, slice]) -> Union[Token, List[Token]]:
+        """Get *Token(s)* by index/slice."""
+        warn('Indexing on large Document objects can be slow. '
+             'It is more efficient to index Tokens within Document.sentences',
+             stacklevel=3)
         # TODO optimize?
         return list(self)[i]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Token]:
+        """Return iterator over *Tokens*."""
         return iter(chain(*self.sentences))
 
     def __repr__(self):
@@ -161,7 +167,7 @@ class Document:
                                        r'# ANNOTATION: ([^\n]*)\n'
                                        r'# TEXT: ([^\n]*)\n'
                                        r'(.+?)', input_stream, flags=re.S)
-        if split_by_sentence is not None:
+        if split_by_sentence:
             sentences = [Sentence.from_cg3(stream, id=id,
                                            annotation=annotation,
                                            orig_text=text, **kwargs)

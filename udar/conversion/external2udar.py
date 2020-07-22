@@ -63,7 +63,7 @@ if __name__ == '__main__':
                                 desc='Reading corpus...', total=sent_count):
         sent_id = sent['id']
         doc = Document(sent.source.get_text(), annotation=sent_id)
-        u_toks = [t.orig for t in doc]
+        u_toks = [t.text for t in doc]
         oc_toks = [t['text'] for t in sent.find_all('token')]
 
         if u_toks != oc_toks:

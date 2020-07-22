@@ -450,7 +450,7 @@ class Sentence:
         self._toks = []
 
     def disambiguate(self, gram_path: Union[str, Path] = '',
-                     traces: bool = True):
+                     traces: bool = True, force: str = None):
         """Use Constraint Grammar to remove as many ambiguous readings as
         possible.
 
@@ -463,6 +463,10 @@ class Sentence:
             Whether to keep track of readings that are *removed* by the
             Constraint Grammar. Removed readings can be found in
             :py:attr:`Token.removed_readings`. (default: True)
+        force
+            Use the given method to force removal of ambiguity left by the
+            Constraint Grammar. See :py:meth:`Token.most_likely_reading` for
+            the list of available methods.  # TODO kwargs?
         """
         if gram_path == '':
             gram_path = f'{RSRC_PATH}disambiguator.cg3'
@@ -486,10 +490,12 @@ class Sentence:
                                  '\n\n'.join(f'{old} {triangle} {new}'
                                              for old, new
                                              in zip(self, new_tokens)))
-        for old, new in zip(self, new_tokens):
-            old.readings = new.readings
-            old.removed_readings += new.removed_readings
-            old.lemmas = new.lemmas
+        for old_tok, new_tok in zip(self, new_tokens):
+            if force is not None:
+                new_tok.force_disambiguate(method=force)
+            old_tok.readings = new_tok.readings
+            old_tok.removed_readings += new_tok.removed_readings
+            old_tok.lemmas = new_tok.lemmas
         self._disambiguated = True
 
     @staticmethod

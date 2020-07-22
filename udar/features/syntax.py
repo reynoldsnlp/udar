@@ -34,7 +34,7 @@ def avg_dependency_length_Tag(has_tag: str, doc: Document, rmv_punc=False,
     return avg_dep_len
 for tag in tag_dict:  # noqa: E305
     name = f'avg_dependency_length_{safe_tag_name(tag)}'
-    this_partial = partial(avg_dependency_length_Tag, tag)  # type: ignore
+    this_partial = partial(avg_dependency_length_Tag, tag)
     this_partial.__name__ = name  # type: ignore
     doc = avg_dependency_length_Tag.__doc__.replace('a given', f'the `{tag}`')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc, category='Syntax')
@@ -61,7 +61,7 @@ def max_dependency_length_Tag(has_tag: str, doc: Document, rmv_punc=False,
     return max_dep_len
 for tag in tag_dict:  # noqa: E305
     name = f'max_dependency_length_{safe_tag_name(tag)}'
-    this_partial = partial(max_dependency_length_Tag, tag)  # type: ignore
+    this_partial = partial(max_dependency_length_Tag, tag)
     this_partial.__name__ = name  # type: ignore
     doc = max_dependency_length_Tag.__doc__.replace('a given', f'the `{tag}`')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc, category='Syntax')

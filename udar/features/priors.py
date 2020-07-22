@@ -119,7 +119,7 @@ def _token_frequencies(doc: Document,
     """Make list of token frequencies."""
     toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     RNC_tok_freq_dict = _get_RNC_tok_freq_dict()
-    return [RNC_tok_freq_dict.get(tok.text, 0) for tok in toks]  # type: ignore
+    return [RNC_tok_freq_dict.get(tok.text, 0) for tok in toks]
 
 
 @add_to_ALL('_token_frequency_ranks', category='_prior')
@@ -129,7 +129,7 @@ def _token_frequency_ranks(doc: Document,
     """Make list of token frequency ranks."""
     toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     RNC_tok_freq_rank_dict = _get_RNC_tok_freq_rank_dict()
-    return [RNC_tok_freq_rank_dict.get(tok.text, 0) for tok in toks]  # type: ignore  # noqa: E501
+    return [RNC_tok_freq_rank_dict.get(tok.text, 0) for tok in toks]
 
 
 @add_to_ALL('_dependency_lengths', category='_prior')

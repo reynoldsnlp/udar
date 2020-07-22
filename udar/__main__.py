@@ -9,7 +9,6 @@ def parse_input(input_str: str, args: argparse.Namespace) -> Document:
     if args.input_type == 'c':
         return Document.from_cg3(input_str)
     elif args.input_type == 'f':
-        raise NotImplementedError  # TODO
         return Document.from_hfst(input_str)
     elif args.input_type == 'p':
         return Document(input_str, disambiguate=args.disambiguate)
