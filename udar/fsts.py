@@ -37,7 +37,7 @@ class Udar:
 class Analyzer(Udar):
     """HFST transducer that takes string and returns grammatical readings.
 
-    It is generally recommended to use :py:func:`get_generator` to obtain an
+    It is generally recommended to use :py:func:`get_analyzer` to obtain an
     Analyzer object.
 
     Example
@@ -108,12 +108,12 @@ class Generator(Udar):
             return None
 
 
-analyzer_cache: Dict[str, Udar] = {}
-generator_cache: Dict[str, Udar] = {}
-g2p = None
+analyzer_cache: Dict[str, Analyzer] = {}
+generator_cache: Dict[str, Generator] = {}
+g2p: 'libhfst.HfstTransducer' = None
 
 
-def get_analyzer(**kwargs):
+def get_analyzer(**kwargs) -> Analyzer:
     global analyzer_cache
     signature = ['='.join((key, str(val)))
                  for key, val in sorted(kwargs.items())]
@@ -125,7 +125,7 @@ def get_analyzer(**kwargs):
         return analyzer_cache[flavor]
 
 
-def get_generator(**kwargs):
+def get_generator(**kwargs) -> Generator:
     global generator_cache
     signature = ['='.join((key, str(val)))
                  for key, val in sorted(kwargs.items())]

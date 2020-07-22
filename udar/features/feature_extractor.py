@@ -82,16 +82,16 @@ class FeatureExtractor(OrderedDict):
         if ((hasattr(docs, '__iter__') or hasattr(docs, '__getitem__'))
                 and isinstance(next(iter(docs)), Document)):
             for doc in docs:
-                doc.features = self._call_features(doc,
-                                                    feat_names=feat_names,
-                                                    tuple_constructor=tuple_constructor,  # noqa: E501
-                                                    **kwargs)
+                doc.features = self._call_features(doc,  # type: ignore
+                                                   feat_names=feat_names,
+                                                   tuple_constructor=tuple_constructor,  # noqa: E501
+                                                   **kwargs)
                 output.append(doc.features)
         elif isinstance(docs, Document):
             docs.features = self._call_features(docs,
-                                                 feat_names=feat_names,
-                                                 tuple_constructor=tuple_constructor,  # noqa: E501
-                                                 **kwargs)
+                                                feat_names=feat_names,
+                                                tuple_constructor=tuple_constructor,  # noqa: E501
+                                                **kwargs)
             output.append(docs.features)
         else:
             raise TypeError('Expected Document or list of Documents; got '

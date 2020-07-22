@@ -131,7 +131,7 @@ def type_token_ratio_Tag(tag: str, doc: Document, lower=True, rmv_punc=False,
         return zero_div_val
 for tag in tag_dict:  # noqa: E305
     name = f'type_token_ratio_{safe_tag_name(tag)}'
-    this_partial = partial(type_token_ratio_Tag, tag)  # type: ignore
+    this_partial = partial(type_token_ratio_Tag, tag)
     this_partial.__name__ = name  # type: ignore
     doc = this_partial.func.__doc__.replace('a given', f'the `{tag}`')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,

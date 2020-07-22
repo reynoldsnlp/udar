@@ -172,6 +172,7 @@ print(phonetic_doc1)
 | most\_likely\_reading | `Reading` | "Most likely" reading (may be partially random selection) |
 | most\_likely\_lemmas | `List[str]` | List of lemma(s) from the "most likely" reading |
 | transliterate | `str` | The original text converted to Romanized Cyrillic (default=Scholarly) |
+| force\_disambiguate | `None` | Fully disambiguate readings using methods **other than** the Constraint Grammar |
 | cg3\_str | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
 | hfst\_str | `str` | Analysis stream in the XFST/HFST format |
 

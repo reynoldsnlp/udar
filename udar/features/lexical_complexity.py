@@ -26,7 +26,7 @@ def prcnt_words_over_n_sylls(n, doc: Document, lower=False, rmv_punc=True,
         return zero_div_val
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'prcnt_words_over_{n}_sylls'
-    this_partial = partial(prcnt_words_over_n_sylls, n)  # type: ignore
+    this_partial = partial(prcnt_words_over_n_sylls, n)
     this_partial.__name__ = name  # type: ignore
     doc = prcnt_words_over_n_sylls.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
@@ -50,7 +50,7 @@ def prcnt_content_words_over_n_sylls(n, doc: Document, lower=False,
         return zero_div_val
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'prcnt_content_words_over_{n}_sylls'
-    this_partial = partial(prcnt_content_words_over_n_sylls, n)  # type: ignore
+    this_partial = partial(prcnt_content_words_over_n_sylls, n)
     this_partial.__name__ = name  # type: ignore
     doc = prcnt_content_words_over_n_sylls.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
@@ -73,7 +73,7 @@ def prcnt_words_over_n_chars(n, doc: Document, lower=False, rmv_punc=True,
         return zero_div_val
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'prcnt_words_over_{n}_chars'
-    this_partial = partial(prcnt_words_over_n_chars, n)  # type: ignore
+    this_partial = partial(prcnt_words_over_n_chars, n)
     this_partial.__name__ = name  # type: ignore
     doc = prcnt_words_over_n_chars.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,
@@ -97,7 +97,7 @@ def prcnt_content_words_over_n_chars(n, doc: Document, lower=False,
         return zero_div_val
 for n in range(1, MAX_SYLL):  # noqa: E305
     name = f'prcnt_content_words_over_{n}_chars'
-    this_partial = partial(prcnt_content_words_over_n_chars, n)  # type: ignore
+    this_partial = partial(prcnt_content_words_over_n_chars, n)
     this_partial.__name__ = name  # type: ignore
     doc = prcnt_content_words_over_n_chars.__doc__.replace(' n ', f' {n} ')  # type: ignore  # noqa: E501
     ALL[name] = Feature(name, this_partial, doc=doc,

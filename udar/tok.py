@@ -106,7 +106,7 @@ class Token:
 
     @readings.setter
     def readings(self, readings: List[Reading]):
-        self._readings = [r for r in readings if r is not None]
+        self._readings = [r for r in readings if r is not None]  # type: ignore
         self._update_lemmas_stress_and_phon()
 
     @property
@@ -211,26 +211,39 @@ class Token:
     #     # TODO
     #     raise NotImplementedError
 
-    def _filter_readings_using_stanza(self) -> List[Reading]:
+    def _filter_readings_using_stanza(self, readings=None) -> List[Reading]:
         """Return list of Readings that do not conflict with stanza's analysis
         of this token.
         """
-        if len(self.readings) < 2:
-            return self.readings
+        if readings is None:
+            readings = self.readings
+        if len(readings) < 2:
+            return readings
         elif (self._stanza_token is not None
               and self._stanza_token.words[0].feats is not None):
             stanza_tags = set([self._stanza_token.words[0].upos])
             stanza_tags.update(re.findall(r'\w+=(\w+)\|?',
                                           self._stanza_token.words[0].feats))
-            most_likely_readings = [r for r in self.readings
+            most_likely_readings = [r for r in readings
                                     if r.does_not_conflict(stanza_tags, 'UD')]
             if len(most_likely_readings) != 1:
                 with open('/tmp/stanza_filter.log', 'a') as f:
                     print(self._stanza_token.words[0].feats,
-                          ','.join(stanza_tags), self.readings, file=f)
-            return most_likely_readings or self.readings
+                          ','.join(stanza_tags), readings, file=f)
+            return most_likely_readings or readings
         else:
-            return self.readings
+            return readings
+
+    def _filter_readings_by_weight(self, readings=None) -> List[Reading]:
+        """Return list of Readings with the highest weight value."""
+        if readings is None:
+            readings = self.readings
+        try:
+            max_weight = max(float(r.weight) for r in readings)
+        except ValueError:
+            return []
+        else:
+            return [r for r in readings if float(r.weight) == max_weight]
 
     def most_likely_reading(self, method=None) -> Optional[Reading]:
         """If one reading is marked as most likely, return it. Otherwise,
@@ -241,17 +254,20 @@ class Token:
 
         method
             If most likely reading has not already been selected, which method
-            to use to select the most likely reading. If it has already been
-            selected, then this argument is ignored. (default: ``weight``)
+            to start from to select the most likely reading. If it has already
+            been selected, then this argument is ignored. If the given method
+            does not resolve all ambiguity, then subsequent methods are used
+            until only one reading remains, in the order listed below.
+            (default: ``weight``)
 
-            * 'random' -- randomly select from readings
             * 'stanza' -- pick reading that is compatible with the Universal
-              Dependency reading given by :py:mod:`stanza`. If more than one
-              reading is compatible, randomly pick between them.
+              Dependency reading given by :py:mod:`stanza`.
             * 'weight' -- pick the reading with the highest weight value. If
               more than one reading shares the highest weight, randomly pick
               between them.
+            * 'random' -- randomly select from readings
         """
+        # TODO add 'reading_freq', 'tag_freq'
         if not self.readings:
             return None
         for r in self.readings:
@@ -260,22 +276,19 @@ class Token:
 
         if method is None:
             method = 'weight'
-        if method == 'random':
-            lucky_reading = choice(self.readings)
-        elif method == 'stanza':
-            most_likely_readings = self._filter_readings_using_stanza()
-            lucky_reading = choice(most_likely_readings)
+
+        # TODO track which method resulted in final disambiguation?
+        if method == 'stanza':
+            readings = self._filter_readings_using_stanza()
+            readings = self._filter_readings_by_weight(readings=readings)
+            lucky_reading = choice(readings)
         elif method == 'weight':
-            try:
-                max_weight = max(float(r.weight) for r in self.readings)
-            except ValueError:
-                return None
-            else:
-                most_likely_readings = [r for r in self.readings
-                                        if float(r.weight) == max_weight]
-                lucky_reading = choice(most_likely_readings)
+            readings = self._filter_readings_by_weight()
+            lucky_reading = choice(readings)
+        elif method == 'random':
+            lucky_reading = choice(self.readings)
         else:
-            raise ValueError('`method` must be in {random, stanza, weight}.')
+            raise ValueError('`method` must be in {stanza, weight, random}.')
         lucky_reading.is_most_likely = True
         return lucky_reading
 
@@ -361,6 +374,26 @@ class Token:
                         in self._upper_indices
                         else char
                         for i, char in enumerate(in_str)])
+
+    def force_disambiguate(self, **kwargs):
+        r"""Remove all ambiguity using one of the methods available in
+        :py:meth:`Token.most_likely_reading`.
+
+        Note that this method has no connection to the Constraint Grammar,
+        which is implemented at the sentence level in
+        :py:meth:`Sentence.disambiguate`.
+
+        Parameters
+        ----------
+
+        \*\*kwargs
+            The same arguments accepted by :py:meth:`Token.most_likely_reading`
+        """
+        mlr = self.most_likely_reading(**kwargs)
+        if mlr is not None:
+            self.readings = [mlr]
+        else:
+            self.readings = []
 
     def stresses(self, recase: bool = True) -> Set[str]:
         """Return set of all possible stressed forms, based on the Token's
@@ -449,6 +482,21 @@ class Token:
             self.stress_predictions[stress_params] = (pred,
                                                       self.stress_eval(pred))
         return pred
+
+    def guess_syllable(self) -> str:
+        """Place stress on the last vowel followed by a consonant.
+
+        This is a (bad) approximation of the last syllable of the stem. Not
+        reliable at all, especially for forms with a consonant in the
+        grammatical ending.
+        """
+        V = 'аэоуыяеёюи'
+        if 'ё' in self.text or ACUTE in self.text:
+            return self.text
+        else:
+            return re.sub(f'([{V}])([^{V}]+[{V}]+(?:[^{V}]+)?)$',
+                          f'\\1{ACUTE}\\2',
+                          self.text)
 
     def stress_eval(self, pred: str, ignore_monosyll: bool = True) -> Result:
         """Token's stress prediction Result Enum value.
@@ -603,71 +651,6 @@ class Token:
     #     """Results of phonetic transcription predictions."""
     #     # raise NotImplementedError
     #     pass
-
-    def guess(self, backoff=None) -> Optional[str]:
-        """If there are readings, randomly select one and generate stressed
-        wordform from it. Otherwise, return result of
-        :py:meth:`~Token.guess_syllable`.
-        """
-        # TODO make this function suck less
-        acc_gen = get_generator(stressed=True)
-        if len(self.readings) > 0:
-            random_reading = choice(self.readings)
-            return random_reading.generate(_generator=acc_gen)
-        else:
-            return self.guess_syllable()
-
-    def guess_freq(self, backoff=None) -> str:
-        """Guess stress location by selecting the most likely Reading based on
-        frequency of Reading (backoff to frequency of tagset).
-
-        Leftovers from dissertation script.
-        """
-        raise NotImplementedError()
-        '''
-        tag_freq_dict: Dict[str, int] = {}  # TODO import this dict
-        lem_tag_freq_dict: Dict[str, int] = {}  # TODO import this dict
-        read: Tuple[int, Optional[str]] = (0, None)
-        tag: Tuple[int, Optional[str]] = (0, None)
-        for r in self.readings:
-            if '<' in r:
-                tag_seq = r[r.index('<'):]
-            else:
-                tag_seq = ' '*16  # force tag backoff to fail if no '<'
-
-            if tag_freq_dict.get(tag_seq, 0) > tag[0]:
-                tag = (tag_freq_dict[tag_seq], r)
-
-            if lem_tag_freq_dict.get(r, 0) > read[0]:
-                read = (lem_tag_freq_dict[r], r)
-
-        if read[0] > 0:
-            return self.readings[read[1]][0]
-        elif tag[0] > 0:
-            return self.readings[tag[1]][0]
-        else:
-            if backoff is None:
-                return self.text
-            elif backoff == 'syllable':
-                return self.guess_syllable()
-            else:
-                raise NotImplementedError('???')
-        '''
-
-    def guess_syllable(self) -> str:
-        """Place stress on the last vowel followed by a consonant.
-
-        This is a (bad) approximation of the last syllable of the stem. Not
-        reliable at all, especially for forms with a consonant in the
-        grammatical ending.
-        """
-        V = 'аэоуыяеёюи'
-        if 'ё' in self.text or ACUTE in self.text:
-            return self.text
-        else:
-            return re.sub(f'([{V}])([^{V}]+[{V}]+(?:[^{V}]+)?)$',
-                          f'\\1{ACUTE}\\2',
-                          self.text)
 
     def transliterate(self, **kwargs) -> str:
         r"""Transliterate original text to the latin alphabet.

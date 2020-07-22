@@ -137,11 +137,11 @@ class Reading:
             The same arguments accepted by :py:meth:`Generator.__init__`.
             (default: bundled generator)
         """
-        try:
-            return _generator(self.hfst_noL2_str())  # type: ignore
-        except TypeError:
+        if _generator is not None:
+            return _generator(self.hfst_noL2_str())
+        else:
             _generator = get_generator(**kwargs)
-            return _generator(self.hfst_noL2_str())  # type: ignore
+            return _generator(self.hfst_noL2_str())
 
     def replace_tag(self, orig_tag: Union[Tag, str], new_tag: Union[Tag, str],
                     which_subreading: Union[int, slice] = slice(None)):

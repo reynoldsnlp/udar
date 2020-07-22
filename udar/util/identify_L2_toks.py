@@ -10,5 +10,5 @@ if __name__ == '__main__':
         for r in tok.readings:
             if isinstance(r, udar.Reading):
                 print(r, '\n\t', r.cg3_str(), file=sys.stderr)
-        if tok.is_L2():
+        if tok.is_L2_error():
             print(tok, 'is an L2 error')
