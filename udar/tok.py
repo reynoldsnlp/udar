@@ -126,7 +126,8 @@ class Token:
     @property
     def id(self) -> str:
         if self._stanza_token is not None:
-            return self._stanza_token.id
+            # Assumes that all tokens are only 1 word (which is currently true)
+            return next(iter(self._stanza_token.id))
         else:
             return ''
 

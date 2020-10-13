@@ -4,4 +4,4 @@ nltk
 pandas
 pexpect
 sphinx_autodoc_typehints
-stanza<1.1.1
+stanza>=1.1.1
