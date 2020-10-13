@@ -1,4 +1,4 @@
-"""Convert udar annotation to mystem."""
+"""Convert external annotations to udar."""
 
 import argparse
 from glob import glob

@@ -3,12 +3,16 @@ from pkg_resources import resource_filename
 from pprint import pprint
 from sys import stderr
 
+import pytest
+
 import udar
 
 
 RSRC_PATH = resource_filename('udar', 'resources/')
 
 example_sent = 'Иванов и Сыроежкин говорили полчаса кое с кем о лицах, "ртах" и т.д.'  # noqa: E501
+
+very_long_sent = 'Я говорила ' + 'и он говорил и я говорила' * 500 + 'и не было никакого взаимопонимания.'
 
 hfst_str = '''Мы	мы+Pron+Pers+Pl1+Nom	50.000000
 
@@ -42,6 +46,17 @@ def test_HFSTTokenizer():
     # Repeat to ensure that subsequent `expect`s are working
     toks = tokenizer('Вы нашли все\xa0проблемы, и т.д.')
     assert toks == ['Вы', 'нашли', 'все', 'проблемы', ',', 'и', 'т.д.']
+
+
+@pytest.mark.timeout(20)
+def test_HFSTTokenizer_long_sent():
+    """Test whether HFSTTokenizer can handle an extremely long sentence.
+
+    At time of writing, the interactive REPL hangs on input >1024 bytes.
+    """
+    tokenizer = udar.sentence.HFSTTokenizer()
+    toks = tokenizer(very_long_sent)
+    assert len(toks) == 2508
 
 
 def test_stressed_selection_safe():

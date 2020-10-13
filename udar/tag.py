@@ -214,7 +214,7 @@ _tags = [('A', 'POS', 'Adjective'),
          ('Symbol', 'PUNCT', 'Symbol (independent symbols in the text stream, like £, €, ©)'),  # noqa: E501
          ('PUNCT', 'PUNCT', 'Punctuation'),
          ('CLB', 'SYNTAX', 'Clause boundary'),
-        ]
+         ]
 
 tag_dict: Dict[Union[Tag, str], Tag] = {}
 for tag_name, ms_feat, detail in _tags:

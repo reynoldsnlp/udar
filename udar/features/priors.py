@@ -102,8 +102,8 @@ def _lemma_frequencies(doc: Document,
 
 @add_to_ALL('_lemma_frequency_ranks', category='_prior')
 def _lemma_frequency_ranks(doc: Document,
-                          has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',  # noqa: E501
-                          rmv_punc=True) -> List[float]:
+                           has_tag: Union[str, Tag, Tuple[Union[str, Tag]]] = '',  # noqa: E501
+                           rmv_punc=True) -> List[float]:
     """Make list of lemma frequency ranks."""
     toks = ALL['_filter_toks'](doc, has_tag=has_tag, rmv_punc=rmv_punc)
     Sharoff_lem_freq_rank_dict = _get_Sharoff_lem_freq_rank_dict()

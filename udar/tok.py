@@ -315,7 +315,7 @@ class Token:
         if self.readings:
             for r in self.readings:
                 for subreading in r.subreadings:
-                    if not any(t.is_L2_error for t in subreading):
+                    if not any(tag.is_L2_error for tag in subreading):
                         return False
             return True
         else:
@@ -323,7 +323,7 @@ class Token:
 
     def might_be_L2_error(self) -> bool:
         """Token has ANY readings that contain an L2 error tag."""
-        return any(t.is_L2_error for r in self.readings for t in r)
+        return any(tag.is_L2_error for r in self.readings for tag in r)
 
     def has_tag_in_most_likely_reading(self, tag: Union[Tag, str],
                                        **kwargs) -> bool:

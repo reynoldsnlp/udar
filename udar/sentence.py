@@ -79,9 +79,13 @@ class HFSTTokenizer:
         self.tokenizer.expect('')
 
     def __call__(self, input_str: str):
-        self.tokenizer.sendline(f'{input_str} НF§Ŧ\n')
-        self.tokenizer.expect(r'\r\nНF§Ŧ(\r\n){2}')
-        return self.tokenizer.before.split('\r\n')
+        # TODO https://github.com/reynoldsnlp/udar/issues/49
+        if len(bytes(input_str, encoding='utf8')) > 1000:
+            return hfst_tokenize(input_str)
+        else:
+            self.tokenizer.sendline(f'{input_str} НF§Ŧ\n')
+            self.tokenizer.expect(r'\r\nНF§Ŧ(\r\n){2}')
+            return self.tokenizer.before.split('\r\n')
 
 
 def get_tokenizer(use_pexpect=True) -> Tokenizer:
@@ -157,7 +161,8 @@ class Sentence:
                  annotation: str = '',
                  features: Tuple = None,
                  feat_cache: Dict[str, Any] = None,
-                 orig_text: str = ''):
+                 orig_text: str = '',
+                 verbose: bool = False):
         """
         Parameters
         ----------
@@ -195,6 +200,8 @@ class Sentence:
         orig_text
             (Optional) Original text of the sentence. This can be used when
             ``input_text`` is a list of :py:class:`Token` objects.
+        verbose
+            (Optional) Whether to print debugging information to stderr.
         """
         self._analyzed = False
         self._disambiguated = False

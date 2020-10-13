@@ -9,8 +9,7 @@ from sys import stderr
 RSRC_PATH = resource_filename('udar', 'resources/')
 
 
-if __name__ == '__main__':
-    ###########################################################################
+def tixonov():
     print('making Tixonov_dict.pkl and Tix_morph_count_dict.pkl ...',
           file=stderr)
 
@@ -43,7 +42,8 @@ if __name__ == '__main__':
     with open(f'{RSRC_PATH}Tix_morph_count_dict.pkl', 'wb') as f:
         pickle.dump(morph_count_dict, f)
 
-    ###########################################################################
+
+def lexmin():
     print('making lexmin_dict.pkl ...', file=stderr)
 
     lexmin_dict = {}
@@ -61,7 +61,8 @@ if __name__ == '__main__':
     with open(f'{RSRC_PATH}lexmin_dict.pkl', 'wb') as f:
         pickle.dump(lexmin_dict, f)
 
-    ###########################################################################
+
+def kelly():
     print('making kelly_dict.pkl ...', file=stderr)
 
     kelly_dict = {}
@@ -77,7 +78,8 @@ if __name__ == '__main__':
     with open(f'{RSRC_PATH}kelly_dict.pkl', 'wb') as f:
         pickle.dump(kelly_dict, f)
 
-    ###########################################################################
+
+def rnc_freq():
     print('making RNC_tok_freq_dict.pkl and RNC_tok_freq_rank_dict.pkl ...',
           file=stderr)
 
@@ -104,7 +106,8 @@ if __name__ == '__main__':
     with open(f'{RSRC_PATH}RNC_tok_freq_rank_dict.pkl', 'wb') as f:
         pickle.dump(RNC_tok_freq_rank_dict, f)
 
-    ###########################################################################
+
+def sharoff():
     print('making Sharoff_lem_freq_dict.pkl '
           'and Sharoff_lem_freq_rank_dict.pkl...',
           file=stderr)
@@ -134,3 +137,11 @@ if __name__ == '__main__':
         pickle.dump(Sharoff_lem_freq_dict, f)
     with open(f'{RSRC_PATH}Sharoff_lem_freq_rank_dict.pkl', 'wb') as f:
         pickle.dump(Sharoff_lem_freq_rank_dict, f)
+
+
+if __name__ == '__main__':
+    tixonov()
+    lexmin()
+    kelly()
+    rnc_freq()
+    sharoff()

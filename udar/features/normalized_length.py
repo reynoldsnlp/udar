@@ -21,7 +21,7 @@ def prcnt_abstract_nouns(doc: Document, lower=False, rmv_punc=True,
                          zero_div_val=NaN) -> float:
     """Compute the percentage of nouns that are abstract."""
     num_tokens = ALL['num_tokens'](doc, lower=lower, rmv_punc=rmv_punc)
-    num_abstract_nouns = ALL[f'num_abstract_nouns'](doc, rmv_punc=rmv_punc)
+    num_abstract_nouns = ALL['num_abstract_nouns'](doc, rmv_punc=rmv_punc)
     try:
         return num_abstract_nouns / num_tokens
     except ZeroDivisionError:
