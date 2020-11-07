@@ -10,3 +10,4 @@ tmp/
 _build
 _static
 _templates
+_server_config.py

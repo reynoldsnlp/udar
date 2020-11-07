@@ -1,6 +1,5 @@
 """Python wrapper of UDAR, a part-of-speech tagger for (accented) Russian"""
 
-from pkg_resources import resource_filename
 from typing import Dict
 from typing import Optional
 from typing import Tuple
@@ -10,6 +9,7 @@ from typing import Union
 import hfst  # type: ignore
 
 from .misc import destress
+from .misc import RSRC_DIR
 
 if TYPE_CHECKING:
     from .reading import Reading  # noqa: F401
@@ -17,8 +17,7 @@ if TYPE_CHECKING:
 
 __all__ = ['Analyzer', 'Generator', 'get_analyzer', 'get_generator', 'get_g2p']
 
-RSRC_PATH = resource_filename('udar', 'resources/')
-G2P_FNAME = f'{RSRC_PATH}g2p.hfstol'
+G2P_FNAME = f'{RSRC_DIR}/g2p.hfstol'
 
 
 class Udar:
@@ -28,7 +27,7 @@ class Udar:
     fst: 'libhfst.HfstTransducer'
 
     def __init__(self, fname: str):
-        self.path2fst = f'{RSRC_PATH}{fname}'
+        self.path2fst = f'{RSRC_DIR}/{fname}'
         fst_stream = hfst.HfstInputStream(self.path2fst)
         self.fst = fst_stream.read()
         assert fst_stream.is_eof()  # be sure the hfstol file only had one fst

@@ -121,6 +121,12 @@ def stress_distractors(word: str):
                   key=lambda x: re.search('[Ёё\u0301]', x).start())  # type: ignore  # noqa: E501
 
 
-def readability_measures(input_text: Union[str, List[Sentence], Document]):
-    doc = Document(input_text)
+def readability_from_formulas(text: Union[str, List[Sentence], Document]):
+    doc = Document(text)
+    return ALL(doc, category_names=['Readability formula'])
+
+
+def readability_metrics(text: Union[str, List[Sentence], Document]):
+    # TODO add ML readability
+    doc = Document(text)
     return ALL(doc, category_names=['Readability formula'])

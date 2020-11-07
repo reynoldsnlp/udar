@@ -32,7 +32,7 @@ src = '''Мы все говорили кое о чем с тобой, но по-
 #     try:
 #         return nltk_sent_tokenizer
 #     except NameError:
-#         with open(f'{RSRC_PATH}nltk_punkt_russian.pkl', 'rb') as f:
+#         with open(f'{RSRC_DIR}/nltk_punkt_russian.pkl', 'rb') as f:
 #             nltk_sent_tokenizer = pickle.load(f)
 #         return nltk_sent_tokenizer
 
@@ -122,6 +122,9 @@ class Document:
     def __iter__(self) -> Iterator[Token]:
         """Return iterator over *Tokens*."""
         return iter(chain(*self.sentences))
+
+    def __len__(self) -> int:
+        return sum(len(s) for s in self.sentences)
 
     def __repr__(self):
         return f'Document({self.text})'

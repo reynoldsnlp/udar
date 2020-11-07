@@ -18,7 +18,7 @@ import stanza  # type: ignore
 __all__ = ['StressParams', 'Result', 'result_names', 'destress',
            'compute_metrics', 'unspace_punct']
 
-RSRC_PATH = resource_filename('udar', 'resources/')
+RSRC_DIR = resource_filename('udar', 'resources')
 ACUTE = '\u0301'  # acute combining accent: x́
 GRAVE = '\u0300'  # grave combining accent: x̀
 stanza_sent = None

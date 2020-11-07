@@ -179,12 +179,21 @@ _tags = [('A', 'POS', 'Adjective'),
          ('Use/Obs', 'USE', 'Obsolete'),
          ('Use/Ant', 'USE', 'Antiquated "устаревшее"'),
          ('Err/Orth', 'ERROR', 'Substandard'),
+         ('Err/L2_e2je', 'L2ERROR', 'L2 error: е instead of э, e.g. ето (compare это)'),  # noqa: E501
          ('Err/L2_ii', 'L2ERROR', 'L2 error: Failure to change ending ие to ии in +Sg+Loc or +Sg+Dat, e.g. к Марие, о кафетерие, о знание'),  # noqa: E501
-         ('Err/L2_Pal', 'L2ERROR', 'L2 error: Palatalization: failure to place soft-indicating symbol after soft stem, e.g. земла (compare земля)'),  # noqa: E501
+         ('Err/L2_i2y', 'L2ERROR', 'L2 error: ы instead of и'),
+         ('Err/L2_je2e', 'L2ERROR', 'L2 error: э instead of е'),
          ('Err/L2_FV', 'L2ERROR', 'L2 error: Presence of fleeting vowel where it should be deleted, e.g. отеца (compare отца)'),  # noqa: E501
+         ('Err/L2_H2S', 'L2ERROR', 'L2 error: Soft sign instead of hard sign, e.g. обьяснит (compare объяснит)'),  # noqa: E501
          ('Err/L2_NoFV', 'L2ERROR', 'L2 error: Lack of fleeting vowel where it should be inserted, e.g. окн (compare окон)'),  # noqa: E501
+         ('Err/L2_NoSS', 'L2ERROR', 'L2 error: Lack of soft sign, e.g. восми (compare восьми)'),  # noqa: E501
+         ('Err/L2_Pal', 'L2ERROR', 'L2 error: Palatalization: failure to place soft-indicating symbol after soft stem, e.g. земла (compare земля)'),  # noqa: E501
+         ('Err/L2_sh2shch', 'L2ERROR', 'L2 error: щ instead of ш'),
+         ('Err/L2_shch2sh', 'L2ERROR', 'L2 error: ш instead of щ'),
+         ('Err/L2_ski', 'L2ERROR', 'L2 error: по-русский instead of по-русски'),  # noqa: E501
          ('Err/L2_SRo', 'L2ERROR', 'L2 error: Failure to change о to е after hushers and ц, e.g. Сашой (compare Сашей)'),  # noqa: E501
          ('Err/L2_SRy', 'L2ERROR', 'L2 error: Failure to change ы to и after hushers and velars, e.g. книгы (compare книги)'),  # noqa: E501
+         ('Err/L2_y2i', 'L2ERROR', 'L2 error: и instead of ы'),
          ('Use/Aff', 'USE', 'Affectionate  ласкательное'),
          ('Use/Lit', 'USE', 'Literary  литературное'),
          ('Use/Flk', 'USE', 'folk poetry  народнопоэтическое'),

@@ -2,7 +2,6 @@
 
 from collections import Counter
 from pathlib import Path
-from pkg_resources import resource_filename
 import re
 from subprocess import PIPE
 from subprocess import Popen
@@ -26,6 +25,7 @@ from .fsts import get_analyzer
 from .misc import get_stanza_pretokenized_pipeline
 from .misc import destress
 from .misc import result_names
+from .misc import RSRC_DIR
 from .misc import StressParams
 from .misc import unspace_punct
 from .tok import Token
@@ -37,7 +37,6 @@ if TYPE_CHECKING:
 
 __all__ = ['hfst_tokenize', 'Sentence']
 
-RSRC_PATH = resource_filename('udar', 'resources/')
 NEWLINE = '\n'
 _pexpect_hfst_tokenize = None
 
@@ -48,7 +47,7 @@ Tokenizer = Callable[[str], List[str]]
 def hfst_tokenize(input_str: str) -> List[str]:
     try:
         p = Popen(['hfst-tokenize',
-                   f'{RSRC_PATH}tokeniser-disamb-gt-desc.pmhfst'],
+                   f'{RSRC_DIR}/tokeniser-disamb-gt-desc.pmhfst'],
                   stdin=PIPE,
                   stdout=PIPE,
                   universal_newlines=True)
@@ -69,7 +68,7 @@ class HFSTTokenizer:
     tokenizer: 'pexpect.pty_spawn.spawn'
 
     def __init__(self):
-        tokenizer_path = f'{RSRC_PATH}/tokeniser-disamb-gt-desc.pmhfst'
+        tokenizer_path = f'{RSRC_DIR}/tokeniser-disamb-gt-desc.pmhfst'
         self.tokenizer = pexpect.spawn(f'hfst-tokenize {tokenizer_path}',
                                        echo=False, encoding='utf8',
                                        timeout=None)
@@ -476,7 +475,7 @@ class Sentence:
             the list of available methods.  # TODO kwargs?
         """
         if gram_path == '':
-            gram_path = f'{RSRC_PATH}disambiguator.cg3'
+            gram_path = f'{RSRC_DIR}/disambiguator.cg3'
         if isinstance(gram_path, Path):
             gram_path = repr(gram_path)
         if traces:

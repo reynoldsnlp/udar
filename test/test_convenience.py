@@ -81,7 +81,7 @@ def test_noun_distractors_NotImplementedError():
 def test_readability():
     d1 = Document('Афанасий сотрудничает со смешными корреспондентами.')
     assert all(len(tok.readings) == 1 for tok in d1), d1.hfst_str()
-    r1 = convenience.readability_measures(d1)[1]
+    r1 = convenience.readability_from_formulas(d1)[1]
     assert len(r1) == 6, r1
     assert r1.matskovskij == 3.2248
     assert r1.oborneva == 18.830000000000002
@@ -92,7 +92,7 @@ def test_readability():
 
     d2 = Document('Она идет со смешными людьми.')
     assert all(len(tok.readings) == 1 for tok in d2), d2.hfst_str()
-    r2 = convenience.readability_measures(d2)[1]
+    r2 = convenience.readability_from_formulas(d2)[1]
     assert len(r2) == 6, r2
     assert r2.matskovskij == 3.1510000000000002
     assert r2.oborneva == 3.710000000000001

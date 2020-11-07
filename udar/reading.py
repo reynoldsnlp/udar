@@ -2,7 +2,6 @@
 
 from math import isclose
 import re
-import sys
 from typing import List
 from typing import Optional
 from typing import Set
@@ -197,6 +196,7 @@ class Reading:
         for external_tag in tags:
             for conflicting_tag in conflicts.get(external_tag, ()):
                 if conflicting_tag in self:
-                    print('CONFLICT:', self, conflicting_tag, file=sys.stderr)
+                    # print('CONFLICT:', self, conflicting_tag,
+                    #       file=sys.stderr)
                     return False
         return True
