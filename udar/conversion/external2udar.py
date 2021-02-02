@@ -39,7 +39,7 @@ def readable_sent(sentence):
                      for t in sentence.tokens.find_all('token'))
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # noqa: C901
     args = parser.parse_args()
     out_dir = args.output_dir + '/'
     mistoken_dir = args.output_dir + '/mistoken/'

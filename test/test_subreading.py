@@ -16,7 +16,7 @@ def test_simple():
 
 
 def test_bad():
-    with pytest.raises(KeyError):
+    with pytest.warns(UserWarning):
         udar.reading.Subreading('слово+THISISNOTAVALIDTAG')
 
 

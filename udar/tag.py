@@ -1,8 +1,9 @@
 """Part-of-speech tag"""
 
-from typing import Dict
+from collections import UserDict
 from typing import Optional
 from typing import Union
+from warnings import warn
 
 
 __all__ = ['Tag', 'tag_dict', 'ambiguous_tag_dict']
@@ -18,7 +19,7 @@ class Tag:
                  'name']
     ambig_alternative: 'Optional[Tag]'
     detail: str
-    is_L2_error: bool
+    is_L2_error: bool  # noqa: N815
     ms_feat: str
     name: str
 
@@ -225,7 +226,19 @@ _tags = [('A', 'POS', 'Adjective'),
          ('CLB', 'SYNTAX', 'Clause boundary'),
          ]
 
-tag_dict: Dict[Union[Tag, str], Tag] = {}
+
+class TagDict(UserDict):
+    def __getitem__(self, key):
+        try:
+            return super().__getitem__(key)
+        except KeyError:
+            warn(f'{key} not defined in tag_dict', stacklevel=2)
+            dummy_tag = Tag(key, '', '')
+            super().__setitem__(key, dummy_tag)
+            return super().__getitem__(key)
+
+
+tag_dict: 'TagDict[Union[Tag, str], Tag]' = TagDict()
 for tag_name, ms_feat, detail in _tags:
     if tag_name in tag_dict:
         raise NameError(f'{tag_name} is listed twice in _tags.')  # pragma: no cover  # noqa: E501

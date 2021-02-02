@@ -1,5 +1,7 @@
 #!/bin/bash
 
+shopt -s globstar
+
 rm -f .coverage  # can conflict with tox
 
 echo -n "Upgrade HFST and vislcg3? (y/n) "
