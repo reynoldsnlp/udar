@@ -228,7 +228,7 @@ _tags = [('A', 'POS', 'Adjective'),
 
 
 class TagDict(UserDict):
-    def __getitem__(self, key):
+    def __getitem__(self, key) -> Tag:
         try:
             return super().__getitem__(key)
         except KeyError:
@@ -238,7 +238,7 @@ class TagDict(UserDict):
             return super().__getitem__(key)
 
 
-tag_dict: 'TagDict[Union[Tag, str], Tag]' = TagDict()
+tag_dict = TagDict()
 for tag_name, ms_feat, detail in _tags:
     if tag_name in tag_dict:
         raise NameError(f'{tag_name} is listed twice in _tags.')  # pragma: no cover  # noqa: E501
