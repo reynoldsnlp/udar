@@ -664,3 +664,16 @@ class Token:
             :py:func:`~udar.transliterate.transliterate`
         """
         return transliterate(self.text, **kwargs)
+
+    def to_dict(self) -> Dict:
+        """Convert to :py:obj:`dict`."""
+        return {'id': self.id,
+                'text': self.text,
+                'readings': [r.to_dict() for r in self.readings],
+                'removed_readings': [r.to_dict()
+                                     for r in self.removed_readings],
+                'head': self.head,
+                'deprel': self.deprel,
+                # 'misc': f'start_char={self.start_char}|end_char={self.end_char}',  # noqa: E501
+                # 'ner': 'O'}
+                }

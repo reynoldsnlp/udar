@@ -107,6 +107,8 @@ phonetic transcription.
 | from\_cg3 | `Document` | Create `Document` from [VISL-CG3 format stream](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
 | hfst\_str | `str` | Analysis stream in the XFST/HFST format |
 | from\_hfst | `Document` | Create `Document` from XFST/HFST format stream |
+| to\_dict | `list` | Convert to a complex list object |
+| to\_json | `str` | Convert to a JSON object |
 
 #### Examples
 
@@ -151,6 +153,7 @@ print(phonetic_doc1)
 | from\_cg3 | `Sentence` | Create `Sentence` from [VISL-CG3 format stream](https://visl.sdu.dk/cg3/single/#stream-vislcg)
 | hfst\_str | `str` | Analysis stream in the XFST/HFST format |
 | from\_hfst | `Sentence` | Create `Sentence` from XFST/HFST format stream |
+| to\_dict | `list` | Convert to a complex list object |
 
 ### `Token` object
 
@@ -175,6 +178,7 @@ print(phonetic_doc1)
 | force\_disambiguate | `None` | Fully disambiguate readings using methods **other than** the Constraint Grammar |
 | cg3\_str | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
 | hfst\_str | `str` | Analysis stream in the XFST/HFST format |
+| to\_dict | `dict` | Convert to a `dict` object |
 
 ### `Reading` object
 
@@ -194,6 +198,7 @@ print(phonetic_doc1)
 | generate | `str` | Generate the wordform from this reading |
 | replace\_tag | `None` | Replace a tag in this reading |
 | does\_not\_conflict | `bool` | Determine whether reading from external tagset (e.g. Universal Dependencies) conflicts with this reading |
+| to\_dict | `list` | Convert to a `list` object |
 
 ### `Subreading` object
 
@@ -208,6 +213,7 @@ print(phonetic_doc1)
 | cg3\_str | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
 | hfst\_str | `str` | Analysis stream in the XFST/HFST format |
 | replace\_tag | `None` | Replace a tag in this reading |
+| to\_dict | `dict` | Convert to a `dict` object |
 
 ### `Tag` object
 

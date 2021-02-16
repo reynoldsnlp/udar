@@ -2,7 +2,6 @@
 
 from collections import UserDict
 from typing import Optional
-from typing import Union
 from warnings import warn
 
 

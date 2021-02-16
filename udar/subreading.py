@@ -1,6 +1,7 @@
 """Grammatical subreading (lemma and tags)."""
 
 import re
+from typing import Dict
 from typing import List
 from typing import Set
 from typing import Union
@@ -99,3 +100,7 @@ class Subreading:
             self.tagset = set(self.tags)
         except ValueError:  # orig_tag isn't in self.tags
             pass
+
+    def to_dict(self) -> Dict:
+        return {'lemma': self.lemma,
+                'tags': [tag.name for tag in self.tags]}

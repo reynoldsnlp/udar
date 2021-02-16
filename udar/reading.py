@@ -2,6 +2,7 @@
 
 from math import isclose
 import re
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
@@ -200,3 +201,6 @@ class Reading:
                     #       file=sys.stderr)
                     return False
         return True
+
+    def to_dict(self) -> List[Dict]:
+        return [subreading.to_dict() for subreading in self.subreadings]

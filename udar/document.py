@@ -281,5 +281,11 @@ class Document:
                   unicodedata.name(char, 'MISSING'), count, sep='\t',
                   file=stderr)
 
-    # def to_dict(self) -> List[List[Dict]]:  # TODO
-    #     return [sent.to_dict() for sent in self.sentences]
+    def to_dict(self) -> List[List[Dict]]:
+        """Convert to :py:obj:`list` of :py:obj:`list` of :py:obj:`dict` s."""
+        return [sent.to_dict() for sent in self.sentences]
+
+    def to_json(self) -> str:
+        """Convert to JSON str."""
+        import json
+        return json.dumps(self.to_dict())

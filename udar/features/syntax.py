@@ -92,7 +92,7 @@ def max_dependency_depth(doc: Document, zero_div_val=NaN) -> float:
 
 
 @add_to_ALL('avg_of_max_dependency_depths', category='Syntax')
-def avg_of_max_dependency_depths(doc: Document,  zero_div_val=NaN) -> float:
+def avg_of_max_dependency_depths(doc: Document, zero_div_val=NaN) -> float:
     """Compute average each sentence's maximum dependency depth."""
     dep_depths = ALL['_sentence_dependency_path_lengths'](doc)
     try:

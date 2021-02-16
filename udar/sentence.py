@@ -492,7 +492,7 @@ class Sentence:
         if len(self) != len(new_tokens):
             triangle = '\u25B6'
             raise AssertionError('parse_cg3: output len does not match! '
-                                 f'{len(self)} --> {len(new_tokens)}\n' +
+                                 f'{len(self)} --> {len(new_tokens)}\n'
                                  '\n\n'.join(f'{old} {triangle} {new}'
                                              for old, new
                                              in zip(self, new_tokens)))
@@ -750,3 +750,7 @@ class Sentence:
             :py:func:`~udar.transliterate.transliterate`
         """
         return transliterate(self.text, **kwargs)
+
+    def to_dict(self) -> List[Dict]:
+        """Convert to :py:obj:`list` of :py:obj:`dict` s."""
+        return [tok.to_dict() for tok in self.tokens]
