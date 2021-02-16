@@ -127,6 +127,7 @@ class Reading:
 
     def generate(self,
                  _generator: 'Generator' = None,
+                 corrected=True,
                  **kwargs) -> Optional[str]:
         r"""Generate surface from from this reading.
 
@@ -137,11 +138,15 @@ class Reading:
             The same arguments accepted by :py:meth:`Generator.__init__`.
             (default: bundled generator)
         """
+        if corrected:
+            hfst_str = self.hfst_noL2_str()
+        else:
+            hfst_str = str(self)
         if _generator is not None:
-            return _generator(self.hfst_noL2_str())
+            return _generator(hfst_str)
         else:
             _generator = get_generator(**kwargs)
-            return _generator(self.hfst_noL2_str())
+            return _generator(hfst_str)
 
     def replace_tag(self, orig_tag: Union[Tag, str], new_tag: Union[Tag, str],
                     which_subreading: Union[int, slice] = slice(None)):
