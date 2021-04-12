@@ -9,6 +9,7 @@ from udar.features import ALL
 
 RSRC_PATH = resource_filename('udar', 'resources/')
 
+# TODO implement text_path to share resources across tests
 text_path = 'resources/sent1.txt'
 text = 'Иванов и Сыроежкин говорили полчаса кое с кем о лицах, "ртах" и т.д.'
 
