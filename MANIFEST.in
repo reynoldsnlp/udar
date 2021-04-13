@@ -1,3 +1,6 @@
-include LICENSE
-include README.md
-include udar/resources/*
+prune *
+graft src
+graft test
+
+include LICENSE README.md pyproject.toml setup.py setup.cfg
+global-exclude __pycache__ *.py[cod] .*

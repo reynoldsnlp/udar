@@ -106,7 +106,7 @@ class Token:
 
     @readings.setter
     def readings(self, readings: List[Reading]):
-        self._readings = [r for r in readings if r is not None]  # type: ignore
+        self._readings = [r for r in readings if r is not None]
         self._update_lemmas_stress_and_phon()
 
     @property

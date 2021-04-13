@@ -24,14 +24,19 @@ GRAVE = '\u0300'  # grave combining accent: x̀
 stanza_sent = None
 stanza_pretokenized = None
 
-SP = namedtuple('StressParams', ['disambiguate', 'selection', 'guess'])
+SP = namedtuple('StressParams', ['disambiguate', 'selection', 'guess'])  # type: ignore  # noqa: E501
 
 
 def get_stanza_sent_tokenizer():
     global stanza_sent
     if stanza_sent is None:
-        stanza_sent = stanza.Pipeline(lang='ru', processors='tokenize',
-                                      verbose=False)
+        try:
+            stanza_sent = stanza.Pipeline(lang='ru', processors='tokenize',
+                                          verbose=False)
+        except stanza.pipeline.core.ResourcesFileNotFoundError:
+            stanza.download('ru')
+            stanza_sent = stanza.Pipeline(lang='ru', processors='tokenize',
+                                          verbose=False)
     return stanza_sent
 
 

@@ -15,3 +15,5 @@ from .misc import *  # noqa: F401, F403
 from .transliterate import *  # noqa: F401, F403
 
 from .features import *  # noqa: F401, F403
+
+from .version import version as __version__

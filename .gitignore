@@ -11,3 +11,4 @@ _build
 _static
 _templates
 _server_config.py
+src/udar/version.py
