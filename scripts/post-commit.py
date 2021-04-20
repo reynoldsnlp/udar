@@ -59,7 +59,7 @@ def get_pypi_version(test=False):
                     for version in pypi_dict['releases']]
         latest_release = sorted(releases)[-1]
     except:
-        latest_release = '0.0.0'
+        latest_release = parse('0.0.0')
     return latest_release
 
 
