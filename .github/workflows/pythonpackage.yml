@@ -37,7 +37,10 @@ jobs:
       run: |
         pytest -vv --cov --cov-append --cov-report xml test/
         # pytest --doctest-modules {envsitepackagesdir}/udar
-        codecov --token=c0724429-fff4-4851-97d6-052d1c1d1794
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
 
   dist:
     needs: [test]
