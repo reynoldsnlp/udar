@@ -1,6 +1,6 @@
 # UDAR(enie)
 
-[![Actions Status](https://github.com/reynoldsnlp/udar/workflows/pytest/badge.svg)](https://github.com/reynoldsnlp/udar/actions)
+[![Actions Status](https://github.com/reynoldsnlp/udar/workflows/Test%20and%20Publish/badge.svg)](https://github.com/reynoldsnlp/udar/actions)
 [![codecov](https://codecov.io/gh/reynoldsnlp/udar/branch/master/graph/badge.svg)](https://codecov.io/gh/reynoldsnlp/udar)
 
 **U**DAR **D**oes **A**ccented **R**ussian: A finite-state morphological
