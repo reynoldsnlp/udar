@@ -20,6 +20,9 @@ If you use this work in your research please cite the following:
 
 ## Non-python dependencies
 
+This repository uses `git-lfs` for large files. Be sure to
+[download and install it](https://git-lfs.github.com/) before you clone/commit.
+
 For all features to be available, you should have `hfst` and `vislcg3`
 installed as command-line utilities. Specifically, `hfst` is needed for
 FST-based tokenization, and `vislcg3` is needed for grammatical disambiguation.
@@ -260,8 +263,8 @@ dictionary of all the types of L2 errors in the text, along with examples of
 the error.
 
 ```python
-diag = udar.diagnose_L2('Мы разговаривали в кафетерие с Таной')
-print(diag == {'Err/L2_ii': {'кафетерие'}, 'Err/L2_Pal': {'Таной'}})
+diag = udar.diagnose_L2('Етот малчик говорит по-русски.')
+print(diag == {'Err/L2_e2je': {'Етот'}, 'Err/L2_NoSS': {'малчик'}})
 # True
 ```
 

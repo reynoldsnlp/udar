@@ -39,7 +39,7 @@ def stressed(in_str: str, disambiguate=False, **kwargs):
     return in_doc.stressed(**kwargs)
 
 
-def noun_distractors(noun: Union[str, Reading], stressed=True):
+def noun_distractors(noun: Union[str, Reading], stressed=True, L2_errors=False):
     """Given an input noun, return set of wordforms in its paradigm.
 
     The input noun can be in any case. Output paradigm is limited to the same
@@ -53,7 +53,7 @@ def noun_distractors(noun: Union[str, Reading], stressed=True):
     >>> pl_paradigm == {'слова́м', 'слова́', 'слова́х', 'слова́ми', 'сло́в'}
     True
     """
-    analyzer = get_analyzer(L2_errors=True)
+    analyzer = get_analyzer(L2_errors=L2_errors)
     gen = get_generator(stressed=stressed)
     if isinstance(noun, str):
         tok = Token(noun, _analyzer=analyzer)

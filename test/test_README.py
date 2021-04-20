@@ -39,7 +39,8 @@ def test_blocks():
             expected_out = re.sub('^# ?', '', expected_out, flags=re.M).strip()
             with stdoutIO() as s:
                 exec(code, globals())
-            assert s.getvalue().strip() == expected_out
+            out = s.getvalue().strip()
+            assert out == expected_out, f'{code} => {out}' 
 
 
 def test_properties_documented_in_tables_actually_exist():

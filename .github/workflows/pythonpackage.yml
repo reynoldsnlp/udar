@@ -1,13 +1,12 @@
-name: pytest
+name: Test and Publish
 
 on: [push]
 
 jobs:
-  build:
+  test:
 
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 4
       matrix:
         python-version: [3.6, 3.7]
 
@@ -20,6 +19,7 @@ jobs:
     - name: Install dependencies
       run: |
         python3 -m pip install --upgrade pip
+        python3 -m pip install .
         wget https://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
         sudo apt-get -f install hfst vislcg3
         python3 -c "import nltk; nltk.download('punkt')"
@@ -33,7 +33,39 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=16 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        python3 -m pip install pytest pytest-cov pytest-timeout codecov
+        python3 -m pip install .[test]
         python3 -m pytest -vv --cov --cov-append --cov-report xml test/
         # pytest --doctest-modules {envsitepackagesdir}/udar
         codecov --token=c0724429-fff4-4851-97d6-052d1c1d1794
+
+  dist:
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Build wheel and SDist
+      run: pipx run build
+
+    - name: Check metadata
+      run: pipx run twine check dist/*
+
+    - uses: actions/upload-artifact@v2
+      with:
+        path: dist/*
+
+
+  publish:
+    needs: [dist]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'published'
+
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        name: artifact
+        path: dist
+
+    - uses: pypa/gh-action-pypi-publish@v1.4.1
+      with:
+        password: ${{ secrets.pypi_password }}
