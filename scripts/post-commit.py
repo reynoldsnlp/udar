@@ -64,15 +64,14 @@ def get_pypi_version(test=False):
 
 
 def tests():
-    hv = parse('1.2.3')
     for t, expected in [('1.2.2.5', '1.2.3.0'),
                         ('1.2.2.5b4', '1.2.3.0'),
                         ('1.2.3.0', '1.2.3.1'),
                         ('1.2.3.0b4', '1.2.3.0'),
                         ('1.2.3.1', '1.2.3.2'),
                         ('1.2.3.1b4', '1.2.3.1')]:
-        print('1.2.3', t, bump_python_version(hv, parse(t)), sep='\t')
-        assert bump_python_version(hv, parse(t), beta=False) == expected, ('1.2.3', t, expected)
+        print('1.2.3', t, bump_python_version(parse(t)), sep='\t')
+        assert bump_python_version(parse(t), beta=False) == expected, ('1.2.3', t, expected)
     print('BETA')
     for t, expected in [('1.2.2.5', '1.2.3.0b0'),
                         ('1.2.2.5b4', '1.2.3.0b0'),
@@ -80,8 +79,8 @@ def tests():
                         ('1.2.3.0b4', '1.2.3.0b5'),
                         ('1.2.3.1', '1.2.3.2b0'),
                         ('1.2.3.1b4', '1.2.3.1b5')]:
-        print('1.2.3', t, bump_python_version(hv, parse(t), beta=True), sep='\t')
-        assert bump_python_version(hv, parse(t), beta=True) == expected, ('1.2.3', t, expected)
+        print('1.2.3', t, bump_python_version(parse(t), beta=True), sep='\t')
+        assert bump_python_version(parse(t), beta=True) == expected, ('1.2.3', t, expected)
 
 
 if __name__ == '__main__':
