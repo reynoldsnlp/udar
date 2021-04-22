@@ -88,9 +88,11 @@ if __name__ == '__main__':
                      'trigger a release on PyPI? (y/N) > ')
     if response.strip() in {'Y', 'y', 'Yes', 'YES', 'yes'}:
         pypi_version = get_pypi_version(test=TEST)
-        new_version = bump_python_version(pypi_version, beta=BETA)
         print(f'Current {"Test " if TEST else ""}PyPI version:',
               pypi_version, file=sys.stderr)
+        latest_tag = subprocess.run(['git', 'describe', '--tags'], capture_output=True).stdout
+        print(f'Latest git tag: {latest_tag}', file=sys.stderr)
+        new_version = bump_python_version(pypi_version, beta=BETA)
         print('Suggested new version:', new_version, file=sys.stderr)
         version = input(f'Please type the version number (default: {new_version}): ')
         completed = subprocess.run(['git', 'tag', f'v{version}'])

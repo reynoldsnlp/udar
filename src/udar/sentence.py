@@ -26,6 +26,7 @@ from .misc import get_stanza_pretokenized_pipeline
 from .misc import destress
 from .misc import result_names
 from .misc import RSRC_DIR
+from .misc import FST_DIR
 from .misc import StressParams
 from .misc import unspace_punct
 from .tok import Token
@@ -47,7 +48,7 @@ Tokenizer = Callable[[str], List[str]]
 def hfst_tokenize(input_str: str) -> List[str]:
     try:
         p = Popen(['hfst-tokenize',
-                   f'{RSRC_DIR}/tokeniser-disamb-gt-desc.pmhfst'],
+                   f'{FST_DIR}/tokeniser-disamb-gt-desc.pmhfst'],
                   stdin=PIPE,
                   stdout=PIPE,
                   universal_newlines=True)
@@ -68,7 +69,7 @@ class HFSTTokenizer:
     tokenizer: 'pexpect.pty_spawn.spawn'
 
     def __init__(self):
-        tokenizer_path = f'{RSRC_DIR}/tokeniser-disamb-gt-desc.pmhfst'
+        tokenizer_path = f'{FST_DIR}/tokeniser-disamb-gt-desc.pmhfst'
         self.tokenizer = pexpect.spawn(f'hfst-tokenize {tokenizer_path}',
                                        echo=False, encoding='utf8',
                                        timeout=None)
