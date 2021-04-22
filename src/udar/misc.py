@@ -2,6 +2,8 @@
 
 from collections import namedtuple
 from enum import Enum
+import os
+from pathlib import Path
 from pkg_resources import resource_filename
 import re
 from typing import Dict
@@ -18,9 +20,13 @@ import stanza  # type: ignore
 __all__ = ['StressParams', 'Result', 'result_names', 'destress',
            'compute_metrics', 'unspace_punct']
 
+FST_DIR = os.getenv('UDAR_RESOURCES_DIR',
+                    os.path.join(str(Path.home()), 'udar_resources'))
 RSRC_DIR = resource_filename('udar', 'resources')
+
 ACUTE = '\u0301'  # acute combining accent: x́
 GRAVE = '\u0300'  # grave combining accent: x̀
+
 stanza_sent = None
 stanza_pretokenized = None
 

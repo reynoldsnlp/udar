@@ -1,5 +1,10 @@
 """Python wrapper of UDAR, a part-of-speech tagger for (accented) Russian"""
 
+from glob import glob
+import gzip
+import os
+from pathlib import Path
+import sys
 from typing import Dict
 from typing import Optional
 from typing import Tuple
@@ -10,6 +15,7 @@ import hfst  # type: ignore
 
 from .misc import destress
 from .misc import RSRC_DIR
+from .misc import FST_DIR
 
 if TYPE_CHECKING:
     from .reading import Reading  # noqa: F401
@@ -17,7 +23,21 @@ if TYPE_CHECKING:
 
 __all__ = ['Analyzer', 'Generator', 'get_analyzer', 'get_generator', 'get_g2p']
 
-G2P_FNAME = f'{RSRC_DIR}/g2p.hfstol'
+G2P_FNAME = f'{FST_DIR}/g2p.hfstol'
+
+
+def decompress_fsts(fst_dir=FST_DIR):
+    os.makedirs(fst_dir, exist_ok=True)
+    for fname in glob(f'{RSRC_DIR}/*.gz'):
+        target_fname = f'{FST_DIR}/{fname.split(os.path.sep)[-1][:-3]}'  # remove ".gz"
+        print(f'\tdecompressing {fname} to {target_fname} ...', file=sys.stderr)
+        with gzip.open(fname) as gzipped:
+            with open(target_fname, 'wb') as unzipped:
+                unzipped.write(gzipped.read())
+    with open(f'{fst_dir}/README', 'w') as f:
+        print('The transducers in this directory were decompressed from '
+              f'gzipped files in {RSRC_DIR}. All other resource files can '
+              'be found in that directory.', file=f)
 
 
 class Udar:
@@ -26,8 +46,13 @@ class Udar:
     path2fst: str
     fst: 'libhfst.HfstTransducer'
 
-    def __init__(self, fname: str):
-        self.path2fst = f'{RSRC_DIR}/{fname}'
+    def __init__(self,
+                 fname: str,
+                 fst_dir: str = FST_DIR):
+        self.path2fst = f'{fst_dir}/{fname}'
+        if not Path(self.path2fst).exists():
+            print('First time use.', end=' ', file=sys.stderr)
+            decompress_fsts(fst_dir=fst_dir)
         fst_stream = hfst.HfstInputStream(self.path2fst)
         self.fst = fst_stream.read()
         assert fst_stream.is_eof()  # be sure the hfstol file only had one fst

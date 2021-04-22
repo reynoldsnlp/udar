@@ -8,7 +8,9 @@ import pytest
 import udar
 
 
-RSRC_PATH = resource_filename('udar', 'resources/')
+FST_DIR = udar.misc.FST_DIR
+udar.fsts.decompress_fsts(fst_dir=FST_DIR)
+RSRC_DIR = udar.misc.RSRC_DIR
 
 example_sent = 'Иванов и Сыроежкин говорили полчаса кое с кем о лицах, "ртах" и т.д.'  # noqa: E501
 
@@ -91,7 +93,7 @@ def test_hfst_stream_equivalence():
     from subprocess import PIPE
     toks = '\n'.join(udar.hfst_tokenize(example_sent))
     sent = udar.Sentence(example_sent)
-    p = Popen(['hfst-lookup', RSRC_PATH + 'analyser-gt-desc.hfstol'],
+    p = Popen(['hfst-lookup', f'{FST_DIR}/analyser-gt-desc.hfstol'],
               stdin=PIPE, stdout=PIPE, universal_newlines=True)
     output, error = p.communicate(toks)
     assert output == sent.hfst_str()
@@ -102,7 +104,7 @@ def test_cg_conv_equivalence():
     from subprocess import PIPE
     toks = '\n'.join(udar.hfst_tokenize(example_sent))
     sent = udar.Sentence(example_sent)
-    p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC',  # noqa: E501
+    p1 = Popen(f'hfst-lookup {FST_DIR}/analyser-gt-desc.hfstol | cg-conv -fC',  # noqa: E501
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
     assert output == sent.cg3_str(annotated=False) + '\n'
@@ -114,7 +116,7 @@ def test_cg3_parse():
     toks = '\n'.join(udar.hfst_tokenize(example_sent))
     sent = udar.Sentence(example_sent)
     sent.disambiguate()
-    p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC | vislcg3 -g {RSRC_PATH}disambiguator.cg3',  # noqa: E501
+    p1 = Popen(f'hfst-lookup {FST_DIR}/analyser-gt-desc.hfstol | cg-conv -fC | vislcg3 -g {RSRC_DIR}/disambiguator.cg3',  # noqa: E501
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
     assert output == sent.cg3_str(annotated=False) + '\n'
@@ -126,7 +128,7 @@ def test_cg3_parse_w_traces():
     toks = '\n'.join(udar.hfst_tokenize(example_sent))
     sent = udar.Sentence(example_sent)
     sent.disambiguate(traces=True)
-    p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol | cg-conv -fC | vislcg3 -t -g {RSRC_PATH}disambiguator.cg3',  # noqa: E501
+    p1 = Popen(f'hfst-lookup {FST_DIR}/analyser-gt-desc.hfstol | cg-conv -fC | vislcg3 -t -g {RSRC_DIR}/disambiguator.cg3',  # noqa: E501
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
     assert output == sent.cg3_str(annotated=False, traces=True) + '\n'

@@ -5,7 +5,9 @@ from sys import stderr
 import udar
 
 
-RSRC_PATH = resource_filename('udar', 'resources/')
+FST_DIR = udar.misc.FST_DIR
+udar.fsts.decompress_fsts(fst_dir=FST_DIR)
+RSRC_DIR = udar.misc.RSRC_DIR
 
 test_sents = ['## Иванов и Сыроежкин говорили полчаса кое с кем о бутявках, лицах, "ртах" и т.д.',  # noqa: E501
               'Мы все говорили кое о чем с тобой, но по-моему, все это ни к чему, как он сказал. ##',  # noqa: E501
@@ -74,7 +76,7 @@ def test_hfst_stream_equivalence():
     from subprocess import PIPE
     toks = '\n'.join(udar.hfst_tokenize(joined_sents))
     doc = udar.Document(joined_sents)
-    p = Popen(['hfst-lookup', RSRC_PATH + 'analyser-gt-desc.hfstol'],
+    p = Popen(['hfst-lookup', f'{FST_DIR}/analyser-gt-desc.hfstol'],
               stdin=PIPE, stdout=PIPE, universal_newlines=True)
     output, error = p.communicate(toks)
     assert output == doc.hfst_str()
@@ -85,7 +87,7 @@ def test_cg_conv_equivalence():
     from subprocess import PIPE
     toks = '\n'.join(udar.hfst_tokenize(joined_sents))
     doc = udar.Document(joined_sents)
-    p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol '
+    p1 = Popen(f'hfst-lookup {FST_DIR}/analyser-gt-desc.hfstol '
                '| cg-conv -fC',
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
@@ -99,9 +101,9 @@ def test_cg3_parse():
     doc.disambiguate()
     output_stream = []
     for sent in doc.sentences:
-        p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol '
+        p1 = Popen(f'hfst-lookup {FST_DIR}/analyser-gt-desc.hfstol '
                    '| cg-conv -fC '
-                   f'| vislcg3 -g {RSRC_PATH}disambiguator.cg3',
+                   f'| vislcg3 -g {RSRC_DIR}/disambiguator.cg3',
                    stdin=PIPE, stdout=PIPE, universal_newlines=True,
                    shell=True)
         output, error = p1.communicate('\n'.join(tok.text for tok in sent))
@@ -116,9 +118,9 @@ def test_cg3_parse_w_traces():
     doc.disambiguate(traces=True)
     output_stream = []
     for sent in doc.sentences:
-        p1 = Popen(f'hfst-lookup {RSRC_PATH}analyser-gt-desc.hfstol '
+        p1 = Popen(f'hfst-lookup {FST_DIR}/analyser-gt-desc.hfstol '
                    '| cg-conv -fC '
-                   f'| vislcg3 -t -g {RSRC_PATH}disambiguator.cg3',
+                   f'| vislcg3 -t -g {RSRC_DIR}/disambiguator.cg3',
                    stdin=PIPE, stdout=PIPE, universal_newlines=True,
                    shell=True)
         output, error = p1.communicate('\n'.join(tok.text for tok in sent))

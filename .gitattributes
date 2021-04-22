@@ -1,4 +1,0 @@
-*.hfst filter=lfs diff=lfs merge=lfs -text
-*.hfstol filter=lfs diff=lfs merge=lfs -text
-*.pmhfst filter=lfs diff=lfs merge=lfs -text
-*.pkl filter=lfs diff=lfs merge=lfs -text
