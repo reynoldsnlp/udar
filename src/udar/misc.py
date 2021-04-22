@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from pkg_resources import resource_filename
 import re
+import sys
 from typing import Dict
 from typing import List
 from typing import Set
@@ -40,7 +41,8 @@ def get_stanza_sent_tokenizer():
             stanza_sent = stanza.Pipeline(lang='ru', processors='tokenize',
                                           verbose=False)
         except stanza.pipeline.core.ResourcesFileNotFoundError:
-            stanza.download('ru')
+            print('Downloading stanza model...', file=sys.stderr)
+            stanza.download('ru', verbose=False)
             stanza_sent = stanza.Pipeline(lang='ru', processors='tokenize',
                                           verbose=False)
     return stanza_sent

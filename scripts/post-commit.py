@@ -90,7 +90,7 @@ if __name__ == '__main__':
         pypi_version = get_pypi_version(test=TEST)
         print(f'Current {"Test " if TEST else ""}PyPI version:',
               pypi_version, file=sys.stderr)
-        latest_tag = subprocess.run(['git', 'describe', '--tags'], capture_output=True).stdout
+        latest_tag = subprocess.check_output('git describe --tags'.split(), encoding='utf8').rstrip()
         print(f'Latest git tag: {latest_tag}', file=sys.stderr)
         new_version = bump_python_version(pypi_version, beta=BETA)
         print('Suggested new version:', new_version, file=sys.stderr)
