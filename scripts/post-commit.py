@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
-To use this script as a local post-commit check...
+NB: This script is probably obsolete. Just make a Github Release using the
+online interface.
+
+To use this script as a local post-commit to add a version tag...
     1) Symlink (or copy) this file to .git/hooks/
     2) Ensure that it is executable (chmod +x .git/hooks/post-commit).
 """
