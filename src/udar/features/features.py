@@ -5,6 +5,7 @@ from typing import Optional
 from typing import Union
 from warnings import warn
 
+from ..misc import RSRC_DIR
 from ..tag import Tag
 from ..tag import tag_dict
 from .feature import Feature
@@ -22,7 +23,6 @@ tags_by_ms_feat = {ms_feat: tuple(tag_name
                                   if tag.ms_feat == ms_feat)
                    for ms_feat in ms_feats}
 
-RSRC_PATH = resource_filename('udar', 'resources/')
 kelly_dict: Optional[Dict] = None
 lexmin_dict: Optional[Dict] = None
 RNC_tok_freq_dict: Optional[Dict] = None
@@ -46,7 +46,7 @@ def add_to_ALL(name, category=None, depends_on=None):
 def _get_kelly_dict():
     global kelly_dict
     if kelly_dict is None:
-        with open(f'{RSRC_PATH}kelly_dict.pkl', 'rb') as f:
+        with open(f'{RSRC_DIR}/kelly_dict.pkl', 'rb') as f:
             kelly_dict = pickle.load(f)
     return kelly_dict
 
@@ -54,7 +54,7 @@ def _get_kelly_dict():
 def _get_lexmin_dict():
     global lexmin_dict
     if lexmin_dict is None:
-        with open(f'{RSRC_PATH}lexmin_dict.pkl', 'rb') as f:
+        with open(f'{RSRC_DIR}/lexmin_dict.pkl', 'rb') as f:
             lexmin_dict = pickle.load(f)
     return lexmin_dict
 
@@ -62,7 +62,7 @@ def _get_lexmin_dict():
 def _get_RNC_tok_freq_dict():
     global RNC_tok_freq_dict
     if RNC_tok_freq_dict is None:
-        with open(f'{RSRC_PATH}RNC_tok_freq_dict.pkl', 'rb') as f:
+        with open(f'{RSRC_DIR}/RNC_tok_freq_dict.pkl', 'rb') as f:
             RNC_tok_freq_dict = pickle.load(f)
     return RNC_tok_freq_dict
 
@@ -70,7 +70,7 @@ def _get_RNC_tok_freq_dict():
 def _get_RNC_tok_freq_rank_dict():
     global RNC_tok_freq_rank_dict
     if RNC_tok_freq_rank_dict is None:
-        with open(f'{RSRC_PATH}RNC_tok_freq_rank_dict.pkl', 'rb') as f:
+        with open(f'{RSRC_DIR}/RNC_tok_freq_rank_dict.pkl', 'rb') as f:
             RNC_tok_freq_rank_dict = pickle.load(f)
     return RNC_tok_freq_rank_dict
 
@@ -78,7 +78,7 @@ def _get_RNC_tok_freq_rank_dict():
 def _get_Sharoff_lem_freq_dict():
     global Sharoff_lem_freq_dict
     if Sharoff_lem_freq_dict is None:
-        with open(f'{RSRC_PATH}Sharoff_lem_freq_dict.pkl', 'rb') as f:
+        with open(f'{RSRC_DIR}/Sharoff_lem_freq_dict.pkl', 'rb') as f:
             Sharoff_lem_freq_dict = pickle.load(f)
     return Sharoff_lem_freq_dict
 
@@ -86,7 +86,7 @@ def _get_Sharoff_lem_freq_dict():
 def _get_Sharoff_lem_freq_rank_dict():
     global Sharoff_lem_freq_rank_dict
     if Sharoff_lem_freq_rank_dict is None:
-        with open(f'{RSRC_PATH}Sharoff_lem_freq_rank_dict.pkl', 'rb') as f:
+        with open(f'{RSRC_DIR}/Sharoff_lem_freq_rank_dict.pkl', 'rb') as f:
             Sharoff_lem_freq_rank_dict = pickle.load(f)
     return Sharoff_lem_freq_rank_dict
 
@@ -94,7 +94,7 @@ def _get_Sharoff_lem_freq_rank_dict():
 def _get_tix_morph_count_dict():
     global tix_morph_count_dict
     if tix_morph_count_dict is None:
-        with open(f'{RSRC_PATH}Tix_morph_count_dict.pkl', 'rb') as f:
+        with open(f'{RSRC_DIR}/Tix_morph_count_dict.pkl', 'rb') as f:
             tix_morph_count_dict = pickle.load(f)
     return tix_morph_count_dict
 
