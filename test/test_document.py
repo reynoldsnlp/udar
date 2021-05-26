@@ -179,3 +179,8 @@ def test_str2Sentences():
     super_sentence = udar.Sentence(joined_sents)
     sentences = udar.document._str2Sentences(super_sentence.text)
     assert len(super_sentence) == len(list(chain(*sentences)))
+
+
+def test_to_json():
+    doc = udar.Document('Мы здесь.')
+    assert doc.to_json() == '''[[{"id": "", "text": "Мы", "readings": [[{"lemma": "мы", "tags": ["Pron", "Pers", "Pl1", "Nom"]}]], "removed_readings": [], "head": -1, "deprel": ""}, {"id": "", "text": "здесь", "readings": [[{"lemma": "здесь", "tags": ["Adv"]}]], "removed_readings": [], "head": -1, "deprel": ""}, {"id": "", "text": ".", "readings": [[{"lemma": ".", "tags": ["CLB"]}]], "removed_readings": [], "head": -1, "deprel": ""}]]'''

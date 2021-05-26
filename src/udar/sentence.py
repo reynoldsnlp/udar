@@ -1,6 +1,7 @@
 """Sentence object"""
 
 from collections import Counter
+import json
 from pathlib import Path
 import re
 from subprocess import PIPE
@@ -399,8 +400,12 @@ class Sentence:
             raise TypeError('Sentence object only iterable after morphological'
                             ' analysis. Try Sentence.analyze() first.') from e
 
-    # def to_dict(self) -> List[Dict]:  # TODO
-    #     return [token.to_dict() for token in self.tokens]
+    def to_dict(self) -> List[Dict]:
+        """Convert to :py:obj:`list` of :py:obj:`dict` s."""
+        return [tok.to_dict() for tok in self.tokens]
+
+    def to_json(self, ensure_ascii=False, **kwargs) -> str:
+        return json.dumps(self.to_dict(), ensure_ascii=ensure_ascii, **kwargs)
 
     # def print_dependencies(self):
     #     # TODO
@@ -751,7 +756,3 @@ class Sentence:
             :py:func:`~udar.transliterate.transliterate`
         """
         return transliterate(self.text, **kwargs)
-
-    def to_dict(self) -> List[Dict]:
-        """Convert to :py:obj:`list` of :py:obj:`dict` s."""
-        return [tok.to_dict() for tok in self.tokens]

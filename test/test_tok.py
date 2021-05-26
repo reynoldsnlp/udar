@@ -106,3 +106,8 @@ def test_tok_can_be_pickled():
 def test_transliterate():
     t = udar.Token('объясняли', _analyzer=anl)
     assert t.transliterate() == 'obʺjasnjali'
+
+
+def test_to_json():
+    t = udar.Token('объясняли', _analyzer=anl)
+    assert t.to_json() == '''{"id": "", "text": "объясняли", "readings": [[{"lemma": "объяснять", "tags": ["V", "Impf", "IV", "Pst", "MFN", "Pl"]}], [{"lemma": "объяснять", "tags": ["V", "Impf", "TV", "Pst", "MFN", "Pl"]}]], "removed_readings": [], "head": -1, "deprel": ""}''', repr(t)

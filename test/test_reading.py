@@ -74,3 +74,8 @@ def test_can_be_pickled():
     with open('/tmp/reading.pkl', 'rb') as f:
         r2 = pickle.load(f)
     assert r == r2
+
+
+def test_to_json():
+    r = udar.reading.Reading(*('за+Pr#нечего+Pron+Neg+Acc', '50.000000'))
+    assert r.to_json() == '''[{"lemma": "за", "tags": ["Pr"]}, {"lemma": "нечего", "tags": ["Pron", "Neg", "Acc"]}]''', repr(r)

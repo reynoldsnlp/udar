@@ -1,5 +1,6 @@
 from collections import Counter
 from itertools import chain
+import json
 import re
 from sys import stderr
 from typing import Dict
@@ -285,7 +286,6 @@ class Document:
         """Convert to :py:obj:`list` of :py:obj:`list` of :py:obj:`dict` s."""
         return [sent.to_dict() for sent in self.sentences]
 
-    def to_json(self) -> str:
+    def to_json(self, ensure_ascii=False, **kwargs) -> str:
         """Convert to JSON str."""
-        import json
-        return json.dumps(self.to_dict())
+        return json.dumps(self.to_dict(), ensure_ascii=ensure_ascii, **kwargs)

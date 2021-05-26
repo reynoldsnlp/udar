@@ -111,7 +111,7 @@ phonetic transcription.
 | hfst\_str | `str` | Analysis stream in the XFST/HFST format |
 | from\_hfst | `Document` | Create `Document` from XFST/HFST format stream |
 | to\_dict | `list` | Convert to a complex list object |
-| to\_json | `str` | Convert to a JSON object |
+| to\_json | `str` | Convert to a JSON string |
 
 #### Examples
 
@@ -157,6 +157,7 @@ print(phonetic_doc1)
 | hfst\_str | `str` | Analysis stream in the XFST/HFST format |
 | from\_hfst | `Sentence` | Create `Sentence` from XFST/HFST format stream |
 | to\_dict | `list` | Convert to a complex list object |
+| to\_json | `str` | Convert to a JSON string |
 
 ### `Token` object
 
@@ -182,6 +183,7 @@ print(phonetic_doc1)
 | cg3\_str | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
 | hfst\_str | `str` | Analysis stream in the XFST/HFST format |
 | to\_dict | `dict` | Convert to a `dict` object |
+| to\_json | `str` | Convert to a JSON string |
 
 ### `Reading` object
 
@@ -202,6 +204,7 @@ print(phonetic_doc1)
 | replace\_tag | `None` | Replace a tag in this reading |
 | does\_not\_conflict | `bool` | Determine whether reading from external tagset (e.g. Universal Dependencies) conflicts with this reading |
 | to\_dict | `list` | Convert to a `list` object |
+| to\_json | `str` | Convert to a JSON string |
 
 ### `Subreading` object
 
@@ -217,6 +220,7 @@ print(phonetic_doc1)
 | hfst\_str | `str` | Analysis stream in the XFST/HFST format |
 | replace\_tag | `None` | Replace a tag in this reading |
 | to\_dict | `dict` | Convert to a `dict` object |
+| to\_json | `str` | Convert to a JSON string |
 
 ### `Tag` object
 

@@ -1,5 +1,6 @@
 """Grammatical readings."""
 
+import json
 from math import isclose
 import re
 from typing import Dict
@@ -209,3 +210,6 @@ class Reading:
 
     def to_dict(self) -> List[Dict]:
         return [subreading.to_dict() for subreading in self.subreadings]
+
+    def to_json(self, ensure_ascii=False, **kwargs) -> str:
+        return json.dumps(self.to_dict(), ensure_ascii=ensure_ascii, **kwargs)

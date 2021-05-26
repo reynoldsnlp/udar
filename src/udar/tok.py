@@ -1,5 +1,6 @@
 """Python wrapper of UDAR, a part-of-speech tagger for (accented) Russian"""
 
+import json
 from random import choice
 import re
 import sys
@@ -205,8 +206,21 @@ class Token:
     def __iter__(self):
         return iter(self.readings)
 
-    # def to_dict(self) -> List[str]:  # TODO
-    #     return [r.to_dict() for r in self.readings]
+    def to_dict(self) -> Dict:
+        """Convert to :py:obj:`dict`."""
+        return {'id': self.id,
+                'text': self.text,
+                'readings': [r.to_dict() for r in self.readings],
+                'removed_readings': [r.to_dict()
+                                     for r in self.removed_readings],
+                'head': self.head,
+                'deprel': self.deprel,
+                # 'misc': f'start_char={self.start_char}|end_char={self.end_char}',  # noqa: E501
+                # 'ner': 'O'}
+                }
+
+    def to_json(self, ensure_ascii=False, **kwargs) -> str:
+        return json.dumps(self.to_dict(), ensure_ascii=ensure_ascii, **kwargs)
 
     # def pretty_print(self):
     #     # TODO
@@ -664,16 +678,3 @@ class Token:
             :py:func:`~udar.transliterate.transliterate`
         """
         return transliterate(self.text, **kwargs)
-
-    def to_dict(self) -> Dict:
-        """Convert to :py:obj:`dict`."""
-        return {'id': self.id,
-                'text': self.text,
-                'readings': [r.to_dict() for r in self.readings],
-                'removed_readings': [r.to_dict()
-                                     for r in self.removed_readings],
-                'head': self.head,
-                'deprel': self.deprel,
-                # 'misc': f'start_char={self.start_char}|end_char={self.end_char}',  # noqa: E501
-                # 'ner': 'O'}
-                }

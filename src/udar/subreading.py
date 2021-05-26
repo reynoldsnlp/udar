@@ -1,5 +1,6 @@
 """Grammatical subreading (lemma and tags)."""
 
+import json
 import re
 from typing import Dict
 from typing import List
@@ -104,3 +105,6 @@ class Subreading:
     def to_dict(self) -> Dict:
         return {'lemma': self.lemma,
                 'tags': [tag.name for tag in self.tags]}
+
+    def to_json(self, ensure_ascii=False, **kwargs) -> str:
+        return json.dumps(self.to_dict(), ensure_ascii=ensure_ascii, **kwargs)
