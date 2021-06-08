@@ -187,12 +187,12 @@ _tags = [('A', 'POS', 'Adjective'),
          ('Err/L2_i2y', 'L2ERROR', 'L2 error: ы instead of и'),
          ('Err/L2_ii', 'L2ERROR', 'L2 error: Failure to change ending ие to ии in +Sg+Loc or +Sg+Dat, e.g. к Марие, о кафетерие, о знание'),  # noqa: E501
          ('Err/L2_Ikn', 'L2ERROR', 'L2 error: Ikanje, i.e. spelling е/я/а as и to reflect vowel reduction'),  # noqa: E501
-         ('Err/L2_je2e', 'L2ERROR', 'L2 error: э instead of е'),
          ('Err/L2_j2i', 'L2ERROR', 'L2 error: и instead of й'),
+         ('Err/L2_je2e', 'L2ERROR', 'L2 error: э instead of е'),
          ('Err/L2_NoFV', 'L2ERROR', 'L2 error: Lack of fleeting vowel where it should be inserted, e.g. окн (compare окон)'),  # noqa: E501
          ('Err/L2_NoGem', 'L2ERROR', 'L2 error: Failure to include both letters in a geminate, e.g. руский (compare русский)'),  # noqa: E501
          ('Err/L2_NoSS', 'L2ERROR', 'L2 error: Lack of soft sign, e.g. восми (compare восьми)'),  # noqa: E501
-         ('Err/L2_o2a', 'L2ERROR', 'L2 error: а instead of о'),
+         ('Err/L2_o2a', 'L2ERROR', 'L2 error: Akanje, i.e. а instead of о'),
          ('Err/L2_Pal', 'L2ERROR', 'L2 error: Palatalization: failure to place soft-indicating symbol after soft stem, e.g. земла (compare земля)'),  # noqa: E501
          ('Err/L2_prijti', 'L2ERROR', 'L2 error: misspelling the stem of прийти, especially the й'),  # noqa: E501
          ('Err/L2_revIkn', 'L2ERROR', 'L2 error: Reversed ikanje, i.e. spelling и as е/я/а to reflect supposed vowel reduction'),  # noqa: E501
