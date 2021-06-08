@@ -38,15 +38,15 @@ vislcg3 --version | grep VISL >> hfst_vislcg3_versions.txt
 
 
 echo "Checking for unnecessary noqa's..."
-egrep "^.{,76}[^\"]{3}# noqa: E501" test/*.py udar/**/*.py
+egrep "^.{,76}[^\"]{3}# noqa: E501" test/*.py src/udar/**/*.py
 
 
 echo "Running flake8..."
-flake8 *.py test/**/*.py udar/**/*.py
+flake8 *.py test/**/*.py src/udar/**/*.py
 
 
 echo "Running mypy..."
-mypy udar
+mypy src/udar
 
 
 echo "Running pytest..."
