@@ -20,9 +20,6 @@ If you use this work in your research please cite the following:
 
 ## Non-python dependencies
 
-This repository uses `git-lfs` for large files. Be sure to
-[download and install it](https://git-lfs.github.com/) before you clone/commit.
-
 For all features to be available, you should have `hfst` and `vislcg3`
 installed as command-line utilities. Specifically, `hfst` is needed for
 FST-based tokenization, and `vislcg3` is needed for grammatical disambiguation.
@@ -45,8 +42,13 @@ $ sudo apt-get install cg3 hfst hfst-dev
 
 ## Installation
 
-Until the first stable version is released on [PyPI](https://pypi.org/), `udar`
-can be installed directly from this repository using `pip`:
+This package can be installed from [PyPI](https://pypi.org/) using the usual...
+
+```bash
+$ python -m pip install --user udar
+```
+
+...or directly from this repository using...
 
 ```bash
 $ python3 -m pip install --user git+https://github.com/reynoldsnlp/udar
@@ -360,4 +362,16 @@ print(pl_readings)
 
 ## Related projects
 
-https://github.com/mikahama/uralicNLP
+### Finite-state tools
+
+* https://github.com/giellalt/lang-rus (The FSTs underlying this package comes from here)
+* https://github.com/mikahama/uralicNLP
+
+### Russian morphological analysis
+
+* https://github.com/kmike/pymorphy2
+* https://yandex.ru/dev/mystem/
+  * Python wrapper here: https://github.com/nlpub/pymystem3
+* http://corpus.leeds.ac.uk/mocky/
+* https://github.com/IlyaGusev/rnnmorph
+* https://github.com/TALP-UPC/freeling
