@@ -171,8 +171,8 @@ _tags = [('A', 'POS', 'Adjective'),
          ('RIGHT', 'PUNCT', 'Right bracket punctuation'),
          ('Prb', 'CONFIDENCE', '+Prb(lematic): затруднительно - предположительно - нет'),  # noqa: E501
          ('Fac', 'CONFIDENCE', 'Facultative'),
-         ('PObj', 'SYNTACTIC', 'Object of preposition (epenthetic н: него нее них) TODO FIX WITHFRAN merge PObj and Epenth > Epenth? Sandhi?'),  # noqa: E501
-         ('Epenth', 'PHON', 'epenthesis on prepositions (о~об~обо or в~во)      TODO FIX WITHFRAN merge PObj and Epenth > Epenth? Sandhi?'),  # noqa: E501
+         ('PObj', 'SYNTACTIC', 'Object of preposition (epenthetic н: него нее них)'),  # noqa: E501
+         ('Epenth', 'PHON', 'epenthesis on prepositions (о~об~обо or в~во)'),  # noqa: E501
          ('Leng', 'PHON', 'Lengthened доброй~доброю (marks less-canonical wordform that has more syllables)'),  # noqa: E501
          ('Elid', 'PHON', 'Elided (Иванович~Иваныч, новее~новей, чтобы~чтоб, или~иль, коли~коль)'),  # noqa: E501
          ('Use/NG', 'USE', 'Do not generate (used for apertium, etc.)'),
