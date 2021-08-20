@@ -39,7 +39,8 @@ def stressed(in_str: str, disambiguate=False, **kwargs):
     return in_doc.stressed(**kwargs)
 
 
-def noun_distractors(noun: Union[str, Reading], stressed=True, L2_errors=False):
+def noun_distractors(noun: Union[str, Reading], stressed=True,
+                     L2_errors=False):
     """Given an input noun, return set of wordforms in its paradigm.
 
     The input noun can be in any case. Output paradigm is limited to the same
@@ -82,8 +83,8 @@ def diagnose_L2(in_str: str, tokenizer=None):
 
     Return dict of errors: {<Tag>: {set, of, exemplars, in, text}, ...}
 
-    >>> diag = diagnose_L2('Мы разговаривали в кафетерие с Таной')
-    >>> diag == {'Err/L2_ii': {'кафетерие'}, 'Err/L2_Pal': {'Таной'}}
+    >>> diag = diagnose_L2('Он видил нас на тролейбусе.')
+    >>> diag == {'Err/L2_Ikn': {'видил'}, 'Err/L2_NoGem': {'тролейбусе'}}
     True
     >>> tag_info('Err/L2_ii')
     'L2 error: Failure to change ending ие to ии in +Sg+Loc or +Sg+Dat, e.g. к Марие, о кафетерие, о знание'

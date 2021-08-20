@@ -1,5 +1,4 @@
 from itertools import chain
-from pkg_resources import resource_filename
 from sys import stderr
 
 import udar
@@ -183,4 +182,4 @@ def test_str2Sentences():
 
 def test_to_json():
     doc = udar.Document('Мы здесь.')
-    assert doc.to_json() == '''[[{"id": "", "text": "Мы", "readings": [[{"lemma": "мы", "tags": ["Pron", "Pers", "Pl1", "Nom"]}]], "removed_readings": [], "head": -1, "deprel": ""}, {"id": "", "text": "здесь", "readings": [[{"lemma": "здесь", "tags": ["Adv"]}]], "removed_readings": [], "head": -1, "deprel": ""}, {"id": "", "text": ".", "readings": [[{"lemma": ".", "tags": ["CLB"]}]], "removed_readings": [], "head": -1, "deprel": ""}]]'''
+    assert doc.to_json() == '''[[{"id": "", "text": "Мы", "readings": [[{"lemma": "мы", "tags": ["Pron", "Pers", "Pl1", "Nom"]}]], "removed_readings": [], "head": -1, "deprel": ""}, {"id": "", "text": "здесь", "readings": [[{"lemma": "здесь", "tags": ["Adv"]}]], "removed_readings": [], "head": -1, "deprel": ""}, {"id": "", "text": ".", "readings": [[{"lemma": ".", "tags": ["CLB"]}]], "removed_readings": [], "head": -1, "deprel": ""}]]'''  # noqa: E501

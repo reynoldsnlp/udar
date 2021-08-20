@@ -1,5 +1,4 @@
 from copy import deepcopy
-from pkg_resources import resource_filename
 from pprint import pprint
 from sys import stderr
 

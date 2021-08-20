@@ -29,8 +29,10 @@ G2P_FNAME = f'{FST_DIR}/g2p.hfstol'
 def decompress_fsts(fst_dir=FST_DIR):
     os.makedirs(fst_dir, exist_ok=True)
     for fname in glob(f'{RSRC_DIR}/*.gz'):
-        target_fname = f'{FST_DIR}/{fname.split(os.path.sep)[-1][:-3]}'  # remove ".gz"
-        print(f'\tdecompressing {fname} to {target_fname} ...', file=sys.stderr)
+        # remove ".gz"
+        target_fname = f'{FST_DIR}/{fname.split(os.path.sep)[-1][:-3]}'
+        print(f'\tdecompressing {fname} to {target_fname} ...',
+              file=sys.stderr)
         with gzip.open(fname) as gzipped:
             with open(target_fname, 'wb') as unzipped:
                 unzipped.write(gzipped.read())

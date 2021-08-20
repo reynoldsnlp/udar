@@ -74,7 +74,7 @@ def tests():
                         ('1.2.3.1', '1.2.3.2'),
                         ('1.2.3.1b4', '1.2.3.1')]:
         print('1.2.3', t, bump_python_version(parse(t)), sep='\t')
-        assert bump_python_version(parse(t), beta=False) == expected, ('1.2.3', t, expected)
+        assert bump_python_version(parse(t), beta=False) == expected, ('1.2.3', t, expected)  # noqa: E501
     print('BETA')
     for t, expected in [('1.2.2.5', '1.2.3.0b0'),
                         ('1.2.2.5b4', '1.2.3.0b0'),
@@ -83,7 +83,7 @@ def tests():
                         ('1.2.3.1', '1.2.3.2b0'),
                         ('1.2.3.1b4', '1.2.3.1b5')]:
         print('1.2.3', t, bump_python_version(parse(t), beta=True), sep='\t')
-        assert bump_python_version(parse(t), beta=True) == expected, ('1.2.3', t, expected)
+        assert bump_python_version(parse(t), beta=True) == expected, ('1.2.3', t, expected)  # noqa: E501
 
 
 if __name__ == '__main__':
@@ -93,10 +93,10 @@ if __name__ == '__main__':
         pypi_version = get_pypi_version(test=TEST)
         print(f'Current {"Test " if TEST else ""}PyPI version:',
               pypi_version, file=sys.stderr)
-        latest_tag = subprocess.check_output('git describe --tags'.split(), encoding='utf8').rstrip()
+        latest_tag = subprocess.check_output('git describe --tags'.split(), encoding='utf8').rstrip()  # noqa: E501
         print(f'Latest git tag: {latest_tag}', file=sys.stderr)
         new_version = bump_python_version(pypi_version, beta=BETA)
         print('Suggested new version:', new_version, file=sys.stderr)
-        version = input(f'Please type the version number (default: {new_version}): ')
+        version = input(f'Please type the version number (default: {new_version}): ')  # noqa: E501
         completed = subprocess.run(['git', 'tag', f'v{version}'])
         sys.exit(completed.returncode)

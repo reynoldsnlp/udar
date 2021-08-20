@@ -78,4 +78,4 @@ def test_can_be_pickled():
 
 def test_to_json():
     r = udar.reading.Reading(*('за+Pr#нечего+Pron+Neg+Acc', '50.000000'))
-    assert r.to_json() == '''[{"lemma": "за", "tags": ["Pr"]}, {"lemma": "нечего", "tags": ["Pron", "Neg", "Acc"]}]''', repr(r)
+    assert r.to_json() == '''[{"lemma": "за", "tags": ["Pr"]}, {"lemma": "нечего", "tags": ["Pron", "Neg", "Acc"]}]''', repr(r)  # noqa: E501

@@ -1,6 +1,5 @@
-UD_conflicts = {
-                # UD_tag: set of conflicting udar tags
-                'ADJ': {'N'},
+# UD_tag: set of conflicting udar tags
+UD_conflicts = {'ADJ': {'N'},
                 'ADV': {'A', 'CS', 'Pcle'},
                 'CCONJ': {'Pron', 'N', 'Interj', 'Adv', 'CS'},
                 'SCONJ': {'Pron', 'N', 'Interj', 'Adv', 'CC'},

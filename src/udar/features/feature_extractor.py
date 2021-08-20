@@ -2,7 +2,6 @@ from collections import OrderedDict
 from collections import namedtuple
 from datetime import datetime
 import sys
-from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -66,7 +65,7 @@ class FeatureExtractor(OrderedDict):
     def __call__(self, docs: Union[List[Document], Document], feat_names=None,
                  category_names: List[str] = None, header=True,
                  return_named_tuples=True, tsv=False,
-                 **kwargs) -> Union[List[Tuple[Any, ...]], str]:
+                 **kwargs) -> Union[List[Tuple], str]:
         feat_names = self._get_cat_and_feat_names(feat_names=feat_names,
                                                   category_names=category_names)  # noqa: E501
         if return_named_tuples:
@@ -75,7 +74,7 @@ class FeatureExtractor(OrderedDict):
             else:
                 tuple_constructor = namedtuple('Features', feat_names)  # type: ignore  # noqa: E501
         else:
-            tuple_constructor = tuple
+            tuple_constructor = tuple  # type: ignore
         output = []
         if header:
             output.append(feat_names)

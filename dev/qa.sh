@@ -50,7 +50,7 @@ mypy src/udar
 
 
 echo "Running pytest..."
-pytest --cov=udar --cov-append --cov-report term-missing --doctest-modules
+python3.7 -m pytest --cov=udar --cov-append --cov-report term-missing --doctest-modules
 
 
 rm .coverage  # can conflict with tox

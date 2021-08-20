@@ -71,4 +71,4 @@ def test_can_be_pickled():
 
 def test_to_json():
     s = udar.reading.Subreading('слово+N+Neu+Inan+Pl+Ins')
-    assert s.to_json() == '''{"lemma": "слово", "tags": ["N", "Neu", "Inan", "Pl", "Ins"]}''', repr(s)
+    assert s.to_json() == '''{"lemma": "слово", "tags": ["N", "Neu", "Inan", "Pl", "Ins"]}''', repr(s)  # noqa: E501

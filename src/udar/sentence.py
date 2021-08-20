@@ -489,7 +489,8 @@ class Sentence:
         else:
             cmd = ['vislcg3', '-g', gram_path]
         try:
-            p = Popen(cmd, encoding='utf8', stdin=PIPE, stdout=PIPE, universal_newlines=True)
+            p = Popen(cmd, encoding='utf8', stdin=PIPE, stdout=PIPE,
+                      universal_newlines=True)
         except FileNotFoundError as e:
             raise FileNotFoundError('vislcg3 must be installed and be in your '
                                     'PATH variable to disambiguate a text.') from e  # noqa: E501

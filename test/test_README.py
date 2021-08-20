@@ -40,7 +40,7 @@ def test_blocks():
             with stdoutIO() as s:
                 exec(code, globals())
             out = s.getvalue().strip()
-            assert out == expected_out, f'{code} => {out}' 
+            assert out == expected_out, f'{code} => {out}'
 
 
 def test_properties_documented_in_tables_actually_exist():
