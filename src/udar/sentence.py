@@ -106,7 +106,7 @@ def get_tokenizer(use_pexpect=True) -> Tokenizer:
             raise ModuleNotFoundError('Neither hfst or nltk are installed. '
                                       'One of them must be installed for '
                                       'tokenization.') from e
-        except LookupError as e: # -*- coding: utf-8 -*-
+        except LookupError as e:
             # punkt not found
             try:
                 # attempt to download punkt
