@@ -37,7 +37,7 @@ $ curl https://apertium.projectjj.com/osx/install-nightly.sh | sudo bash
 
 ```bash
 $ wget https://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
-$ sudo apt-get install cg3 hfst hfst-dev
+$ sudo apt-get install cg3 hfst python3-hfst
 ```
 
 ## Installation
