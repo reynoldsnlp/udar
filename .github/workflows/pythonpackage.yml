@@ -17,6 +17,7 @@ jobs:
       run: |
         wget https://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
         sudo apt-get -f install cg3 hfst python3-hfst
+        python3 -m pip install --upgrade pip setuptools
         python3 -m pip install .[test]
     - name: Lint with flake8
       run: |
