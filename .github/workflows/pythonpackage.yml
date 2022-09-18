@@ -19,8 +19,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        python3 -m pip install --upgrade toml
-        python3 -m pip install --upgrade pip
         python3 -m pip install .[test]
         wget https://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
         sudo apt-get -f install cg3 hfst python3-hfst
