@@ -101,14 +101,19 @@ def get_tokenizer(use_pexpect=True) -> Tokenizer:
     else:  # TODO use stanza instead of nltk?
         try:
             import nltk  # type: ignore
-            assert nltk.download('punkt')
+            nltk.data.find('tokenizers/punkt')
         except ModuleNotFoundError as e:
             raise ModuleNotFoundError('Neither hfst or nltk are installed. '
                                       'One of them must be installed for '
                                       'tokenization.') from e
-        except AssertionError as e:
-            raise AssertionError("Cannot download nltk's `punkt` model. "
-                                 'Connect to the internet & try again.') from e
+        except LookupError as e:
+            # punkt not found
+            try:
+                # attempt to download punkt
+                assert nltk.download('punkt')
+            except AssertionError as e:
+                raise AssertionError("Cannot download nltk's `punkt` model. "
+                                     'Connect to the internet & try again.') from e
         else:
             warn('hfst-tokenize not found. Using nltk.word_tokenize....',
                  ImportWarning, stacklevel=2)
