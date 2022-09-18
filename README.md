@@ -27,7 +27,7 @@ The version used to successfully test the code is included in each commit in
 [this file](../master/hfst_vislcg3_versions.txt). The recommended method
 for installing these dependencies is as follows:
 
-#### MacOS
+#### MacOS (Python 3.6 or 3.7 only)
 
 ```bash
 $ curl https://apertium.projectjj.com/osx/install-nightly.sh | sudo bash
