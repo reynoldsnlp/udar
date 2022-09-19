@@ -18,7 +18,7 @@ If you use this work in your research please cite the following:
 
 #### Feature requests, issues, and pull requests are welcome!
 
-## Non-python dependencies
+## Dependencies
 
 For all features to be available, you should have `hfst` and `vislcg3`
 installed as command-line utilities. Specifically, `hfst` is needed for
@@ -27,12 +27,6 @@ The version used to successfully test the code is included in each commit in
 [this file](../master/hfst_vislcg3_versions.txt). The recommended method
 for installing these dependencies is as follows:
 
-#### MacOS (Python 3.6 or 3.7 only)
-
-```bash
-$ curl https://apertium.projectjj.com/osx/install-nightly.sh | sudo bash
-```
-
 #### Debian / Ubuntu
 
 ```bash
@@ -40,12 +34,22 @@ $ wget https://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
 $ sudo apt-get install cg3 hfst python3-hfst
 ```
 
+#### MacOS (Python 3.5/3.6/3.7 only)
+
+On MacOS, one of `udar`'s dependencies, the python package `hfst`, is not
+currently available for Python 3.8+. Hopefully, this will be remedied soon.
+
+```bash
+$ curl https://apertium.projectjj.com/osx/install-nightly.sh | sudo bash
+$ python3 -m pip install hfst
+```
+
 ## Installation
 
 This package can be installed from [PyPI](https://pypi.org/) using the usual...
 
 ```bash
-$ python -m pip install --user udar
+$ python3 -m pip install --user udar
 ```
 
 ...or directly from this repository using...
