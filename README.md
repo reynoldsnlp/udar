@@ -34,7 +34,7 @@ $ wget https://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
 $ sudo apt-get install cg3 hfst python3-hfst
 ```
 
-#### MacOS (Python 3.5/3.6/3.7 only)
+#### MacOS (Python 3.6/3.7 only)
 
 On MacOS, one of `udar`'s dependencies, the python package `hfst`, is not
 currently available for Python 3.8+. Hopefully, this will be remedied soon.
