@@ -409,6 +409,10 @@ class Sentence:
         """Convert to :py:obj:`list` of :py:obj:`dict` s."""
         return [tok.to_dict() for tok in self.tokens]
 
+    def to_html(self, **kwargs) -> str:
+        """Convert to HTML :py:obj:`str`."""
+        return " ".join(tok.to_html(**kwargs) for tok in self.tokens)
+
     def to_json(self, ensure_ascii=False, **kwargs) -> str:
         return json.dumps(self.to_dict(), ensure_ascii=ensure_ascii, **kwargs)
 

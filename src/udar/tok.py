@@ -1,5 +1,6 @@
 """Python wrapper of UDAR, a part-of-speech tagger for (accented) Russian"""
 
+import html
 import json
 from random import choice
 import re
@@ -218,6 +219,21 @@ class Token:
                 # 'misc': f'start_char={self.start_char}|end_char={self.end_char}',  # noqa: E501
                 # 'ner': 'O'}
                 }
+
+    def to_html(self, **kwargs) -> str:
+        """Convert to HTML :py:obj:`str`."""
+        if "tok2html_func" in kwargs:
+            return kwargs["tok2html_func"](self, **kwargs)
+
+        data = ""
+        if kwargs.get("all_data"):  # Good for debugging. otherwise use doc.to_json()
+            data = f' data-data="{html.escape(self.to_json)}"'
+        classes = ""
+        if "tag2class" in kwargs:
+            classes = ' class="' + " ".join(class_
+                                            for tag, class_ in kwargs["tag2class"]
+                                            if any(tag in r for r in self.readings)) + '"'
+        return f"<span{classes}{data}>{self.text}</span>"
 
     def to_json(self, ensure_ascii=False, **kwargs) -> str:
         return json.dumps(self.to_dict(), ensure_ascii=ensure_ascii, **kwargs)

@@ -286,6 +286,10 @@ class Document:
         """Convert to :py:obj:`list` of :py:obj:`list` of :py:obj:`dict` s."""
         return [sent.to_dict() for sent in self.sentences]
 
+    def to_html(self, **kwargs) -> str:
+        """Convert to HTML :py:obj:`str`."""
+        return ' '.join(sent.to_html(**kwargs) for sent in self.sentences)
+
     def to_json(self, ensure_ascii=False, **kwargs) -> str:
         """Convert to JSON str."""
         return json.dumps(self.to_dict(), ensure_ascii=ensure_ascii, **kwargs)
