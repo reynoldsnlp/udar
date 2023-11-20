@@ -2,7 +2,10 @@
 
 from collections import namedtuple
 from enum import Enum
-from importlib.resources import files
+try:
+    from importlib.resources import files
+except ImportError:
+    from importlib_resources import files  # < Python 3.9
 import os
 from pathlib import Path
 import re
