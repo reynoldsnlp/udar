@@ -13,8 +13,6 @@ from typing import Union
 import unicodedata
 from warnings import warn
 
-# import nltk (this happens covertly by unpickling nltk_punkt_russian.pkl)
-
 from .fsts import get_analyzer
 from .misc import get_stanza_sent_tokenizer
 from .sentence import Sentence
@@ -26,16 +24,6 @@ __all__ = ['Document']
 NEWLINE = '\n'  # for use in f-strings
 
 src = '''Мы все говорили кое о чем с тобой, но по-моему, все это ни к чему, как он сказал. Он стоял в парке и. Ленина.'''  # noqa: E501
-
-# Obsolete??
-# def get_sent_tokenizer():
-#     global nltk_sent_tokenizer
-#     try:
-#         return nltk_sent_tokenizer
-#     except NameError:
-#         with open(f'{RSRC_DIR}/nltk_punkt_russian.pkl', 'rb') as f:
-#             nltk_sent_tokenizer = pickle.load(f)
-#         return nltk_sent_tokenizer
 
 
 def _str2Sentences(input_str, **kwargs) -> List[Sentence]:
@@ -117,7 +105,6 @@ class Document:
         warn('Indexing on large Document objects can be slow. '
              'It is more efficient to index Tokens within Document.sentences',
              stacklevel=3)
-        # TODO optimize?
         return list(self)[i]
 
     def __iter__(self) -> Iterator[Token]:

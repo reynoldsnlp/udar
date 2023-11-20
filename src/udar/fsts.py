@@ -53,7 +53,7 @@ class Udar:
                  fst_dir: str = FST_DIR):
         self.path2fst = f'{fst_dir}/{fname}'
         if not Path(self.path2fst).exists():
-            print('First time use.', end=' ', file=sys.stderr)
+            print('First time use. Decompressing FSTs...', end=' ', file=sys.stderr)
             decompress_fsts(fst_dir=fst_dir)
         fst_stream = hfst.HfstInputStream(self.path2fst)
         self.fst = fst_stream.read()

@@ -1,12 +1,7 @@
 import pickle
-from pkg_resources import resource_filename
 
 import pytest
-
 import udar
-
-
-RSRC_PATH = resource_filename('udar', 'resources/')
 
 
 def test_simple():

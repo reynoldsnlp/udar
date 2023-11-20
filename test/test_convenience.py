@@ -1,12 +1,9 @@
-from pkg_resources import resource_filename
-
 import pytest
 
 from udar import convenience
 from udar import Document
 
 
-RSRC_PATH = resource_filename('udar', 'resources/')
 sent = 'Иванов и Сыроежкин говорили полчаса кое с кем о лицах, "ртах" и т.д.'
 
 

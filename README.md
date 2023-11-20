@@ -74,16 +74,16 @@ import udar
 doc1 = udar.Document('Мы удивились простоте системы.')
 print(doc1)
 # Мы	мы+Pron+Pers+Pl1+Nom	0.000000
-# 
+#
 # удивились	удивиться+V+Perf+IV+Pst+MFN+Pl	5.078125
-# 
+#
 # простоте	простота+N+Fem+Inan+Sg+Dat	4.210938
 # простоте	простота+N+Fem+Inan+Sg+Loc	4.210938
-# 
+#
 # системы	система+N+Fem+Inan+Pl+Acc	5.429688
 # системы	система+N+Fem+Inan+Pl+Nom	5.429688
 # системы	система+N+Fem+Inan+Sg+Gen	5.429688
-# 
+#
 # .	.+CLB	0.000000
 ```
 
@@ -117,6 +117,7 @@ phonetic transcription.
 | hfst\_str | `str` | Analysis stream in the XFST/HFST format |
 | from\_hfst | `Document` | Create `Document` from XFST/HFST format stream |
 | to\_dict | `list` | Convert to a complex list object |
+| to\_html | `str` | Convert to HTML with markup in `data-` attributes |
 | to\_json | `str` | Convert to a JSON string |
 
 #### Examples
@@ -163,6 +164,7 @@ print(phonetic_doc1)
 | hfst\_str | `str` | Analysis stream in the XFST/HFST format |
 | from\_hfst | `Sentence` | Create `Sentence` from XFST/HFST format stream |
 | to\_dict | `list` | Convert to a complex list object |
+| to\_html | `str` | Convert to HTML with markup in `data-` attributes |
 | to\_json | `str` | Convert to a JSON string |
 
 ### `Token` object
@@ -189,6 +191,7 @@ print(phonetic_doc1)
 | cg3\_str | `str` | Analysis stream in the [VISL-CG3 format](https://visl.sdu.dk/cg3/single/#stream-vislcg) |
 | hfst\_str | `str` | Analysis stream in the XFST/HFST format |
 | to\_dict | `dict` | Convert to a `dict` object |
+| to\_html | `str` | Convert to HTML with markup in `data-` attributes |
 | to\_json | `str` | Convert to a JSON string |
 
 ### `Reading` object
@@ -340,7 +343,7 @@ print(stressed_generator('слово+N+Neu+Inan+Pl+Nom'))
 
 You can easily check if a morphosyntactic tag is in a `Token`, `Reading`,
 or `Subreading` using `in`:
- 
+
 ```python
 token2 = udar.Token('слова', analyze=True)
 print(token2)

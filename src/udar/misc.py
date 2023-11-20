@@ -2,9 +2,9 @@
 
 from collections import namedtuple
 from enum import Enum
+from importlib.resources import files
 import os
 from pathlib import Path
-from pkg_resources import resource_filename
 import re
 import sys
 from typing import Dict
@@ -23,7 +23,8 @@ __all__ = ['StressParams', 'Result', 'result_names', 'destress',
 
 FST_DIR = os.getenv('UDAR_RESOURCES_DIR',
                     os.path.join(str(Path.home()), 'udar_resources'))
-RSRC_DIR = resource_filename('udar', 'resources')
+RSRC_DIR = files('udar') / 'resources'
+print(RSRC_DIR)
 
 ACUTE = '\u0301'  # acute combining accent: x́
 GRAVE = '\u0300'  # grave combining accent: x̀
@@ -104,7 +105,7 @@ def compute_metrics(results: Dict[Result, int]):
     for old, new in result_names.items():
         out_dict[new] = results.get(old, 0)
     Metrics = namedtuple('Metrics', sorted(out_dict))  # type: ignore
-    return Metrics(**out_dict)  # type: ignore
+    return Metrics(**out_dict)
 
 
 def destress(token: str) -> str:

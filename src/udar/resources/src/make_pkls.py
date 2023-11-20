@@ -1,12 +1,12 @@
 from collections import defaultdict
+from importlib.resources import files
 import pickle
-from pkg_resources import resource_filename
 import re
 from statistics import mean
 from sys import stderr
 
 
-RSRC_DIR = resource_filename('udar', 'resources')
+RSRC_DIR = files('udar') / 'resources'
 
 
 def tixonov():

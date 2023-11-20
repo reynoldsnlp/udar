@@ -34,7 +34,7 @@ def test_block_extraction():
 
 def test_blocks():
     for block in blocks:
-        for code, expected_out in re.findall(r'((?:[^#].*\n)+)((?:# .*\n)*)',
+        for code, expected_out in re.findall(r'((?:[^#].*\n)+)((?:# ?.*\n)*)',
                                              block):
             expected_out = re.sub('^# ?', '', expected_out, flags=re.M).strip()
             with stdoutIO() as s:

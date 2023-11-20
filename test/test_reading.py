@@ -1,17 +1,13 @@
 import pickle
-from pkg_resources import resource_filename
 
 import udar
-
-
-RSRC_PATH = resource_filename('udar', 'resources/')
 
 
 def test_rule():
     r = udar.reading.Reading(*("слово+N+Neu+Inan+Pl+Ins",
                                '5.975586',
                                'SELECT:41:stuff'))
-    assert type(r) == udar.reading.Reading
+    assert isinstance(r, udar.reading.Reading)
     assert r.lemmas == ['слово']
     assert r.grouped_tags == 'N+Neu+Inan+Pl+Ins'.split('+')
     assert r.weight == '5.975586'
@@ -20,7 +16,7 @@ def test_rule():
 
 def test_multiple_subreadings():
     r = udar.reading.Reading(*('и т.д.+Abbr#.+SENT', '0.000000'))
-    assert type(r) == udar.reading.Reading
+    assert isinstance(r, udar.reading.Reading)
     assert len(r.subreadings) == 2
 
 

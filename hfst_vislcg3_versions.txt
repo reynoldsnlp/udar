@@ -1,3 +1,3 @@
 Versions with which tests passed for this commit:
-hfst-tokenize 0.1 (hfst 3.15.5)
-VISL CG-3 Disambiguator version 1.3.4.13891
+hfst-tokenize 0.1 (hfst 3.16.0)
+VISL CG-3 Disambiguator version 1.4.7.13897

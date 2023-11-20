@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING
 from typing import Union
 
 from .fsts import get_analyzer
-from .fsts import get_g2p
 from .fsts import get_generator
 from .misc import combine_stress
 from .misc import destress
@@ -624,54 +623,25 @@ class Token:
         #     :py:class:`Sentence` has undergone CG3 disambiguation.
         # """
         # TODO check if `all` selection is compatible with g2p.hfstol
-        # TODO make this function suck less
-        g2p = get_g2p()
-        if lemma:
-            self.removed_readings.extend([r for r in self.readings
-                                          if lemma not in r.lemmas])
-            self.readings = [r for r in self.readings if lemma in r.lemmas]
         transcriptions = self.phonetic_transcriptions()
         if not transcriptions:
-            if guess:
-                stress_pred = self.guess_syllable()
-            elif _experiment:
-                stress_pred = destress(self.text)
-            else:
-                stress_pred = self.text
+            return f'__0__{self.text}__0__'
         elif len(transcriptions) == 1:
             return transcriptions.pop()
         else:  # if there are more than one possible transcription
             if selection == 'safe':
-                if _experiment:
-                    stress_pred = destress(self.text)
-                else:
-                    stress_pred = self.text
+                return f'__{self.text}__'
             elif selection == 'rand':
                 return choice(list(transcriptions))
             elif selection == 'freq':
                 raise NotImplementedError("The 'freq' selection method is not "
                                           'implemented yet.')
             elif selection == 'all':
-                stresses = self.stresses()
-                acutes = [(w.replace(GRAVE, '').index(ACUTE), ACUTE)
-                          for w in stresses if ACUTE in w]
-                graves = [(w.replace(ACUTE, '').index(GRAVE), GRAVE)
-                          for w in stresses if GRAVE in w]
-                yos = [(w.replace(GRAVE, '').replace(ACUTE, '').index('ё'), 'ё')  # noqa: E501
-                       for w in stresses if 'ё' in w]
-                positions = acutes + graves + yos
-                word = list(destress(transcriptions.pop()))
-                for i, char in sorted(positions, key=lambda x: (-x[0], x[1]),
-                                      reverse=True):
-                    if char in (ACUTE, GRAVE):
-                        word.insert(i, char)
-                    else:  # 'ё'
-                        word[i] = char
-                stress_pred = ''.join(word)
+                raise NotImplementedError("The 'all' selection method is not "
+                                          'implemented yet.')
             else:
                 raise NotImplementedError(f"The '{selection}' selection "
                                           'method does not exist.')
-        return g2p.lookup(stress_pred)[0][0]
         # TODO Are Y and S still implemented in g2p.twolc?
         # if out_token.endswith("я") or out_token.endswith("Я"):
         #     out_token += "Y"

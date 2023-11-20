@@ -45,7 +45,7 @@ class Feature:
         sig = inspect.signature(func)
         return {name: param.default
                 for name, param in sig.parameters.items()
-                if param.default != inspect._empty}  # type: ignore
+                if param.default != inspect._empty}
 
     def set_default_kwargs(self, default_kwargs=None):
         """Set kwargs to be used in __call__() by default.

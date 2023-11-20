@@ -1,13 +1,10 @@
 from functools import partial
 import inspect
-from pkg_resources import resource_filename
 import re
 
 import udar
 from udar.features import ALL
 
-
-RSRC_PATH = resource_filename('udar', 'resources/')
 
 # TODO implement text_path to share resources across tests
 text_path = 'resources/sent1.txt'
