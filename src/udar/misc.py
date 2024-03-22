@@ -145,3 +145,167 @@ def combine_stress(stresses: Union[List[str], Set[str]]) -> str:
 def unspace_punct(in_str: str):
     """Attempt to remove spaces before punctuation."""
     return re.sub(r' +([.?!;:])', r'\1', in_str)
+
+
+def tixonov(from_cache=True):
+    cache_path = f'{FST_DIR}/Tixonov_dict.pkl'
+    if from_cache:
+
+    tix_dict = defaultdict(list)
+    with open(f'{RSRC_DIR}/src/Tixonov.txt') as f:
+        for line in f:
+            parse = line.strip().replace('`', '').split('/')
+            parse = tuple([e for e in parse if e])
+            lemma = ''.join(parse)
+            noncyr = re.sub(r'[a-яё\-]', '', lemma, flags=re.I)
+            if noncyr:
+                print('Non-cyrillic characters:', lemma, noncyr, file=stderr)
+            # TODO verify and remove duplicates
+            # if lemma in tix_dict:
+            #     print(f'\t{lemma} already in tix_dict:',
+            #           f'old: "{tix_dict[lemma]}"',
+            #           f'new: "{parse}"', file=stderr)
+            if parse not in tix_dict[lemma]:
+                tix_dict[lemma].append(parse)
+
+    for lemma, parses in tix_dict.items():
+        tix_dict[lemma] = sorted(parses)
+
+    return tix_dict
+
+
+def tixonov_morph_count():
+    cache_path = f'{FST_DIR}/Tix_morph_count_dict.pkl'
+    tix_dict = tixonov()
+
+    morph_count_dict = {}
+    for lemma, parses in tix_dict.items():
+        morph_count_dict[lemma] = mean(len(p) for p in parses)
+    return morph_count_dict
+
+
+def lexmin():
+    cache_path = f'FST_DIR}/lexmin_dict.pkl'
+    lexmin_dict = {}
+    for level in ['A1', 'A2', 'B1', 'B2']:
+        with open(f'{RSRC_DIR}/src/lexmin_{level}.txt') as f:
+            for lemma in f:
+                lemma = lemma.strip()
+                if lemma:
+                    # TODO verify and remove duplicates
+                    # if lemma in lexmin_dict:
+                    #     print(f'\t{lemma} ({level}) already in lexmin',
+                    #           lexmin_dict[lemma], file=stderr)
+                    lexmin_dict[lemma] = level
+    return lexmin_dict
+
+
+def kelly():
+    cache_path = f'FST_DIR}/kelly_dict.pkl'
+    kelly_dict = {}
+    with open(f'{RSRC_DIR}/src/KellyProject_Russian_M3.txt') as f:
+        for line in f:
+            level, freq, lemma = line.strip().split('\t')
+            # TODO verify and remove duplicates
+            # if lemma in kelly_dict:
+            #     print(f'{lemma} ({level}) already in kelly_dict',
+            #           kelly_dict[lemma], file=stderr)
+            kelly_dict[lemma] = level
+    return kelly_dict
+
+
+def rnc_freq():
+    """Token frequency data from Russian National Corpus 1-gram data.
+    taken from: http://ruscorpora.ru/corpora-freq.html
+    """
+    cache_path = f'FST_DIR}/RNC_tok_freq_dict.pkl'
+    RNC_tok_freq_dict = {}
+    with open(f'{RSRC_DIR}/src/RNC_1grams-3.txt') as f:
+        for line in f:
+            tok_freq, tok = line.split()
+            if tok in RNC_tok_freq_dict:
+                print(f'\t{tok} already in RNC_tok_freq_dict '
+                      f'({tok_freq} vs {RNC_tok_freq_dict[tok]})', file=stderr)
+                continue
+            RNC_tok_freq_dict[tok] = float(tok_freq)
+    return RNC_tok_freq_dict
+
+
+def rnc_freq_rank():
+    """Token frequency data from Russian National Corpus 1-gram data.
+    taken from: http://ruscorpora.ru/corpora-freq.html
+    """
+    cache_path = f'FST_DIR}/RNC_tok_freq_rank_dict.pkl'
+    RNC_tok_freq_rank_dict = {}
+    with open(f'{RSRC_DIR}/src/RNC_1grams-3.txt') as f:
+        rank = 0
+        last_freq = None
+        for i, line in enumerate(f, start=1):
+            tok_freq, tok = line.split()
+            if tok_freq != last_freq:
+                rank = i
+            if tok in RNC_tok_freq_rank_dict:
+                print(f'\t{tok} already in RNC_tok_freq_rank_dict '
+                      f'({rank} vs {RNC_tok_freq_rank_dict[tok]})', file=stderr)
+                continue
+            RNC_tok_freq_rank_dict[tok] = rank
+    return RNC_tok_freq_rank_dict
+
+
+def sharoff():
+    # Lemma freq data from Serge Sharoff.
+    # Taken from: http://www.artint.ru/projects/frqlist/frqlist-en.php
+
+    # TODO what about http://dict.ruslang.ru/freq.php ?
+
+    cache_path = f'FST_DIR}/Sharoff_lem_freq_dict.pkl'
+
+    Sharoff_lem_freq_dict = {}
+    with open(f'{RSRC_DIR}/src/Sharoff_lemmaFreq.txt') as f:
+        for line in f:
+            line_num, freq, lemma, pos = line.split()
+            if lemma in Sharoff_lem_freq_dict:
+                print(f'{lemma} already in Sharoff_lem_freq_dict. '
+                      f'old: {Sharoff_lem_freq_dict[lemma]} '
+                      f'new: {(freq, line_num, pos)}', file=stderr)
+                continue
+            Sharoff_lem_freq_dict[lemma] = float(freq)
+    return Sharoff_lem_freq_dict
+
+
+def sharoff_rank():
+    # Lemma freq data from Serge Sharoff.
+    # Taken from: http://www.artint.ru/projects/frqlist/frqlist-en.php
+
+    # TODO what about http://dict.ruslang.ru/freq.php ?
+
+    cache_path = f'FST_DIR}/Sharoff_lem_freq_rank_dict.pkl'
+
+    Sharoff_lem_freq_rank_dict = {}
+    with open(f'{RSRC_DIR}/src/Sharoff_lemmaFreq.txt') as f:
+        rank = None
+        last_freq = None
+        for i, line in enumerate(f, start=1):
+            line_num, freq, lemma, pos = line.split()
+            if freq != last_freq:
+                rank = i
+            if lemma in Sharoff_lem_freq_rank_dict:
+                print(f'{lemma} already in Sharoff_lem_freq_rank_dict. '
+                      f'old: {Sharoff_lem_freq_rank_dict[lemma]} '
+                      f'new: {(rank, line_num, pos)}', file=stderr)
+                continue
+            Sharoff_lem_freq_rank_dict[lemma] = rank
+    return Sharoff_lem_freq_rank_dict
+
+
+def cache_rsrc(resource, fname) --> bool:
+    """Attempt to cache (pickle) resource to `fname`."""
+    with open(fname, 'w') as f:
+        pickle.dump(resource)
+
+
+def uncache_rsrc(fname):
+    """Attempt to uncache (unpickle) resource from `fname`."""
+    with open(fname) as f:
+        resource  = pickle.load(f)
+    return resource
