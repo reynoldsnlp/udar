@@ -90,7 +90,7 @@ def test_cg_conv_equivalence():
                '| cg-conv -fC',
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
-    assert output == doc.cg3_str(annotated=False).replace('\n\n', '\n') + '\n'
+    assert output == doc.cg3_str(annotated=False).replace('\n\n', '\n')
 
 
 def test_cg3_parse():
@@ -107,7 +107,7 @@ def test_cg3_parse():
                    shell=True)
         output, error = p1.communicate('\n'.join(tok.text for tok in sent))
         output_stream.append(output)
-    assert ''.join(output_stream) == doc.cg3_str(annotated=False)
+    assert ''.join(s + '\n' for s in output_stream) == doc.cg3_str(annotated=False)
 
 
 def test_cg3_parse_w_traces():
@@ -124,7 +124,7 @@ def test_cg3_parse_w_traces():
                    shell=True)
         output, error = p1.communicate('\n'.join(tok.text for tok in sent))
         output_stream.append(output)
-    assert ''.join(output_stream) == doc.cg3_str(annotated=False, traces=True)
+    assert ''.join(s + '\n' for s in output_stream) == doc.cg3_str(annotated=False, traces=True)  # noqa: E501
 
 
 def test_from_hfst():

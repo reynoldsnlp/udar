@@ -106,7 +106,7 @@ def test_cg_conv_equivalence():
     p1 = Popen(f'hfst-lookup {FST_DIR}/analyser-gt-desc.hfstol | cg-conv -fC',  # noqa: E501
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
-    assert output == sent.cg3_str(annotated=False) + '\n'
+    assert output == sent.cg3_str(annotated=False)
 
 
 def test_cg3_parse():
@@ -118,7 +118,7 @@ def test_cg3_parse():
     p1 = Popen(f'hfst-lookup {FST_DIR}/analyser-gt-desc.hfstol | cg-conv -fC | vislcg3 -g {RSRC_DIR}/disambiguator.cg3',  # noqa: E501
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
-    assert output == sent.cg3_str(annotated=False) + '\n'
+    assert output == sent.cg3_str(annotated=False)
 
 
 def test_cg3_parse_w_traces():
@@ -130,7 +130,7 @@ def test_cg3_parse_w_traces():
     p1 = Popen(f'hfst-lookup {FST_DIR}/analyser-gt-desc.hfstol | cg-conv -fC | vislcg3 -t -g {RSRC_DIR}/disambiguator.cg3',  # noqa: E501
                stdin=PIPE, stdout=PIPE, universal_newlines=True, shell=True)
     output, error = p1.communicate(toks)
-    assert output == sent.cg3_str(annotated=False, traces=True) + '\n'
+    assert output == sent.cg3_str(annotated=False, traces=True)
 
 
 def test_from_hfst():
