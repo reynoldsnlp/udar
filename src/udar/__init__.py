@@ -16,4 +16,6 @@ from .transliterate import *  # noqa: F401, F403
 
 from .features import *  # noqa: F401, F403
 
-from .version import version as __version__  # noqa: F401
+from importlib.metadata import version as _version
+
+__version__ = _version("udar")

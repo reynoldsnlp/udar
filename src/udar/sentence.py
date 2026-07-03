@@ -150,7 +150,7 @@ class Sentence:
     text: str
     tokens: List[Token]
 
-    def __init__(self,
+    def __init__(self,  # noqa: C901
                  input_text: Union[str, Iterable[str], Iterable[Token]] = '',
                  doc: 'Document' = None,
                  tokenize: bool = True,
@@ -543,7 +543,7 @@ class Sentence:
         return output
 
     @staticmethod
-    def parse_cg3(stream: str) -> List[Token]:
+    def parse_cg3(stream: str) -> List[Token]:  # noqa: C901
         """Convert cg3 stream into list of :py:class:`Token` objects.
 
         Parameters

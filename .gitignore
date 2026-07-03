@@ -6,9 +6,13 @@ coverage.xml
 .coverage
 cov_annotate/
 .mypy_cache
+.pytest_cache
+.ruff_cache
 tmp/
+build/
+dist/
+.venv/
 _build
 _static
 _templates
 _server_config.py
-src/udar/version.py

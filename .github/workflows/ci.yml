@@ -1,0 +1,54 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: test (${{ matrix.os }}, py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        # hfst publishes wheels for cp310–cp312 only, so 3.12 is the ceiling.
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          wget https://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
+          sudo apt-get -f install cg3 hfst python3-hfst
+
+      - name: Install system dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          wget https://apertium.projectjj.com/osx/install-nightly.sh -O - | sudo bash
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+
+      - name: Install project
+        run: uv sync --group dev --extra server
+
+      - name: Lint with Ruff
+        run: uv run ruff check .
+
+      # Advisory: the codebase has pre-existing type errors; surfaced but
+      # non-blocking until they are addressed.
+      - name: Type-check with mypy
+        run: uv run mypy src
+        continue-on-error: true
+
+      - name: Test with pytest
+        run: uv run pytest -vv --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}

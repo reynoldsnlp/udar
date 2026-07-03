@@ -1,12 +1,84 @@
 [build-system]
-requires = [
-    "setuptools>=61",
-    "setuptools_scm[toml]>=3.4",
-    "toml",
-    "wheel"
+requires = ["uv_build>=0.9,<0.10"]
+build-backend = "uv_build"
+
+[project]
+name = "udar"
+version = "0.1.11"
+description = "Detailed part-of-speech tagger for (accented) Russian."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{ name = "Robert Reynolds", email = "ReynoldsRJR@gmail.com" }]
+keywords = ["russian", "nlp", "morphology", "part-of-speech", "finite-state"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: Pytest",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: Russian",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Education",
+    "Topic :: Education :: Computer Aided Instruction (CAI)",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Human Machine Interfaces",
+    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Utilities",
+    "Typing :: Typed",
+]
+dependencies = [
+    "bs4",     # conversion/external2udar.py
+    "hfst",    # core FST engine
+    "pexpect", # sentence.py (top-level import)
+    "stanza",  # misc.py imports at module load -> core
 ]
 
-build-backend = "setuptools.build_meta"
+[project.urls]
+Homepage = "https://github.com/reynoldsnlp/udar"
+Repository = "https://github.com/reynoldsnlp/udar"
 
-[tool.setuptools_scm]
-write_to = "src/udar/version.py"
+[project.optional-dependencies]
+server = ["fastapi", "uvicorn"] # src/udar/server/
+nltk = ["nltk"]                 # sentence.py conditional import
+experiments = ["pandas"]        # src/udar/experiments/
+docs = ["sphinx", "sphinx-autodoc-typehints"]
+
+[dependency-groups]
+dev = ["pytest>=7", "pytest-cov", "pytest-timeout", "mypy", "ruff"]
+
+[tool.uv.build-backend]
+module-name = "udar"
+source-exclude = ["**/*.ipynb", "**/.ipynb_checkpoints", "**/__pycache__", "**/_server_config.py"]
+wheel-exclude = ["**/*.ipynb", "**/.ipynb_checkpoints", "**/__pycache__", "**/_server_config.py"]
+
+[tool.ruff]
+extend-exclude = ["*.ipynb"]
+
+[tool.ruff.lint]
+# Mirror the coverage of the previous flake8 setup (E/W/F/C90/N); flake8 never
+# sorted imports, so isort ("I") is intentionally left out to avoid churn.
+select = ["E", "F", "W", "N", "C90"]
+# Allow non-snake_case names and module names for linguistic identifiers
+# (e.g. L2_errors, OC_conflicts, UD_conflicts) — carried over from flake8.
+ignore = ["N802", "N803", "N806", "N999"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.mypy]
+warn_unused_configs = true
+warn_unused_ignores = true
+warn_unreachable = true
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+addopts = "--cov=udar --cov-report=term-missing --doctest-modules"

@@ -1,7 +1,7 @@
 # UDAR(enie)
 
-[![Actions Status](https://github.com/reynoldsnlp/udar/workflows/Test%20and%20Publish/badge.svg)](https://github.com/reynoldsnlp/udar/actions)
-[![codecov](https://codecov.io/gh/reynoldsnlp/udar/branch/master/graph/badge.svg)](https://codecov.io/gh/reynoldsnlp/udar)
+[![CI Status](https://github.com/reynoldsnlp/udar/actions/workflows/ci.yml/badge.svg)](https://github.com/reynoldsnlp/udar/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/reynoldsnlp/udar/branch/main/graph/badge.svg)](https://codecov.io/gh/reynoldsnlp/udar)
 
 **U**DAR **D**oes **A**ccented **R**ussian: A finite-state morphological
 analyzer of Russian that handles stressed wordforms.

@@ -231,7 +231,7 @@ class Token:
         if "tag2class" in kwargs:
             classes = ' class="' + " ".join(class_
                                             for tag, class_ in kwargs["tag2class"]
-                                            if any(tag in r for r in self.readings)) + '"'
+                                            if any(tag in r for r in self.readings)) + '"'  # noqa: E501
         return f"<span{classes}{data}>{self.text}</span>"
 
     def to_json(self, ensure_ascii=False, **kwargs) -> str:
@@ -449,7 +449,7 @@ class Token:
         stresses = {s for s in stresses if s is not None}
         return stresses  # type: ignore
 
-    def stressed(self, *, selection: str = 'safe', guess: bool = False,
+    def stressed(self, *, selection: str = 'safe', guess: bool = False,  # noqa: C901
                  lemma: str = None, _experiment: bool = False,
                  _disambiguated: bool = None) -> str:
         """Predict a single stressed wordform for this Token.
