@@ -25,7 +25,15 @@ jobs:
       - name: Install system dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          wget https://apertium.projectjj.com/osx/install-nightly.sh -O - | sudo bash
+          # The apertium install script installs the tools to /usr/local, then
+          # exits non-zero on a fresh machine (set -e + a grep for an existing
+          # PYTHONPATH that finds nothing). Tolerate that spurious exit...
+          wget https://apertium.projectjj.com/osx/install-nightly.sh -O - | sudo bash || true
+          # ...then verify the CLI tools we actually need are present, so a
+          # genuine install failure still fails the job.
+          for tool in vislcg3 cg-conv hfst-tokenize hfst-lookup; do
+            command -v "$tool" || { echo "::error::$tool not installed"; exit 1; }
+          done
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v6
